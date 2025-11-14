@@ -25,7 +25,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Easy SVG. If not, see license.txt .
 
-© 2017 - 2025 by Benjamin Zekavica. All rights reserved.
+© 2017 - 2026 by Benjamin Zekavica. All rights reserved.
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
