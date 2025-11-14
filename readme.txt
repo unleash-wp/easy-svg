@@ -85,7 +85,11 @@ Please check out my repository on Github:
 * Support for new WordPress version
 * Support Gutenberg Version
 * Updated SVG Sanitizer Package
-* Security fix for CVE-2025-12451 
+* Security: Implemented trusted server-side SVG filetype detection using wp_check_filetype_and_ext().
+* Security: Sanitizing is now enforced for all genuine SVG uploads.
+* Security: Rejecting spoofed or inconsistent SVG uploads.
+* Security: Hardened AJAX handler with capability checks and nonce verification.
+* Improved code quality to match WordPress Plugin Guidelines.
 
 = 4.0: September 2, 2025 =
 * Support for new WordPress version
