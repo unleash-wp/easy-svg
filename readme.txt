@@ -4,9 +4,9 @@ Plugin URI: https://wordpress.org/plugins/easy-svg/
 Contributors: Benjamin_Zekavica
 Tags: svg, svg support, upload svg, svg media, easy-svg
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 4.0
+Stable tag: 4.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.txt
 
@@ -81,6 +81,12 @@ Please check out my repository on Github:
 
 
 == Changelog ==
+= 4.1: November 14, 2025 =
+* Support for new WordPress version
+* Support Gutenberg Version
+* Updated SVG Sanitizer Package
+* Security fix for CVE-2025-12451 
+
 = 4.0: September 2, 2025 =
 * Support for new WordPress version
 * Support Gutenberg Version
