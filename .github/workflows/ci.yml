@@ -33,6 +33,11 @@ jobs:
       - name: Tests
         run: php tests/run.php
 
+      # run.php shells out to this as well; the duplication is deliberate, so
+      # removing that call cannot make the checks vanish quietly.
+      - name: The icon core, in its own process
+        run: php tests/icons.php
+
       # `if grep; then exit 1; fi`, not `! grep`. POSIX ignores -e when a
       # command's status is inverted with `!`, so the guard would set the step
       # to failure and the shell would carry straight on.
