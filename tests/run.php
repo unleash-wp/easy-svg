@@ -284,6 +284,18 @@ check( 'BELL: no filter on the plugin update transient', false === strpos( $sour
 check( 'BELL: no plugins_api hook', false === strpos( $source, 'plugins_api' ) );
 check( 'SILENCE: and the file was actually read', '' !== $source );
 
+// ─── The icon core, in its own process ───────────────────────────────────────
+
+/*
+ * Separate, because that file stubs `apply_filters` with a real hook registry
+ * to prove the limit filter works -- and this file's stub deliberately does
+ * something else.
+ */
+$icons_out    = array();
+$icons_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/icons.php' ) . ' 2>&1', $icons_out, $icons_status );
+check( 'the icon checks pass: ' . ( $icons_out[ count( $icons_out ) - 1 ] ?? 'no output' ), 0 === $icons_status );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
