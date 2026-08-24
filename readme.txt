@@ -6,7 +6,7 @@ Tags: svg, svg support, upload svg, svg media, easy-svg
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 4.1
+Stable tag: 4.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.txt
 
@@ -80,7 +80,31 @@ Please check out my repository on Github:
 2. Upload direct into your WordPress Media
 
 
+== For add-on authors ==
+
+This plugin offers exactly one function, and everything else in it is an
+internal detail that may be renamed or removed:
+
+`easy_svg_sanitizer()` returns a sanitizer configured with THIS SITE'S
+allowed tags and attributes, or null when the sanitizing library is not
+loaded. `EASY_SVG_API` is an integer that changes only when that function
+changes shape.
+
+Use it rather than the classes behind it. A site widens the allow-list
+through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters,
+so an add-on configured any other way removes things this site never would,
+and reports problems that do not exist.
+
+This plugin updates through wordpress.org and carries no update mechanism of
+its own.
+
 == Changelog ==
+= 4.2 =
+* Security: SVGs that do not arrive through the media uploader are now sanitized too. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left media_sideload_image(), WP-CLI `wp media import` and every importer unchecked.
+* Removed an AJAX endpoint that could never fire. It was registered under a hook name WordPress does not build, so it had not worked in any released version, and nothing called it.
+* Added easy_svg_sanitizer() and EASY_SVG_API for add-ons, so an add-on cleans files exactly the way this site does. See "For add-on authors" below.
+* First automated test suite.
+
 = 4.1: November 14, 2025 =
 * Support for new WordPress version
 * Support Gutenberg Version
