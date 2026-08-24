@@ -46,6 +46,12 @@ function add_action( string $hook, $cb, int $priority = 10, int $args = 1 ): boo
 	return true;
 }
 function apply_filters( string $hook, $value ) {
+	// Real enough to prove the allow-list is reachable. A stub that always
+	// returned its input would let a plugin ignore the filter entirely and
+	// still pass every check below.
+	foreach ( $GLOBALS['hooks'][ $hook ] ?? [] as $cb ) {
+		$value = $cb( $value );
+	}
 	return $value;
 }
 function __( string $text, string $domain = '' ): string {
@@ -165,6 +171,118 @@ unlink( $file['tmp_name'] );
 check( 'SILENCE: an ordinary image passes straight through', ! isset( $after['error'] ) );
 
 $GLOBALS['filetype'] = [ 'ext' => 'svg', 'type' => 'image/svg+xml' ];
+
+// ─── The contract an add-on may rely on ──────────────────────────────────────
+
+/*
+ * One documented function, and a number that says what shape it has.
+ *
+ * An add-on that reached for `esw_svg_tags` by name would pin every rename in
+ * this file, and the breakage would be silent: `class_exists()` goes false, the
+ * add-on decides this plugin is not installed, and it tells a paying customer
+ * to activate something that is already active.
+ */
+check( 'BELL: the API version is declared', defined( 'EASY_SVG_API' ) && is_int( EASY_SVG_API ) );
+check( 'BELL: the sanitiser is reachable by function', function_exists( 'easy_svg_sanitizer' ) );
+check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
+
+// Two callers must not share one object. The old load-time global was
+// reconfigured on every upload, so whichever ran last decided what the other
+// one stripped.
+check( 'SILENCE: each call gets its own', easy_svg_sanitizer() !== easy_svg_sanitizer() );
+
+/*
+ * The upload path goes through that same function, proved at the BYTES.
+ *
+ * A site widens the allow-list through `esw_svg_allowed_tags`, and this asserts
+ * the widening REACHES the upload. If the upload were ever wired to the
+ * library defaults instead, the add-on and the uploader would disagree about
+ * this site while both looked correct on their own.
+ */
+add_filter(
+	'esw_svg_allowed_tags',
+	static function ( $tags ) {
+		$tags[] = 'script';
+		return $tags;
+	}
+);
+
+$file = file_array( $scripted );
+$callback( $file );
+$kept = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+
+check( 'BELL: a site that allows a tag keeps it on upload', false !== strpos( $kept, '<script' ) );
+
+// And the add-on sees the same site.
+$widened = easy_svg_sanitizer();
+$out     = $widened->sanitize( $scripted );
+check( 'BELL: and an add-on asking through the API sees the same allow-list', false !== strpos( (string) $out, '<script' ) );
+
+/*
+ * The same for attributes, and it is not a duplicate: a probe showed that
+ * dropping `setAllowedAttrs()` from the API left every other check green. Tags
+ * and attributes are two allow-lists and two calls, so they need two proofs.
+ */
+add_filter(
+	'esw_svg_allowed_attributes',
+	static function ( $attrs ) {
+		$attrs[] = 'onload';
+		return $attrs;
+	}
+);
+
+$handler = '<svg xmlns="http://www.w3.org/2000/svg"><rect onload="x()" width="1"/></svg>';
+
+$file = file_array( $handler );
+$callback( $file );
+$kept_attr = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+
+check( 'BELL: a site that allows an attribute keeps it on upload', false !== strpos( $kept_attr, 'onload' ) );
+check(
+	'BELL: and the API hands an add-on that same attribute list',
+	false !== strpos( (string) easy_svg_sanitizer()->sanitize( $handler ), 'onload' )
+);
+
+// ─── The two places a version is written ─────────────────────────────────────
+
+/*
+ * wordpress.org serves whatever `Stable tag` names, and the plugin header is
+ * what a site compares against to decide it needs an update. Let them drift and
+ * the directory serves one version while every install believes it has another
+ * -- silently, and in the direction where the update never arrives.
+ */
+$readme = (string) file_get_contents( $root . '/readme.txt' );
+
+preg_match( '/^\s*\*?\s*Version:\s*(\S+)/mi', (string) file_get_contents( $root . '/easy-svg.php' ), $header_v );
+preg_match( '/^Stable tag:\s*(\S+)/mi', $readme, $stable_v );
+
+check( 'the plugin header names a version', isset( $header_v[1] ) );
+check( 'the readme names a stable tag', isset( $stable_v[1] ) );
+check(
+	'BELL: and they are the same: ' . ( $header_v[1] ?? '?' ) . ' vs ' . ( $stable_v[1] ?? '?' ),
+	isset( $header_v[1], $stable_v[1] ) && $header_v[1] === $stable_v[1]
+);
+check( 'the changelog mentions it', false !== strpos( $readme, '= ' . ( $header_v[1] ?? 'x' ) ) );
+
+// ─── This plugin must never update itself ────────────────────────────────────
+
+/*
+ * wordpress.org serves the updates for anything hosted there, and a plugin in
+ * the directory that also updates itself from somewhere else is rejected --
+ * rightly, because it would be a way to ship code the review never saw.
+ *
+ * The paid add-on is where the licensed updater lives. Asserted here as a
+ * SHAPE, because the next attempt will be spelled differently: an Update URI
+ * header, a filter on the update transient, or a plugins_api hook.
+ */
+$source = (string) file_get_contents( $root . '/easy-svg.php' );
+
+check( 'BELL: no Update URI header', 1 !== preg_match( '/^\s*\*?\s*Update URI:/mi', $source ) );
+check( 'BELL: no filter on the plugin update transient', false === strpos( $source, 'site_transient_update_plugins' ) );
+check( 'BELL: no plugins_api hook', false === strpos( $source, 'plugins_api' ) );
+check( 'SILENCE: and the file was actually read', '' !== $source );
 
 // ─── The suite has to be able to fail ────────────────────────────────────────
 

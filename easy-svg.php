@@ -3,7 +3,7 @@
 Plugin Name:  Easy SVG Support
 Plugin URI:   https://wordpress.org/plugins/easy-svg/
 Description:  Add SVG support for WordPress.
-Version:      4.1
+Version:      4.2
 Author:       Benjamin Zekavica
 Author URI:   https://www.benjamin-zekavica.de
 Requires PHP: 8.0
@@ -38,10 +38,6 @@ $composer_package = __DIR__ . '/vendor/autoload.php';
 if ( file_exists( $composer_package ) ) {
     require $composer_package;
 }
-
-// SVG Sanitizer: Using enshrined\svgSanitize\Sanitizer.
-use enshrined\svgSanitize\Sanitizer;
-$sanitizer = new Sanitizer();
 
 /**
  * SVG Sanitizer Allowed Tags Class.
@@ -78,16 +74,62 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 }
 
 /**
+ * The version of the contract this plugin offers to add-ons.
+ *
+ * Bumped only when `easy_svg_sanitizer()` changes shape. Everything else in
+ * this file is an internal detail and may be renamed, moved or deleted without
+ * touching this number.
+ */
+define( 'EASY_SVG_API', 1 );
+
+/**
+ * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
+ *
+ * ─── Why an add-on gets a function and not the classes ──────────────────────
+ *
+ * `esw_svg_tags` and `esw_svg_attributes` are internals. An add-on that reaches
+ * for them by name pins every rename in this file, and the breakage is silent:
+ * `class_exists()` goes false, the add-on decides the free plugin is not
+ * installed, and it tells a paying customer to install something that is
+ * already active. One documented function instead, and the rest is free to move.
+ *
+ * ─── Why this plugin uses it too ────────────────────────────────────────────
+ *
+ * Because otherwise it is a second path. The allow-list here is not the
+ * library's default -- it goes through `esw_svg_allowed_tags`, which sites
+ * widen for `style` or for animation elements -- and an add-on configured any
+ * other way would report and remove things this site never would. One
+ * function, used by both, is the only version of that which cannot drift.
+ *
+ * @return \enshrined\svgSanitize\Sanitizer|null Null when the library is absent.
+ */
+function easy_svg_sanitizer() {
+    if ( ! class_exists( '\enshrined\svgSanitize\Sanitizer' ) ) {
+        return null;
+    }
+
+    // A fresh instance per call. The old shared global was reconfigured on
+    // every upload, so two callers meant whichever ran last decided what the
+    // other one stripped.
+    $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+    $sanitizer->setAllowedTags( new esw_svg_tags() );
+    $sanitizer->setAllowedAttrs( new esw_svg_attributes() );
+
+    return $sanitizer;
+}
+
+/**
  * Check and sanitize SVG file content.
  *
  * @param string $file Path to the file.
  * @return bool Returns true if file was sanitized successfully.
  */
 function esw_svg_file_checker( $file ) {
-    global $sanitizer;
+    $sanitizer = easy_svg_sanitizer();
 
-    $sanitizer->setAllowedTags( new esw_svg_tags() );
-    $sanitizer->setAllowedAttrs( new esw_svg_attributes() );
+    if ( null === $sanitizer ) {
+        return false;
+    }
 
     $unclean = file_get_contents( $file );
 
