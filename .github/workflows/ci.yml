@@ -1,5 +1,11 @@
 name: CI
-on: { push: { branches: [master] }, pull_request: {} }
+# workflow_dispatch as well: without it a run can only be provoked by pushing,
+# and re-running after fixing something OUTSIDE the code -- a billing setting,
+# a repository going public -- means an empty commit.
+on:
+  push: { branches: [master] }
+  pull_request: {}
+  workflow_dispatch: {}
 
 jobs:
   test:
@@ -17,8 +23,12 @@ jobs:
       # Discover the set rather than name directories. A list written today
       # stops covering the file somebody adds tomorrow, and the file it stops
       # covering is never the one you expected.
+      # `vendor/` is excluded and nothing else is. It is third-party code that
+      # ships as released, and 27 files of it buried the output from ours.
+      # Everything WE write is discovered rather than named -- a list written
+      # today stops covering the file added tomorrow.
       - name: Lint
-        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+        run: find . -name '*.php' -not -path './.git/*' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
 
       - name: Tests
         run: php tests/run.php
