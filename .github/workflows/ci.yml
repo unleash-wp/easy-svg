@@ -1,0 +1,35 @@
+name: CI
+on: { push: { branches: [master] }, pull_request: {} }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      # The floor the plugin header promises, and something current. A promise
+      # in a header that nothing runs against is a promise to 40,000 sites that
+      # nobody has checked.
+      matrix: { php: ['8.0', '8.4'] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '${{ matrix.php }}' }
+
+      # Discover the set rather than name directories. A list written today
+      # stops covering the file somebody adds tomorrow, and the file it stops
+      # covering is never the one you expected.
+      - name: Lint
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Tests
+        run: php tests/run.php
+
+      # `if grep; then exit 1; fi`, not `! grep`. POSIX ignores -e when a
+      # command's status is inverted with `!`, so the guard would set the step
+      # to failure and the shell would carry straight on.
+      - name: No hook name WordPress cannot fire
+        run: |
+          set -euo pipefail
+          if grep -rnE "add_(action|filter)\( *'[a-z_]*[A-Z]" --include='*.php' . ; then
+            echo "::error::a hook name carries a capital letter; core builds these names in lower case"
+            exit 1
+          fi
