@@ -162,6 +162,29 @@ function esw_svg_upload_filter_check_init( $file ) {
 }
 add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
 
+/*
+ * The same check for files that do not come from the media uploader.
+ *
+ * WordPress builds this hook name from the action:
+ *
+ *     $file = apply_filters( "{$action}_prefilter", $file );   wp-admin/includes/file.php
+ *
+ * and `$action` is `wp_handle_upload` OR `wp_handle_sideload`. Listening to the
+ * first one only covered a person choosing a file in the media library, and
+ * nothing else. Everything that sideloads went in unchecked:
+ *
+ *   - `media_sideload_image()`, which themes and page builders use to pull in
+ *     remote assets
+ *   - WP-CLI `wp media import`
+ *   - importers, and anything else that hands WordPress a file it already has
+ *
+ * Safe on this path: for a local file WP-CLI copies to a temporary first
+ * (`make_copy()` -> `copy()`), and a remote one arrives through `download_url()`,
+ * so `tmp_name` is always a temporary copy. Sanitising in place never touches
+ * the file somebody passed in.
+ */
+add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
+
 /**
  * Add support for SVG file uploads by modifying MIME types.
  *
@@ -207,64 +230,6 @@ if ( ! function_exists( 'esw_upload_check' ) ) {
         return $checked;
     }
     add_filter( 'wp_check_filetype_and_ext', 'esw_upload_check', 10, 4 );
-}
-
-/**
- * Get SVG file URL in the backend via AJAX.
- *
- * Expected request parameters:
- * - nonce        (generated via wp_create_nonce( 'esw_svg_nonce' ))
- * - attachmentID (integer ID of the attachment)
- *
- * The hook name remains for backward compatibility with existing JS.
- */
-if ( ! function_exists( 'esw_display_svg_files_backend' ) ) {
-
-    function esw_display_svg_files_backend() {
-
-        // Capability check: only allow users who can upload files.
-        if ( ! current_user_can( 'upload_files' ) ) {
-            wp_send_json_error(
-                array(
-                    'message' => __( 'You are not allowed to access this resource.', 'easy-svg' ),
-                ),
-                403
-            );
-        }
-
-        // Nonce verification: expects "nonce" field in the request.
-        check_ajax_referer( 'esw_svg_nonce', 'nonce' );
-
-        // Use POST for AJAX requests.
-        $attachment_id = isset( $_POST['attachmentID'] ) ? absint( $_POST['attachmentID'] ) : 0;
-
-        if ( ! $attachment_id ) {
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Invalid attachment ID.', 'easy-svg' ),
-                )
-            );
-        }
-
-        $url = wp_get_attachment_url( $attachment_id );
-
-        if ( ! $url ) {
-            wp_send_json_error(
-                array(
-                    'message' => __( 'Attachment not found.', 'easy-svg' ),
-                )
-            );
-        }
-
-        wp_send_json_success(
-            array(
-                'url' => esc_url_raw( $url ),
-            )
-        );
-    }
-
-    // Note: Non-standard hook name kept for backwards compatibility.
-    add_action( 'wp_AJAX_svg_get_attachment_url', 'esw_display_svg_files_backend' );
 }
 
 /**
