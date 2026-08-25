@@ -62,6 +62,9 @@ function apply_filters( string $hook, $value ) {
 function __( string $text, string $domain = '' ): string {
 	return $text;
 }
+function _n( string $single, string $plural, int $n, string $domain = '' ): string {
+	return 1 === $n ? $single : $plural;
+}
 function esc_attr( string $text ): string {
 	return $text;
 }
@@ -251,6 +254,38 @@ foreach ( array( 'added', 'deleted', 'limit_reached', 'bad_name', 'empty', 'not_
 check(
 	'SILENCE: and an unknown state says nothing rather than something wrong',
 	function_exists( 'easy_svg_icon_message' ) && '' === easy_svg_icon_message( 'nonsense' )
+);
+
+// ─── A lifted cap is a word, not a number ────────────────────────────────────
+
+/*
+ * An add-on lifting the limit sets it to PHP_INT_MAX, and a screen printing
+ * that says "3 of 9223372036854775807 icons". The message function is checked
+ * directly because the screen itself needs a WordPress that is not here.
+ */
+add_filter( 'easy_svg_icon_limit', static function () { return PHP_INT_MAX; } );
+
+check( 'the filter really lifted it', PHP_INT_MAX === easy_svg_icon_limit() );
+
+check(
+	'BELL: with no limit, the counter does not print a huge number',
+	false === strpos( easy_svg_icon_count_message( 3, PHP_INT_MAX ), (string) PHP_INT_MAX )
+);
+check( 'SILENCE: and it still says how many there are', false !== strpos( easy_svg_icon_count_message( 3, PHP_INT_MAX ), '3' ) );
+check( 'SILENCE: with a real limit both numbers are named', '5 of 5 icons. They appear in the Icon block.' === easy_svg_icon_count_message( 5, 5 ) );
+check( 'SILENCE: and one icon reads as one', false !== strpos( easy_svg_icon_count_message( 1, PHP_INT_MAX ), '1 icon,' ) );
+check(
+	'BELL: with no limit, the refusal does not name a number',
+	false === strpos( easy_svg_icon_message( 'limit_reached' ), (string) PHP_INT_MAX )
+);
+// And it still says something, rather than going quiet and showing an empty
+// notice box.
+check( 'SILENCE: it still has a sentence', '' !== easy_svg_icon_message( 'limit_reached' ) );
+
+$GLOBALS['hooks']['easy_svg_icon_limit'] = [];
+check(
+	'SILENCE: and with a real limit the number is still named',
+	false !== strpos( easy_svg_icon_message( 'limit_reached' ), '5' )
 );
 
 // ─── The contract an add-on may rely on ──────────────────────────────────────

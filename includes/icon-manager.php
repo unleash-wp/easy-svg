@@ -215,6 +215,40 @@ function easy_svg_handle_delete_icon() {
     easy_svg_icons_redirect( 'deleted' );
 }
 
+/**
+ * The line above the table.
+ *
+ * Its own function rather than a ternary inside the markup, because a probe
+ * showed the markup version could not be checked: the screen needs a WordPress
+ * that a plain-PHP suite does not have, so the unlimited branch was untested
+ * and would have shipped saying "3 of 9223372036854775807 icons".
+ *
+ * PHP_INT_MAX compared exactly rather than against a threshold. A threshold is
+ * a number somebody has to guess; this has an obvious right answer.
+ *
+ * @param int $counted How many icons this site has.
+ * @param int $limit   How many it may have.
+ * @return string
+ */
+function easy_svg_icon_count_message( $counted, $limit ) {
+    $counted = (int) $counted;
+
+    if ( PHP_INT_MAX === $limit ) {
+        return sprintf(
+            /* translators: %d: how many icons this site has */
+            _n( '%d icon, and no limit. They appear in the Icon block.', '%d icons, and no limit. They appear in the Icon block.', $counted, 'easy-svg' ),
+            $counted
+        );
+    }
+
+    return sprintf(
+        /* translators: 1: icons stored, 2: how many are allowed */
+        __( '%1$d of %2$d icons. They appear in the Icon block.', 'easy-svg' ),
+        $counted,
+        (int) $limit
+    );
+}
+
 /** The sentence for each state. */
 function easy_svg_icon_message( $state ) {
     $limit = easy_svg_icon_limit();
@@ -222,11 +256,15 @@ function easy_svg_icon_message( $state ) {
     $messages = array(
         'added'         => __( 'Icon added.', 'easy-svg' ),
         'deleted'       => __( 'Icon removed. Pages already using it will show nothing where it was.', 'easy-svg' ),
-        'limit_reached' => sprintf(
-            /* translators: %d: how many icons this site may keep */
-            __( 'This site already has its %d icons. Remove one to add another.', 'easy-svg' ),
-            $limit
-        ),
+        // Not reachable with no limit, and written so it could not be wrong if
+        // it were: a message naming PHP_INT_MAX would be absurd.
+        'limit_reached' => PHP_INT_MAX === $limit
+            ? __( 'That icon was not added.', 'easy-svg' )
+            : sprintf(
+                /* translators: %d: how many icons this site may keep */
+                __( 'This site already has its %d icons. Remove one to add another.', 'easy-svg' ),
+                $limit
+            ),
         'bad_name'      => __( 'That name cannot be turned into an icon name. Use letters and numbers.', 'easy-svg' ),
         'empty'         => __( 'No file was uploaded.', 'easy-svg' ),
         'not_svg'       => __( 'That file could not be read as an SVG, so nothing was stored.', 'easy-svg' ),
@@ -263,14 +301,7 @@ function easy_svg_icons_screen() {
     $icons = easy_svg_stored_icons();
     $limit = easy_svg_icon_limit();
 
-    echo '<p>' . esc_html(
-        sprintf(
-            /* translators: 1: icons stored, 2: how many are allowed */
-            __( '%1$d of %2$d icons. They appear in the Icon block.', 'easy-svg' ),
-            count( $icons ),
-            $limit
-        )
-    ) . '</p>';
+    echo '<p>' . esc_html( easy_svg_icon_count_message( count( $icons ), $limit ) ) . '</p>';
 
     if ( easy_svg_icon_may_add( count( $icons ), $limit ) ) {
         echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
