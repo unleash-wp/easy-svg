@@ -318,6 +318,25 @@ function easy_svg_icons_screen() {
         return;
     }
 
+    /*
+     * An SVG with no width or height attribute is a replaced element with no
+     * intrinsic size, so a browser gives it the CSS default: 300x150, or 300x300
+     * with a square viewBox. Measured in a real browser -- every icon in this
+     * table rendered at 300 pixels and the rows were as tall as the screen.
+     *
+     * `width` on the cell does not help: it sizes the COLUMN, and the graphic
+     * overflows it. The size has to be on a box around the graphic, with the
+     * graphic told to fill that box.
+     *
+     * Inline in the page rather than an enqueued stylesheet: it is four
+     * declarations that exist for one table, and a file would be a request and
+     * a version to keep in step for that.
+     */
+    echo '<style>'
+        . '.easy-svg-icon-preview{display:inline-block;width:2.5rem;height:2.5rem;line-height:0}'
+        . '.easy-svg-icon-preview svg{width:100%;height:100%;display:block}'
+        . '</style>';
+
     echo '<table class="widefat striped"><thead><tr>';
     echo '<th>' . esc_html__( 'Icon', 'easy-svg' ) . '</th>';
     echo '<th>' . esc_html__( 'Name', 'easy-svg' ) . '</th>';
@@ -325,7 +344,7 @@ function easy_svg_icons_screen() {
     echo '<th></th></tr></thead><tbody>';
 
     foreach ( $icons as $icon ) {
-        echo '<tr><td style="width:3rem">';
+        echo '<tr><td style="width:4rem"><span class="easy-svg-icon-preview">';
         /*
          * Printed unescaped, and that is the one place in this file where that
          * is true. It is SVG markup and escaping it would show source code
@@ -338,7 +357,7 @@ function easy_svg_icons_screen() {
          */
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo $icon['content'];
-        echo '</td><td>' . esc_html( $icon['label'] ) . '</td>';
+        echo '</span></td><td>' . esc_html( $icon['label'] ) . '</td>';
         echo '<td><code>' . esc_html( easy_svg_icon_name( $icon['slug'] ) ) . '</code></td>';
         echo '<td><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( EASY_SVG_ICON_NONCE );
