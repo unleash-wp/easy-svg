@@ -3,7 +3,7 @@
 Plugin Name:  Easy SVG Support
 Plugin URI:   https://wordpress.org/plugins/easy-svg/
 Description:  Add SVG support for WordPress.
-Version:      4.2
+Version:      4.3
 Author:       Benjamin Zekavica
 Author URI:   https://www.benjamin-zekavica.de
 Requires PHP: 8.0
@@ -76,11 +76,21 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 /**
  * The version of the contract this plugin offers to add-ons.
  *
- * Bumped only when `easy_svg_sanitizer()` changes shape. Everything else in
- * this file is an internal detail and may be renamed, moved or deleted without
- * touching this number.
+ * The surface it covers:
+ *
+ *     easy_svg_sanitizer()      a sanitiser with this site's allow-list
+ *     easy_svg_icon_limit       filter: how many icons this site may keep
+ *
+ * Bumped only when one of those changes shape. Everything else in this plugin
+ * is an internal detail and may be renamed, moved or deleted without touching
+ * this number.
+ *
+ * 2 added the icon limit filter. An add-on that lifts the cap needs to know
+ * whether the cap exists at all, and a version string cannot say that -- 4.3
+ * with the feature and 4.3.1 without it are both "4.3" to a comparison
+ * somebody wrote in a hurry.
  */
-define( 'EASY_SVG_API', 1 );
+define( 'EASY_SVG_API', 2 );
 
 /**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.

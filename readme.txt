@@ -6,7 +6,7 @@ Tags: svg, svg support, upload svg, svg media, easy-svg
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 4.2
+Stable tag: 4.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.txt
 
@@ -87,8 +87,13 @@ internal detail that may be renamed or removed:
 
 `easy_svg_sanitizer()` returns a sanitizer configured with THIS SITE'S
 allowed tags and attributes, or null when the sanitizing library is not
-loaded. `EASY_SVG_API` is an integer that changes only when that function
-changes shape.
+loaded.
+
+`easy_svg_icon_limit` is a filter over how many icons this site may keep.
+
+`EASY_SVG_API` is an integer that changes only when one of those changes
+shape. It is 2. Compare against it rather than against a version string:
+a release number moves for reasons that have nothing to do with this.
 
 Use it rather than the classes behind it. A site widens the allow-list
 through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters,
@@ -99,6 +104,11 @@ This plugin updates through wordpress.org and carries no update mechanism of
 its own.
 
 == Changelog ==
+= 4.3 =
+* Icons: manage up to five SVG icons and use them in the Icon block. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen says so and everything else works as before.
+* Every icon is sanitized with this site's own allowed-tag settings before it is stored, and what is stored is the cleaned markup.
+* Added the easy_svg_icon_limit filter and raised EASY_SVG_API to 2.
+
 = 4.2 =
 * Security: SVGs that do not arrive through the media uploader are now sanitized too. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left media_sideload_image(), WP-CLI `wp media import` and every importer unchecked.
 * Removed an AJAX endpoint that could never fire. It was registered under a hook name WordPress does not build, so it had not worked in any released version, and nothing called it.
