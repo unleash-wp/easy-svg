@@ -166,3 +166,120 @@ function easy_svg_icon_args( $label, $content ) {
 function easy_svg_icons_supported() {
     return function_exists( 'wp_register_icon' ) && function_exists( 'wp_register_icon_collection' );
 }
+
+/**
+ * Whether a submitted icon may be stored, and in what shape.
+ *
+ * Every decision about accepting an icon lives here, injected and testable:
+ * the limit, the name, and what the sanitiser does to the markup. The
+ * WordPress side below only carries the answer out.
+ *
+ * The states are separate words because they need separate sentences. "You
+ * have five icons already" and "that file is not an SVG" send a person to two
+ * different places, and one message covering both sends half of them wrong.
+ *
+ * @param string   $label    What the person typed.
+ * @param string   $markup   The bytes they uploaded.
+ * @param callable $sanitize Cleans SVG markup, or returns false.
+ * @param int      $existing How many icons the site already has.
+ * @param int      $limit    How many it may have.
+ * @param callable|null $slugger Turns the label into a slug.
+ * @return array{state: string, slug?: string, content?: string}
+ */
+function easy_svg_accept_icon( $label, $markup, $sanitize, $existing, $limit, $slugger = null ) {
+    // Asked FIRST, so a site at its limit is told that rather than being walked
+    // through a validation it was never going to pass.
+    if ( ! easy_svg_icon_may_add( $existing, $limit ) ) {
+        return array( 'state' => 'limit_reached' );
+    }
+
+    $slug = easy_svg_icon_slug( $label, $slugger );
+    if ( '' === $slug ) {
+        return array( 'state' => 'bad_name' );
+    }
+
+    if ( '' === trim( (string) $markup ) ) {
+        return array( 'state' => 'empty' );
+    }
+
+    $clean = call_user_func( $sanitize, (string) $markup );
+
+    // The sanitiser refusing means it could not read the file. Storing whatever
+    // came back would put bytes nobody understood into every page that uses the
+    // icon.
+    if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
+        return array( 'state' => 'not_svg' );
+    }
+
+    /*
+     * An `<svg` root is required of the CLEANED markup, not the submitted
+     * markup. Somebody pasting a whole HTML document gets a sanitiser result
+     * that is technically a string and contains no drawing, and storing that
+     * would put an empty icon in the picker with no explanation.
+     */
+    if ( false === stripos( $clean, '<svg' ) ) {
+        return array( 'state' => 'not_svg' );
+    }
+
+    return array(
+        'state'   => 'ok',
+        'slug'    => $slug,
+        // The CLEANED markup is what gets stored. The whole reason this plugin
+        // is the right home for an icon manager is that the thing on the page
+        // has been through this site's allow-list.
+        'content' => $clean,
+    );
+}
+
+/**
+ * Hand every icon to core, and answer how many were taken.
+ *
+ * Injected rather than reaching for globals, so the loop can be checked without
+ * WordPress -- and the loop is where the interesting mistakes live: registering
+ * before the collection exists, letting one bad icon stop the rest, or counting
+ * icons core actually refused.
+ *
+ * @param array    $icons               List of [ 'slug' => , 'label' => , 'content' => ].
+ * @param callable $register_collection ( string $slug, array $args ) => bool
+ * @param callable $register_icon       ( string $name, array $args ) => bool
+ * @return int How many icons core accepted.
+ */
+function easy_svg_register_icons( $icons, $register_collection, $register_icon ) {
+    // The collection first. `WP_Icons_Registry` refuses an icon whose
+    // collection is not registered, so the order is not a style choice.
+    $ready = call_user_func(
+        $register_collection,
+        EASY_SVG_ICON_COLLECTION,
+        array( 'label' => __( 'Easy SVG', 'easy-svg' ) )
+    );
+
+    if ( ! $ready ) {
+        return 0;
+    }
+
+    $taken = 0;
+
+    foreach ( (array) $icons as $icon ) {
+        $name = easy_svg_icon_name( isset( $icon['slug'] ) ? $icon['slug'] : '' );
+
+        // Checked here rather than left to core, which refuses through
+        // _doing_it_wrong: on a production site that means the icon quietly
+        // does not exist.
+        if ( '' === $name ) {
+            continue;
+        }
+
+        $args = easy_svg_icon_args(
+            isset( $icon['label'] ) ? $icon['label'] : '',
+            isset( $icon['content'] ) ? $icon['content'] : ''
+        );
+
+        // Counted from what core ANSWERED, not from what we sent. A screen that
+        // says "5 icons" about icons core refused is worse than no screen.
+        if ( call_user_func( $register_icon, $name, $args ) ) {
+            $taken++;
+        }
+    }
+
+    return $taken;
+}
