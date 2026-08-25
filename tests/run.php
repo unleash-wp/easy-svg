@@ -437,6 +437,13 @@ check( 'BELL: no filter on the plugin update transient', false === strpos( $sour
 check( 'BELL: no plugins_api hook', false === strpos( $source, 'plugins_api' ) );
 check( 'SILENCE: and the file was actually read', '' !== $source );
 
+// ─── Where this repository is allowed to run ─────────────────────────────────
+
+$runner_out    = array();
+$runner_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/runner.php' ) . ' 2>&1', $runner_out, $runner_status );
+check( 'the runner checks pass: ' . ( $runner_out[ count( $runner_out ) - 1 ] ?? 'no output' ), 0 === $runner_status );
+
 // ─── The icon core, in its own process ───────────────────────────────────────
 
 /*

@@ -33,6 +33,13 @@ jobs:
       - name: Tests
         run: php tests/run.php
 
+      # This repository is public, so a self-hosted runner here would hand our
+      # machine to whoever opens a pull request. Checked in CI rather than
+      # written in a document, because the change that would break it is made
+      # somewhere else entirely -- an organisation-scoped runner.
+      - name: This repository never runs on our own machine
+        run: php tests/runner.php
+
       # run.php shells out to this as well; the duplication is deliberate, so
       # removing that call cannot make the checks vanish quietly.
       - name: The icon core, in its own process
