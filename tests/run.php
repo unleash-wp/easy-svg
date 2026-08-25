@@ -35,14 +35,19 @@ function check( string $what, bool $ok ): void {
 
 // ─── The smallest WordPress this plugin touches ──────────────────────────────
 
-$GLOBALS['hooks'] = [];
+$GLOBALS['hooks']      = [];
+$GLOBALS['priorities'] = [];
 
 function add_filter( string $hook, $cb, int $priority = 10, int $args = 1 ): bool {
 	$GLOBALS['hooks'][ $hook ][] = $cb;
 	return true;
 }
 function add_action( string $hook, $cb, int $priority = 10, int $args = 1 ): bool {
-	$GLOBALS['hooks'][ $hook ][] = $cb;
+	// The priority is recorded, not discarded: core registers its own icon
+	// collections on `init` at 0, and an icon registered before its collection
+	// is refused. Order is a property worth asserting.
+	$GLOBALS['hooks'][ $hook ][]              = $cb;
+	$GLOBALS['priorities'][ $hook ][ is_string( $cb ) ? $cb : 'closure' ] = $priority;
 	return true;
 }
 function apply_filters( string $hook, $value ) {
@@ -63,6 +68,12 @@ function esc_attr( string $text ): string {
 function get_allowed_mime_types(): array {
 	return [ 'svg' => 'image/svg+xml' ];
 }
+// Answering false on purpose: this suite is not an admin request, so hiding the
+// icons behind `is_admin()` shows up as icons that never register rather than
+// as a fatal.
+function is_admin(): bool {
+	return false;
+}
 
 /** Answers as core does for a genuine SVG unless a test says otherwise. */
 $GLOBALS['filetype'] = [ 'ext' => 'svg', 'type' => 'image/svg+xml' ];
@@ -70,7 +81,20 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ): array {
 	return $GLOBALS['filetype'];
 }
 
-require $root . '/easy-svg.php';
+/*
+ * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
+ * process. A suite that dies reports nothing, and "nothing" is the one result
+ * indistinguishable from "not covered".
+ */
+$loaded = true;
+try {
+	require $root . '/easy-svg.php';
+} catch ( \Throwable $e ) {
+	$loaded = false;
+	echo '      load error: ' . $e->getMessage() . "\n";
+}
+
+check( 'the plugin loads', $loaded );
 
 // ─── Both ways a file can arrive ─────────────────────────────────────────────
 
@@ -171,6 +195,63 @@ unlink( $file['tmp_name'] );
 check( 'SILENCE: an ordinary image passes straight through', ! isset( $after['error'] ) );
 
 $GLOBALS['filetype'] = [ 'ext' => 'svg', 'type' => 'image/svg+xml' ];
+
+// ─── The icon manager is actually wired ──────────────────────────────────────
+
+/*
+ * The question a user would ask: after loading, does this plugin do the thing.
+ *
+ * Its paid add-on once shipped a version where every file existed, every suite
+ * was green, and NOTHING required them -- a licence field and nothing else.
+ * Testing a file cannot catch that. Only testing the loaded plugin can.
+ */
+check( 'the icon code was loaded', function_exists( 'easy_svg_accept_icon' ) );
+check( 'the store is registered on init', in_array( 'easy_svg_register_icon_store', $GLOBALS['hooks']['init'] ?? [], true ) );
+check( 'and the icons are handed to core on init', in_array( 'easy_svg_boot_icons', $GLOBALS['hooks']['init'] ?? [], true ) );
+
+/*
+ * Core registers its own collections on `init` at 0, and WP_Icons_Registry
+ * refuses an icon whose collection is not there yet. The store must also exist
+ * before the icons are read out of it. Neither order is a preference.
+ */
+$store_at = $GLOBALS['priorities']['init']['easy_svg_register_icon_store'] ?? null;
+$boot_at  = $GLOBALS['priorities']['init']['easy_svg_boot_icons'] ?? null;
+
+check( 'BELL: both run after core registers its collections at 0', $store_at > 0 && $boot_at > 0 );
+check( 'BELL: and the store exists before the icons are read from it', $store_at < $boot_at );
+
+/*
+ * NOT behind is_admin(). The Icon block is server-rendered: `wp_get_icon()`
+ * resolves the name when a visitor's page is built. An admin-only registration
+ * shows every icon in the editor and nothing at all on the site.
+ */
+$main_source = (string) file_get_contents( $root . '/easy-svg.php' );
+check(
+	'BELL: the icons are registered on the front end too, not only in wp-admin',
+	1 !== preg_match( '/is_admin\(\).{0,200}easy_svg_boot_icons/s', $main_source )
+);
+
+check( 'the screen is registered', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
+check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
+check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
+
+// ─── Every refusal has a sentence ────────────────────────────────────────────
+
+/*
+ * A state with no message shows an empty notice box, which reads as a bug. The
+ * states come from `easy_svg_accept_icon()`, so the two lists are checked
+ * against each other rather than a hand-written copy of one of them.
+ */
+foreach ( array( 'added', 'deleted', 'limit_reached', 'bad_name', 'empty', 'not_svg', 'no_sanitizer' ) as $state ) {
+	check(
+		"the '{$state}' state has something to say",
+		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )
+	);
+}
+check(
+	'SILENCE: and an unknown state says nothing rather than something wrong',
+	function_exists( 'easy_svg_icon_message' ) && '' === easy_svg_icon_message( 'nonsense' )
+);
 
 // ─── The contract an add-on may rely on ──────────────────────────────────────
 

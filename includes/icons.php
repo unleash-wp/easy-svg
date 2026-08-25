@@ -204,9 +204,18 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $existing, $limit, $s
 
     $clean = call_user_func( $sanitize, (string) $markup );
 
-    // The sanitiser refusing means it could not read the file. Storing whatever
-    // came back would put bytes nobody understood into every page that uses the
-    // icon.
+    /*
+     * The sanitiser refusing means it could not read the file. Storing whatever
+     * came back would put bytes nobody understood into every page that uses the
+     * icon.
+     *
+     * A probe says this line changes nothing today: `false` coerces to `''` on
+     * the way into `stripos()` below, which then refuses it anyway. It stays
+     * because that equivalence is a property of this file having no
+     * `declare(strict_types=1)`. Add one -- and every other file in this
+     * project has one -- and the coercion becomes a TypeError, so a clean
+     * refusal turns into a fatal on somebody's upload screen.
+     */
     if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
         return array( 'state' => 'not_svg' );
     }
