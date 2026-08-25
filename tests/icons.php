@@ -26,6 +26,9 @@ function add_filter( string $hook, $cb, int $p = 10, int $n = 1 ): bool {
     $GLOBALS['filters'][ $hook ][] = $cb;
     return true;
 }
+function __( string $text, string $domain = '' ): string {
+    return $text;
+}
 
 require dirname( __DIR__ ) . '/includes/icons.php';
 
@@ -143,6 +146,100 @@ check( 'BELL: and nothing else, because core refuses unknown keys', array( 'labe
 // wp_register_icon is @since 7.1.0 and this plugin declares 6.0. Absent-safe is
 // not optional at 40,000 installs.
 check( 'BELL: without the 7.1 API, icons are reported unsupported', ! easy_svg_icons_supported() );
+
+// ─── Accepting an icon ───────────────────────────────────────────────────────
+
+$strip = static function ( string $svg ) {
+    return (string) preg_replace( '#<script\b[^>]*>.*?</script>#is', '', $svg );
+};
+$refuse = static function ( string $svg ) {
+    return false;
+};
+
+$SVG = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
+
+$out = easy_svg_accept_icon( 'Arrow Left', $SVG, $strip, 0, 5, $sanitize );
+check( 'BELL: a good icon is accepted', 'ok' === $out['state'] );
+check( 'with a name core will take', 'arrow-left' === $out['slug'] );
+check( 'and the markup', false !== strpos( $out['content'], '<path' ) );
+
+// The reason this plugin is the right home for an icon manager.
+$dirty = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>';
+$out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, 0, 5, $sanitize );
+check( 'BELL: what gets stored is the CLEANED markup', 'ok' === $out['state'] && false === strpos( $out['content'], '<script' ) );
+check( 'SILENCE: and the drawing survives it', false !== strpos( $out['content'], '<path' ) );
+
+// ─── Every refusal is its own word ───────────────────────────────────────────
+
+/*
+ * "You have five already" and "that is not an SVG" send a person to two
+ * different places. One message covering both sends half of them wrong.
+ */
+check( 'BELL: at the limit, that is what it says', 'limit_reached' === easy_svg_accept_icon( 'X', $SVG, $strip, 5, 5, $sanitize )['state'] );
+// Asked FIRST, so a full site is not walked through a validation it was never
+// going to pass.
+check( 'SILENCE: and it says so even for markup that is also bad', 'limit_reached' === easy_svg_accept_icon( 'X', 'nonsense', $strip, 5, 5, $sanitize )['state'] );
+
+check( 'BELL: a label that makes no name says so', 'bad_name' === easy_svg_accept_icon( '###', $SVG, $strip, 0, 5, $sanitize )['state'] );
+check( 'BELL: empty markup says so', 'empty' === easy_svg_accept_icon( 'X', '   ', $strip, 0, 5, $sanitize )['state'] );
+check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg_accept_icon( 'X', $SVG, $refuse, 0, 5, $sanitize )['state'] );
+
+/*
+ * A whole HTML document survives a sanitiser as a string and contains no
+ * drawing. Storing it would put an empty icon in the picker with nothing to
+ * explain it, so the `<svg` root is required of the CLEANED markup.
+ */
+$html = '<html><body><script>alert(1)</script><p>hello</p></body></html>';
+check( 'BELL: markup with no svg root is refused', 'not_svg' === easy_svg_accept_icon( 'X', $html, $strip, 0, 5, $sanitize )['state'] );
+
+// ─── Handing them to core ────────────────────────────────────────────────────
+
+$collection_calls = array();
+$icon_calls       = array();
+$ok_collection    = static function ( $slug, $args ) use ( &$collection_calls ) {
+    $collection_calls[] = $slug;
+    return true;
+};
+$ok_icon = static function ( $name, $args ) use ( &$icon_calls ) {
+    $icon_calls[] = $name;
+    return true;
+};
+
+$icons = array(
+    array( 'slug' => 'arrow-left', 'label' => 'Arrow left', 'content' => $SVG ),
+    array( 'slug' => 'arrow-right', 'label' => 'Arrow right', 'content' => $SVG ),
+);
+
+$taken = easy_svg_register_icons( $icons, $ok_collection, $ok_icon );
+check( 'BELL: both icons are registered', 2 === $taken );
+check( 'BELL: namespaced into our collection', array( 'easy-svg/arrow-left', 'easy-svg/arrow-right' ) === $icon_calls );
+// WP_Icons_Registry refuses an icon whose collection is not registered, so the
+// order is not a style choice.
+check( 'BELL: and the collection was registered first', array( 'easy-svg' ) === $collection_calls );
+
+// A collection core would not take means no icons, not icons into nothing.
+$icon_calls = array();
+$refused    = static function ( $slug, $args ) { return false; };
+check( 'BELL: no collection means no icons are offered', 0 === easy_svg_register_icons( $icons, $refused, $ok_icon ) );
+check( 'SILENCE: and none were attempted', array() === $icon_calls );
+
+// One bad name must not cost the others.
+$icon_calls = array();
+$mixed      = array(
+    array( 'slug' => 'Arrow',  'label' => 'Bad name', 'content' => $SVG ),
+    array( 'slug' => 'good-one', 'label' => 'Fine',   'content' => $SVG ),
+);
+check( 'BELL: a bad name is skipped, not fatal', 1 === easy_svg_register_icons( $mixed, $ok_collection, $ok_icon ) );
+check( 'SILENCE: and the good one still went', array( 'easy-svg/good-one' ) === $icon_calls );
+
+/*
+ * Counted from what core ANSWERED. A screen saying "5 icons" about icons core
+ * refused is worse than no screen, and core refuses silently.
+ */
+$half = static function ( $name, $args ) {
+    return 'easy-svg/arrow-left' === $name;
+};
+check( 'BELL: only what core took is counted', 1 === easy_svg_register_icons( $icons, $ok_collection, $half ) );
 
 echo 0 === $failed
     ? "all {$passed} checks passed\n"

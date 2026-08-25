@@ -227,6 +227,26 @@ add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
  */
 add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
 
+/*
+ * The icon manager.
+ *
+ * Required unconditionally, and registered here. Not behind `is_admin()`: the
+ * icons have to be registered on the front end too, because the Icon block is
+ * SERVER-rendered and `wp_get_icon()` resolves the name when the page is built.
+ * An admin-only registration would show every icon in the editor and nothing at
+ * all to a visitor.
+ *
+ * Priority 5 for the store and 10 for the icons, both after core's own
+ * collections at 0. The order between the two is not a preference: the icons
+ * are read out of the post type.
+ */
+require_once __DIR__ . '/includes/icon-manager.php';
+
+add_action( 'init', 'easy_svg_register_icon_store', 5 );
+add_action( 'init', 'easy_svg_boot_icons', 10 );
+
+easy_svg_icons_admin();
+
 /**
  * Add support for SVG file uploads by modifying MIME types.
  *
