@@ -264,6 +264,43 @@ check(
  * to activate something that is already active.
  */
 check( 'BELL: the API version is declared', defined( 'EASY_SVG_API' ) && is_int( EASY_SVG_API ) );
+
+/*
+ * The number and the surface must move together.
+ *
+ * An add-on decides what it may call by comparing this integer. Shipping the
+ * icon filter without raising it means an add-on that correctly refuses to run
+ * against version 1 -- and is looking at a plugin that would have worked.
+ * Shipping the number without the filter is the same mistake pointing the other
+ * way, and that one ends in a fatal on somebody's site.
+ */
+check( 'BELL: at API 2 the icon limit filter exists', EASY_SVG_API < 2 || function_exists( 'easy_svg_icon_limit' ) );
+check( 'BELL: and the icon feature it belongs to', EASY_SVG_API < 2 || function_exists( 'easy_svg_accept_icon' ) );
+
+/*
+ * And the other direction, which a probe showed was missing: the line above
+ * only catches a number claiming more than exists. Under-claiming is the same
+ * bug pointing the other way -- an add-on correctly refuses to run, against a
+ * plugin that would have worked, and the customer is told to update something
+ * that is already current.
+ */
+check( 'BELL: and a plugin that HAS the filter says so in the number', ! function_exists( 'easy_svg_icon_limit' ) || EASY_SVG_API >= 2 );
+
+/*
+ * Pinned to today's value, on purpose.
+ *
+ * A number claiming MORE than exists cannot be caught by asking what exists --
+ * there is nothing to look for. So the number is pinned instead, and raising it
+ * means changing this line: whoever does has to say, here, what surface the new
+ * number covers. Add-ons in other repositories compare against it, and they
+ * cannot be asked from here.
+ */
+check( 'BELL: the API is 2 (raise this line WITH the surface it covers)', 2 === EASY_SVG_API );
+
+// Documented where an add-on author looks, not only in the source.
+$readme_text = (string) file_get_contents( $root . '/readme.txt' );
+check( 'the filter is documented for add-on authors', false !== strpos( $readme_text, 'easy_svg_icon_limit' ) );
+check( 'and so is the API number it belongs to', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: the sanitiser is reachable by function', function_exists( 'easy_svg_sanitizer' ) );
 check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
 
