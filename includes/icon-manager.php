@@ -460,7 +460,13 @@ function easy_svg_icons_screen() {
 
     echo '<div class="wrap"><h1>' . esc_html__( 'SVG icons', 'easy-svg' ) . '</h1>';
 
-    // Read only for display. Nothing is decided from it.
+    /*
+     * Read only for display: it picks which of a fixed set of sentences to
+     * show, and an unknown word shows none. Nothing is changed or decided from
+     * it, so there is nothing for a nonce to protect -- the handlers that DO
+     * change something check theirs before redirecting here.
+     */
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only, see above.
     $state   = isset( $_GET['easy-svg-state'] ) ? sanitize_key( wp_unslash( $_GET['easy-svg-state'] ) ) : '';
     $message = easy_svg_icon_message( $state );
 
