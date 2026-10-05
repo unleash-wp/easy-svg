@@ -2,9 +2,9 @@
 Author URI: https://www.benjamin-zekavica.de
 Plugin URI: https://wordpress.org/plugins/easy-svg/
 Contributors: Benjamin_Zekavica
-Tags: svg, svg support, upload svg, svg media, easy-svg
+Tags: svg, svg support, upload svg, svg media, icons
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 8.0
 Stable tag: 4.3
 License: GPLv3 or later
@@ -18,15 +18,24 @@ This Plugin allows you to upload SVG Files into your Media library.
 
 EASY SVG Support is a Plugin which allows you to upload SVG Files into your Media library. This plugin was created for persons, who don’t need much options for SVG.
 
+Every SVG is sanitized before it is stored, whichever way it arrives: the media uploader, WP-CLI `wp media import`, `media_sideload_image()`, importers and REST uploads sent as a raw file body. A file that cannot be sanitized is rejected.
+
+= SVG icons for the Icon block (WordPress 7.1 and newer) =
+
+Under Media → SVG icons you can keep your own SVG icons, as many as you like, and use them in the Icon block. Each icon goes through the same sanitizer and the same allowed tags and attributes as your uploads, and what is stored is the cleaned markup. Icons are not media files: they have no URL of their own and do not appear in the media library.
+
+On WordPress versions before 7.1, which have no icon registry, the SVG icons screen does not appear and everything else works as before.
+
 = Features of the plugin include: =
 
 * Uploading SVG Support for WordPress
 * Easy installation
-* Display SVG Files in the Media Libary
-* SVG Sanitize Files direcly 
+* Display SVG Files in the Media Library
+* SVG files are sanitized directly, on every upload path
 * SVG Sanitize – Custom Hooks for Tags and Attributes
-* Updated for the new WordPress Gutenberg Editor
-* Support for PHP 8.2
+* SVG icons for the Icon block, unlimited (WordPress 7.1+)
+* Updated for the WordPress block editor
+* Requires PHP 8.0 or newer
 
 
 = Documentation & Support =
@@ -38,7 +47,7 @@ info@benjamin-zekavica.de or you can ask your question in the forums section.
 == Installation ==
 
 1. Activate the plugin.
-2. Go to the Media Libary and Upload your SVG Files.
+2. Go to the Media Library and Upload your SVG Files.
 3. Upload now your SVG Files.
 4. Go to the Page or ACF and choose your File and save changes.
 
@@ -69,15 +78,20 @@ info@benjamin-zekavica.de or you can ask your question in the forums section.
             return $attributes;
         } );
 
+= Where do I manage SVG icons? =
+
+Under Media → SVG icons, on WordPress 7.1 or newer. Give the icon a name, choose an SVG file and add it; it then appears in the Icon block under "Easy SVG". You need the capability to edit theme options, because an icon is available site-wide. There is no limit on how many icons you keep.
+
 = Do you need a Source Code? =
 
-Please check out my repository on Github:
+Please check out the repository on GitHub:
 
-[GitHub Repository](https://github.com/bz-projects/Easy-SVG)
+[GitHub Repository](https://github.com/unleash-wp/easy-svg)
 
 == Screenshots ==
 1. Easy SVG Support in Gutenberg
 2. Upload direct into your WordPress Media
+3. An SVG as the featured image in the block editor
 
 
 == For add-on authors ==
@@ -97,7 +111,7 @@ API 3 means the `easy_svg_icon_limit` filter no longer exists. Version 2
 introduced it while icons were capped; the icon manager now has no limit,
 so nothing reads that filter and an add-on must not rely on it.
 
-Use it rather than the classes behind it. A site widens the allow-list
+Use the function rather than the classes behind it. A site widens the allow-list
 through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters,
 so an add-on configured any other way removes things this site never would,
 and reports problems that do not exist.
@@ -107,15 +121,16 @@ its own.
 
 == Changelog ==
 = 4.3 =
-* Icons: manage your own SVG icons, as many as you like, and use them in the Icon block. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen says so and everything else works as before.
-* Every icon is sanitized with this site's own allowed-tag settings before it is stored, and what is stored is the cleaned markup.
-* EASY_SVG_API is 3. The icon limit filter that 2 introduced is gone, because there is no limit.
-
-= 4.2 =
-* Security: SVGs that do not arrive through the media uploader are now sanitized too. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left media_sideload_image(), WP-CLI `wp media import` and every importer unchecked.
+* Security: SVGs that do not arrive through the media uploader are now sanitized too, or rejected. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left WP-CLI `wp media import`, media_sideload_image(), importers and REST uploads sent as a raw file body unchecked.
+* Security: an SVG file the sanitizer cannot use (for example an HTML page saved as .svg) is now refused with an upload error instead of causing a fatal error.
+* New: SVG icons for the Icon block, under Media → SVG icons. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen does not appear and everything else works as before. As many icons as you like, each sanitized with this site's own allowed tags and attributes before it is stored.
+* The icons screen shows previews that can never run scripts, even on a site that allows extra SVG tags or attributes.
+* The icon list is cached and read only when it changes, so sites pay nothing on every request for it.
+* Compatibility: the global `$sanitizer` from 4.1 exists again, and settings a site snippet makes on it are applied, as they were in 4.1.
 * Removed an AJAX endpoint that could never fire. It was registered under a hook name WordPress does not build, so it had not worked in any released version, and nothing called it.
-* Added easy_svg_sanitizer() and EASY_SVG_API for add-ons, so an add-on cleans files exactly the way this site does. See "For add-on authors" below.
-* First automated test suite.
+* For add-on authors: easy_svg_sanitizer() and EASY_SVG_API (3), so an add-on cleans files exactly the way this site does. See "For add-on authors".
+* Licence: GPL-3.0-or-later, stated the same way everywhere, with the full licence text included.
+* Tested with WordPress 7.1.
 
 = 4.1: November 14, 2025 =
 * Support for new WordPress version
@@ -300,4 +315,6 @@ its own.
 * Initial Release
 
 == Upgrade Notice ==
-This plugin can use on beginning versions of WordPress 4.0 to 4.9
+
+= 4.3 =
+Security: SVGs added outside the media uploader (WP-CLI `wp media import`, media_sideload_image(), importers, raw REST uploads) are now sanitized or rejected. New: SVG icons for the Icon block, under Media → SVG icons, on WordPress 7.1+.

@@ -755,6 +755,22 @@ check(
 );
 check( 'the changelog mentions it', false !== strpos( $readme, '= ' . ( $header_v[1] ?? 'x' ) ) );
 
+// ─── What wordpress.org shows ────────────────────────────────────────────────
+
+/*
+ * A "Tested up to" below the current WordPress hides the plugin from search on
+ * wordpress.org; Plugin Check reports it as an error. And the upgrade notice is
+ * the one line a site owner reads before clicking update.
+ */
+check( 'BELL: tested up to the WordPress the icon feature needs', 1 === preg_match( '/^Tested up to:\s*7\.1\s*$/mi', $readme ) );
+$upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade Notice ==' ) );
+check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
+check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
+check( 'SILENCE: and no longer talks about WordPress 4', false === strpos( $upgrade_notice, '4.0 to 4.9' ) );
+check( 'SILENCE: one changelog entry for this release, with the unreleased 4.2 folded in', false === strpos( $readme, '= 4.2 =' ) );
+preg_match( '/^Tags:\s*(.+)$/mi', $readme, $tags_line );
+check( 'SILENCE: at most five tags, as wordpress.org reads them', isset( $tags_line[1] ) && count( array_filter( array_map( 'trim', explode( ',', $tags_line[1] ) ) ) ) <= 5 );
+
 // ─── One licence, said the same way everywhere ───────────────────────────────
 
 /*
