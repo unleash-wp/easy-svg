@@ -38,6 +38,9 @@ const EASY_SVG_ICON_PAGE_SIZE = 100;
 /** Where the list of icons is kept between requests. */
 const EASY_SVG_ICON_CACHE = 'easy_svg_icons';
 
+/** Raised on every change to the icons; a cached list from before is stale. */
+const EASY_SVG_ICON_VERSION = 'easy_svg_icons_version';
+
 /**
  * The store.
  *
@@ -121,17 +124,33 @@ function easy_svg_register_icon_store() {
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
 function easy_svg_stored_icons() {
-    $cached = get_transient( EASY_SVG_ICON_CACHE );
+    /*
+     * The version is read BEFORE the icons. A request that misses the cache
+     * can take a moment to read them, and if somebody adds or removes an icon
+     * meanwhile, the list it is about to store is already out of date. The
+     * version it stores with that list is then lower than the current one, so
+     * the next request ignores it instead of trusting it for a day.
+     */
+    $version = (int) get_option( EASY_SVG_ICON_VERSION, 0 );
+    $cached  = get_transient( EASY_SVG_ICON_CACHE );
 
-    // Anything that is not a list is a miss. Trusting a stray value here would
-    // hand core garbage on every request until it expired.
-    if ( is_array( $cached ) ) {
-        return $cached;
+    // Anything that is not a list of the current version is a miss. Trusting
+    // a stray value here would hand core garbage on every request until it
+    // expired.
+    if ( is_array( $cached ) && isset( $cached['version'], $cached['icons'] ) && $version === $cached['version'] && is_array( $cached['icons'] ) ) {
+        return $cached['icons'];
     }
 
     $icons = easy_svg_collect_icons( 'easy_svg_icon_page', EASY_SVG_ICON_PAGE_SIZE );
 
-    set_transient( EASY_SVG_ICON_CACHE, $icons, DAY_IN_SECONDS );
+    set_transient(
+        EASY_SVG_ICON_CACHE,
+        array(
+            'version' => $version,
+            'icons'   => $icons,
+        ),
+        DAY_IN_SECONDS
+    );
 
     return $icons;
 }
@@ -183,6 +202,8 @@ function easy_svg_icon_page( $page, $per_page ) {
  * to show up just the same.
  */
 function easy_svg_forget_icons() {
+    // A small autoloaded number: reading it costs nothing on any request.
+    update_option( EASY_SVG_ICON_VERSION, (int) get_option( EASY_SVG_ICON_VERSION, 0 ) + 1, true );
     delete_transient( EASY_SVG_ICON_CACHE );
 }
 

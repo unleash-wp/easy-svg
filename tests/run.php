@@ -169,10 +169,15 @@ function get_posts( array $args = [] ): array {
 			}
 		)
 	);
-	if ( $per_page < 0 ) {
-		return $posts;
+	$result = $per_page < 0 ? $posts : array_slice( $posts, ( $page - 1 ) * $per_page, $per_page );
+	// Something else happening on the site AFTER this read answered and
+	// before the reader stores what it got.
+	if ( isset( $GLOBALS['during_query'] ) && count( $result ) < $per_page ) {
+		$during = $GLOBALS['during_query'];
+		unset( $GLOBALS['during_query'] );
+		$during();
 	}
-	return array_slice( $posts, ( $page - 1 ) * $per_page, $per_page );
+	return $result;
 }
 
 function icon_post( int $id, string $type = 'esw_icon' ): object {
@@ -184,6 +189,15 @@ function icon_post( int $id, string $type = 'esw_icon' ): object {
 		'post_title'   => "Icon {$id}",
 		'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
 	];
+}
+
+$GLOBALS['options'] = [];
+function get_option( string $key, $default = false ) {
+	return array_key_exists( $key, $GLOBALS['options'] ) ? $GLOBALS['options'][ $key ] : $default;
+}
+function update_option( string $key, $value, $autoload = null ): bool {
+	$GLOBALS['options'][ $key ] = $value;
+	return true;
 }
 
 $GLOBALS['transients'] = [];
@@ -712,6 +726,22 @@ check( 'SILENCE: deleting something that is not an icon keeps the cache', [] ===
 array_pop( $GLOBALS['icon_posts'] );
 fire( 'deleted_post', 251, icon_post( 251 ) );
 check( 'BELL: a deleted icon disappears at once, from wherever it was deleted', 250 === count( easy_svg_stored_icons() ) );
+
+/*
+ * The race: a request that missed the cache reads the icons; while it reads,
+ * another request adds one and drops the cache; the first then stores the list
+ * it read -- without the new icon -- for a day. A version that every drop
+ * raises makes that stale list unusable the moment it is stored.
+ */
+easy_svg_forget_icons();
+$GLOBALS['during_query'] = static function () {
+	$GLOBALS['icon_posts'][] = icon_post( 260 );
+	fire( 'save_post_esw_icon', 260, icon_post( 260 ), false );
+};
+easy_svg_stored_icons();
+check( 'BELL: an icon added while another request was reading is not lost to its stale list', in_array( 260, array_column( easy_svg_stored_icons(), 'id' ), true ) );
+array_pop( $GLOBALS['icon_posts'] );
+fire( 'deleted_post', 260, icon_post( 260 ) );
 
 // Whatever else might sit under the key is a miss, not a list.
 $GLOBALS['transients'][ $cache_keys[0] ?? 'x' ] = 'garbage';
