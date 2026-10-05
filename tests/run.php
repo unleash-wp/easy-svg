@@ -292,6 +292,12 @@ function wp_delete_attachment( $id, $force = false ) {
 	return (object) [ 'ID' => $id ];
 }
 
+$GLOBALS['post_types'] = [];
+function register_post_type( string $type, array $args = [] ) {
+	$GLOBALS['post_types'][ $type ] = $args;
+	return (object) [ 'name' => $type ];
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -594,6 +600,22 @@ easy_svg_icons_menu();
 check( 'BELL: before 7.1 there is no SVG icons submenu', [] === $GLOBALS['media_pages'] );
 check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
 check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
+
+// ─── Only who may manage icons can write them ────────────────────────────────
+
+/*
+ * The screen checks edit_theme_options, but the post type is reachable from
+ * other places -- XML-RPC's wp.newPost, for one -- that ask the post type's own
+ * capabilities. With the `post` defaults an Author could create an icon there
+ * and an Editor could change anybody's. Every capability maps to the screen's.
+ */
+easy_svg_register_icon_store();
+$store_args = $GLOBALS['post_types']['esw_icon'] ?? [];
+$caps       = (array) ( $store_args['capabilities'] ?? [] );
+foreach ( array( 'edit_post', 'read_post', 'delete_post', 'edit_posts', 'edit_others_posts', 'delete_posts', 'publish_posts', 'read_private_posts', 'create_posts' ) as $cap ) {
+	check( "BELL: '{$cap}' on icons needs edit_theme_options", 'edit_theme_options' === ( $caps[ $cap ] ?? null ) );
+}
+check( 'BELL: and no meta capability is mapped back to post-author rules', false === ( $store_args['map_meta_cap'] ?? null ) );
 
 // ─── Every icon, read once ───────────────────────────────────────────────────
 

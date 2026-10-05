@@ -64,7 +64,35 @@ function easy_svg_register_icon_store() {
             'rewrite'             => false,
             'query_var'           => false,
             'supports'            => array( 'title', 'editor' ),
-            'capability_type'     => 'post',
+            /*
+             * Every capability is the screen's own. The `post` defaults would
+             * let an Author create an icon and an Editor change anybody's
+             * through any route that asks the post type -- XML-RPC, REST if it
+             * were ever switched on, a plugin's generic post editor. An icon
+             * appears in every editor on the site; who may add one is the
+             * same question as who may change the theme.
+             *
+             * `map_meta_cap` off, so `edit_post` and friends are checked as
+             * written here instead of being mapped back to post-author rules.
+             */
+            'capabilities'        => array(
+                'edit_post'              => EASY_SVG_ICON_CAP,
+                'read_post'              => EASY_SVG_ICON_CAP,
+                'delete_post'            => EASY_SVG_ICON_CAP,
+                'edit_posts'             => EASY_SVG_ICON_CAP,
+                'edit_others_posts'      => EASY_SVG_ICON_CAP,
+                'delete_posts'           => EASY_SVG_ICON_CAP,
+                'publish_posts'          => EASY_SVG_ICON_CAP,
+                'read_private_posts'     => EASY_SVG_ICON_CAP,
+                'create_posts'           => EASY_SVG_ICON_CAP,
+                'read'                   => EASY_SVG_ICON_CAP,
+                'delete_private_posts'   => EASY_SVG_ICON_CAP,
+                'delete_published_posts' => EASY_SVG_ICON_CAP,
+                'delete_others_posts'    => EASY_SVG_ICON_CAP,
+                'edit_private_posts'     => EASY_SVG_ICON_CAP,
+                'edit_published_posts'   => EASY_SVG_ICON_CAP,
+            ),
+            'map_meta_cap'        => false,
         )
     );
 }
