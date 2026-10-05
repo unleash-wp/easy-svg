@@ -16,6 +16,7 @@
 /.gitignore
 /composer.json
 /composer.lock
+/RELEASING.md
 /docs
 /tests
 

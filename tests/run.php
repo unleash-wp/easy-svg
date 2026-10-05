@@ -834,6 +834,29 @@ $gitignore = (string) @file_get_contents( $root . '/.gitignore' );
 check( 'SILENCE: composer.lock is tracked, so .gitignore does not claim to ignore it', 1 !== preg_match( '/^composer\.lock\s*$/m', $gitignore ) );
 check( 'SILENCE: and .DS_Store is ignored', 1 === preg_match( '/^\.DS_Store\s*$/m', $gitignore ) );
 
+// ─── How a release leaves this repository ────────────────────────────────────
+
+/*
+ * A tag deploys to wordpress.org. The shape is checked here because the
+ * mistakes are all quiet ones: a tag that names one version while the header
+ * names another ships a release every site believes is something else; an
+ * action pinned to a moving branch runs code nobody reviewed with our SVN
+ * password in its environment.
+ */
+$deploy = (string) @file_get_contents( $root . '/.github/workflows/deploy.yml' );
+
+check( 'BELL: there is a deploy workflow', '' !== $deploy );
+check( 'BELL: it runs on a version tag, with no v prefix', false !== strpos( $deploy, "tags: ['[0-9]+.[0-9]+*']" ) );
+check( 'BELL: the deploy action is pinned to a commit, not a moving branch', 1 === preg_match( '#uses:\s*10up/action-wordpress-plugin-deploy@[0-9a-f]{40}\b#', $deploy ) );
+check( 'BELL: the workflow token can only read', 1 === preg_match( '/^permissions:\s*\n\s+contents:\s*read\s*$/m', $deploy ) );
+check( 'SILENCE: the slug is the one on wordpress.org', 1 === preg_match( '/SLUG:\s*easy-svg\s*$/m', $deploy ) );
+check( 'SILENCE: the SVN credentials come from secrets', false !== strpos( $deploy, '${{ secrets.SVN_USERNAME }}' ) && false !== strpos( $deploy, '${{ secrets.SVN_PASSWORD }}' ) );
+check( 'SILENCE: and the zip is generated', 1 === preg_match( '/generate-zip:\s*true/', $deploy ) );
+$guard_at  = strpos( $deploy, 'Stable tag' );
+$deploy_at = strpos( $deploy, '10up/action-wordpress-plugin-deploy' );
+check( 'BELL: tag, header and Stable tag are compared BEFORE anything is deployed', false !== $guard_at && false !== $deploy_at && $guard_at < $deploy_at && false !== strpos( $deploy, 'GITHUB_REF_NAME' ) );
+check( 'SILENCE: the release notes for maintainers stay out of the plugin', in_array( 'RELEASING.md', $distignore, true ) );
+
 // ─── This plugin must never update itself ────────────────────────────────────
 
 /*
