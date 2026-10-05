@@ -318,18 +318,52 @@ function easy_svg_add_icon( $label, $markup ) {
      * table without the icon -- a full disk, a read-only database, a plugin
      * vetoing the insert -- sends a person looking for a bug in the wrong place.
      */
-    $id = wp_insert_post(
-        array(
-            'post_type'    => EASY_SVG_ICON_POST_TYPE,
-            'post_status'  => 'publish',
-            'post_title'   => $label,
-            'post_name'    => $decision['slug'],
-            'post_content' => $decision['content'],
-        ),
-        true
-    );
+    /*
+     * kses is switched off for this one insert, and only if it was on.
+     * wp_insert_post() runs content through wp_filter_post_kses for anybody
+     * without unfiltered_html -- every administrator of a multisite sub-site,
+     * every site with DISALLOW_UNFILTERED_HTML -- and kses knows no SVG, so the
+     * icon arrived empty. The markup has just been through this site's SVG
+     * sanitiser, which is the check that understands it. Restored in `finally`,
+     * so neither an error return nor an exception leaves kses off for the
+     * rest of the request.
+     *
+     * Slashed, because wp_insert_post() unslashes what it is given; without
+     * it a backslash in the markup is lost.
+     */
+    $kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
+    if ( $kses_was_on ) {
+        kses_remove_filters();
+    }
+
+    try {
+        $id = wp_insert_post(
+            wp_slash(
+                array(
+                    'post_type'    => EASY_SVG_ICON_POST_TYPE,
+                    'post_status'  => 'publish',
+                    'post_title'   => $label,
+                    'post_name'    => $decision['slug'],
+                    'post_content' => $decision['content'],
+                )
+            ),
+            true
+        );
+    } finally {
+        if ( $kses_was_on ) {
+            kses_init_filters();
+        }
+    }
 
     if ( is_wp_error( $id ) || ! $id ) {
+        return 'not_saved';
+    }
+
+    // Whatever else may sit on the way in, what was STORED is what the block
+    // will show. An icon that arrived without a drawing is not kept.
+    $stored = get_post( $id );
+    if ( ! $stored || false === stripos( (string) $stored->post_content, '<svg' ) ) {
+        wp_delete_post( $id, true );
         return 'not_saved';
     }
 

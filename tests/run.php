@@ -219,11 +219,49 @@ function is_wp_error( $thing ): bool {
 /** What wp_insert_post() answers next; a test sets it. */
 $GLOBALS['insert_returns'] = 1;
 $GLOBALS['inserted']       = [];
+/*
+ * As core does on the way in: the data is unslashed, and for a user without
+ * unfiltered_html the content goes through wp_filter_post_kses -- which knows
+ * no SVG and leaves nothing of an icon. Both are what a multisite sub-site
+ * administrator gets.
+ */
+$GLOBALS['kses_on']      = false;
+$GLOBALS['stored_posts'] = [];
+$GLOBALS['deleted_posts'] = [];
 function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_hooks = true ) {
-	$GLOBALS['inserted'][] = [ 'post' => $post, 'wp_error' => $wp_error ];
+	$GLOBALS['inserted'][] = [ 'post' => $post, 'wp_error' => $wp_error, 'kses' => $GLOBALS['kses_on'] ];
 	$answer = $GLOBALS['insert_returns'];
+	if ( is_int( $answer ) && $answer > 0 ) {
+		$content = stripslashes( (string) ( $post['post_content'] ?? '' ) );
+		if ( $GLOBALS['kses_on'] ) {
+			$content = trim( strip_tags( $content ) );
+		}
+		$GLOBALS['stored_posts'][ $answer ] = (object) [ 'ID' => $answer, 'post_type' => $post['post_type'] ?? '', 'post_content' => $content ];
+	}
 	// As core does: without $wp_error a failure is 0, never an object.
 	return ( ! $wp_error && $answer instanceof WP_Error ) ? 0 : $answer;
+}
+function get_post( $id ) {
+	return $GLOBALS['stored_posts'][ $id ] ?? null;
+}
+function wp_delete_post( $id, $force = false ) {
+	$GLOBALS['deleted_posts'][] = $id;
+	unset( $GLOBALS['stored_posts'][ $id ] );
+	return true;
+}
+function wp_slash( $value ) {
+	return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value );
+}
+function has_filter( string $hook, $cb = false ) {
+	return ( 'content_save_pre' === $hook && 'wp_filter_post_kses' === $cb && $GLOBALS['kses_on'] ) ? 10 : false;
+}
+function kses_remove_filters(): void {
+	if ( empty( $GLOBALS['kses_stuck'] ) ) {
+		$GLOBALS['kses_on'] = false;
+	}
+}
+function kses_init_filters(): void {
+	$GLOBALS['kses_on'] = true;
 }
 
 // ─── wp_kses, as far as an allow-list goes ───────────────────────────────────
@@ -705,6 +743,52 @@ $GLOBALS['inserted']       = [];
 $GLOBALS['insert_returns'] = 42;
 check( 'SILENCE: a file that is not an SVG is refused before anything is written', 'not_svg' === easy_svg_add_icon( 'Arrow', 'not markup at all <' ) );
 check( 'SILENCE: nothing was written for it', [] === $GLOBALS['inserted'] );
+
+// ─── An icon survives the save, whoever saves it ─────────────────────────────
+
+/*
+ * wp_insert_post() runs content through wp_filter_post_kses for anybody
+ * without unfiltered_html -- every administrator of a multisite sub-site, and
+ * every site with DISALLOW_UNFILTERED_HTML -- and kses knows no SVG. The icon
+ * was stored empty and the screen said "Icon added.". It also unslashes, so a
+ * backslash in the markup was lost on every site.
+ */
+$GLOBALS['kses_on']        = true;
+$GLOBALS['inserted']       = [];
+$GLOBALS['insert_returns'] = 77;
+$slashed_svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>a\\b</text><path d="M0 0"/></svg>';
+$state_k     = easy_svg_add_icon( 'Kses', $slashed_svg );
+$stored_k    = (string) ( get_post( 77 )->post_content ?? '' );
+
+check( 'BELL: a user without unfiltered_html can add an icon that is not empty', 'added' === $state_k && false !== strpos( $stored_k, '<path' ) );
+check( 'BELL: kses is off for exactly that insert', false === ( $GLOBALS['inserted'][0]['kses'] ?? true ) );
+check( 'BELL: and on again afterwards', true === $GLOBALS['kses_on'] );
+check( 'BELL: a backslash in the markup survives the save', false !== strpos( $stored_k, 'a\\b' ) );
+
+$GLOBALS['insert_returns'] = new WP_Error( 'x', 'y' );
+easy_svg_add_icon( 'Kses', $slashed_svg );
+check( 'SILENCE: kses comes back on after a failed insert too', true === $GLOBALS['kses_on'] );
+
+$GLOBALS['kses_on']        = false;
+$GLOBALS['insert_returns'] = 78;
+easy_svg_add_icon( 'Plain', $slashed_svg );
+check( 'SILENCE: where kses was off it stays off', false === $GLOBALS['kses_on'] );
+
+/*
+ * Whatever else empties the content on the way -- another plugin's filter --
+ * the stored result is checked, and an empty icon is neither kept nor
+ * reported as added. Simulated by kses that cannot be switched off.
+ */
+$GLOBALS['kses_on']        = true;
+$GLOBALS['kses_stuck']     = true;
+$GLOBALS['insert_returns'] = 79;
+$GLOBALS['deleted_posts']  = [];
+$state_e = easy_svg_add_icon( 'Empty', $slashed_svg );
+unset( $GLOBALS['kses_stuck'] );
+check( 'BELL: an icon stored empty is reported as not saved', 'not_saved' === $state_e );
+check( 'BELL: and the empty post is removed again', in_array( 79, $GLOBALS['deleted_posts'], true ) );
+$GLOBALS['kses_on']        = false;
+$GLOBALS['insert_returns'] = 42;
 
 // ─── A sanitiser that throws is a refusal, not a crash ───────────────────────
 
