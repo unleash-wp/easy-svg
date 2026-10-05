@@ -12,5 +12,6 @@
 /tests export-ignore
 /vendor/enshrined/svg-sanitize/src/svg-scanner.php export-ignore
 /vendor/enshrined/svg-sanitize/README.md export-ignore
+/vendor/enshrined/svg-sanitize/CHANGELOG.md export-ignore
 /vendor/enshrined/svg-sanitize/composer.json export-ignore
 .DS_Store export-ignore

@@ -121,6 +121,7 @@ its own.
 
 == Changelog ==
 = 4.3 =
+* Security: the bundled SVG sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0, which fixes four published advisories: GHSA-9rjx-3jch-6vjf (stored XSS through a DTD entity named like an HTML character reference), GHSA-m9xh-6747-9r6f (mixed-case xlink:href escaping the nested-`<use>` check), GHSA-v383-3rw5-q8rf (denial of service through a DTD attribute declaration) and GHSA-qhmf-972w-m957 (CSS injection and remote-reference bypass). Note: an SVG that relies on custom DTD entities, as some older Adobe Illustrator exports do, is now refused; export it again without them.
 * Security: SVGs that do not arrive through the media uploader are now sanitized too, or rejected. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left WP-CLI `wp media import`, media_sideload_image(), importers and REST uploads sent as a raw file body unchecked.
 * Security: an SVG file the sanitizer cannot use (for example an HTML page saved as .svg) is now refused with an upload error instead of causing a fatal error.
 * New: SVG icons for the Icon block, under Media → SVG icons. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen does not appear and everything else works as before. As many icons as you like, each sanitized with this site's own allowed tags and attributes before it is stored.
@@ -317,4 +318,4 @@ its own.
 == Upgrade Notice ==
 
 = 4.3 =
-Security: SVGs added outside the media uploader (WP-CLI `wp media import`, media_sideload_image(), importers, raw REST uploads) are now sanitized or rejected. New: SVG icons for the Icon block, under Media → SVG icons, on WordPress 7.1+.
+Security: SVG sanitizer 1.0.0 (fixes GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf, GHSA-qhmf-972w-m957). SVGs added via WP-CLI `wp media import`, media_sideload_image(), importers or raw REST uploads are now sanitized. New: SVG icons on WP 7.1+.

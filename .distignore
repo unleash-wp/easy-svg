@@ -24,6 +24,7 @@
 # svg-scanner.php is a command-line tool, not part of the sanitiser.
 /vendor/enshrined/svg-sanitize/src/svg-scanner.php
 /vendor/enshrined/svg-sanitize/README.md
+/vendor/enshrined/svg-sanitize/CHANGELOG.md
 /vendor/enshrined/svg-sanitize/composer.json
 
 # A mac writes these without being asked.

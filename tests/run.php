@@ -582,6 +582,65 @@ check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \ensh
 // one stripped.
 check( 'SILENCE: each call gets its own', easy_svg_sanitizer() !== easy_svg_sanitizer() );
 
+// ─── The bundled sanitiser is not a known-vulnerable one ─────────────────────
+
+/*
+ * svg-sanitize 0.22.0 is affected by four advisories fixed only in 1.0.0. The
+ * two worth proving at the bytes, with payloads from the advisories:
+ *
+ * GHSA-9rjx-3jch-6vjf: an entity named like an HTML5 character reference.
+ * In XML `&Tab;` expands to "#", so the href looked like a fragment and
+ * passed; saveXML() kept the REFERENCE and dropped the DTD, and a browser
+ * reading it inline resolves `&Tab;` to a tab and runs `javascript:`.
+ */
+$entity_href = '<!DOCTYPE svg [<!ENTITY Tab "#">]>'
+	. '<svg xmlns="http://www.w3.org/2000/svg"><a href="&Tab;javascript:alert(document.domain)"><rect width="9" height="9"/></a></svg>';
+$entity_out = easy_svg_sanitizer()->sanitize( $entity_href );
+check(
+	'BELL: GHSA-9rjx-3jch-6vjf -- an entity-smuggled javascript: href does not survive',
+	false === $entity_out || ( false === stripos( (string) $entity_out, 'javascript:' ) && false === strpos( (string) $entity_out, '&Tab;' ) )
+);
+
+$file = file_array( $entity_href );
+$after_entity = $callback( $file );
+$entity_bytes = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: and an upload carrying it is refused or cleaned, never stored as it came', isset( $after_entity['error'] ) || false === stripos( $entity_bytes, 'javascript:' ) );
+
+// The same trick smuggling markup instead of a URL.
+$entity_script = '<!DOCTYPE svg [<!ENTITY s "<script>alert(1)</script>">]><svg xmlns="http://www.w3.org/2000/svg">&s;<rect width="1"/></svg>';
+$entity_script_out = (string) easy_svg_sanitizer()->sanitize( $entity_script );
+check( 'BELL: a DTD entity carrying a script element yields no script', false === stripos( $entity_script_out, '<script' ) && false === strpos( $entity_script_out, '&s;' ) );
+
+/*
+ * GHSA-m9xh-6747-9r6f: the <use> nesting-bomb check selected `xlink:href`
+ * case-sensitively, and a later step rewrote `xlink:HrEf` to `xlink:href` --
+ * handing back a live bomb it would have defused in canonical spelling. The
+ * mixed-case input must come out exactly as defused as the canonical one.
+ */
+$use_bomb = static function ( string $attr ): string {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="l0" d="M0 0h1"/>';
+	for ( $level = 1; $level <= 6; $level++ ) {
+		$svg .= '<g id="l' . $level . '">' . str_repeat( '<use ' . $attr . '="#l' . ( $level - 1 ) . '"/>', 8 ) . '</g>';
+	}
+	return $svg . '</defs><use ' . $attr . '="#l6"/></svg>';
+};
+$uses_canonical = substr_count( (string) easy_svg_sanitizer()->sanitize( $use_bomb( 'xlink:href' ) ), '<use' );
+$uses_mixed     = substr_count( (string) easy_svg_sanitizer()->sanitize( $use_bomb( 'xlink:HrEf' ) ), '<use' );
+check( "BELL: GHSA-m9xh-6747-9r6f -- mixed-case xlink:HrEf is defused like xlink:href ({$uses_mixed} vs {$uses_canonical} <use> left)", $uses_mixed === $uses_canonical );
+
+// The fix must not cost ordinary files: an editor export with a PUBLIC DOCTYPE
+// and no custom entities is still cleaned, not refused.
+$public_doctype = '<?xml version="1.0"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+	. '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1"/></svg>';
+check( 'SILENCE: an export with a PUBLIC DOCTYPE still sanitises', false !== strpos( (string) easy_svg_sanitizer()->sanitize( $public_doctype ), '<rect' ) );
+
+// Pinned, so a downgrade of vendor/ -- a stale checkout, a bad merge -- fails
+// here instead of shipping the vulnerable library again.
+$installed = (array) @include $root . '/vendor/composer/installed.php';
+$bundled   = (string) ( $installed['versions']['enshrined/svg-sanitize']['version'] ?? '' );
+check( "BELL: the bundled svg-sanitize is 1.0 or newer ({$bundled})", '' !== $bundled && version_compare( $bundled, '1.0.0', '>=' ) );
+
 // ─── The 4.1 global, still honoured ──────────────────────────────────────────
 
 /*
@@ -767,6 +826,10 @@ $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade N
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
 check( 'SILENCE: and no longer talks about WordPress 4', false === strpos( $upgrade_notice, '4.0 to 4.9' ) );
+foreach ( array( 'GHSA-9rjx-3jch-6vjf', 'GHSA-m9xh-6747-9r6f', 'GHSA-v383-3rw5-q8rf', 'GHSA-qhmf-972w-m957' ) as $advisory ) {
+	check( "BELL: the upgrade notice names {$advisory}", false !== strpos( $upgrade_notice, $advisory ) );
+}
+check( 'SILENCE: the upgrade notice fits the 300 characters wordpress.org shows', mb_strlen( trim( (string) substr( $upgrade_notice, (int) strpos( $upgrade_notice, '= 4.3 =' ) + 7 ) ) ) <= 300 );
 check( 'SILENCE: one changelog entry for this release, with the unreleased 4.2 folded in', false === strpos( $readme, '= 4.2 =' ) );
 preg_match( '/^Tags:\s*(.+)$/mi', $readme, $tags_line );
 check( 'SILENCE: at most five tags, as wordpress.org reads them', isset( $tags_line[1] ) && count( array_filter( array_map( 'trim', explode( ',', $tags_line[1] ) ) ) ) <= 5 );
@@ -820,13 +883,25 @@ $read_list = static function ( string $file, bool $attributes ): array {
 $distignore = $read_list( $root . '/.distignore', false );
 $exportign  = $read_list( $root . '/.gitattributes', true );
 
-foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php' ) as $kept_out ) {
+foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
 	check( "BELL: .distignore keeps {$kept_out} out of the release", in_array( $kept_out, $distignore, true ) );
 }
 check(
 	'BELL: and .gitattributes export-ignores exactly the same set',
 	array_values( array_diff( $distignore, array( '.git' ) ) ) === $exportign
 );
+/*
+ * The library's file layout changes between releases (1.0.0 added a
+ * CHANGELOG.md). Every file of it outside src/ is either its LICENSE or listed
+ * above, so an update that adds one fails here instead of shipping it.
+ */
+foreach ( glob( $root . '/vendor/enshrined/svg-sanitize/*' ) ?: array() as $lib_file ) {
+	$rel = substr( $lib_file, strlen( $root ) + 1 );
+	if ( is_dir( $lib_file ) || 'vendor/enshrined/svg-sanitize/LICENSE' === $rel ) {
+		continue;
+	}
+	check( "BELL: the library's {$rel} is kept out of the release", in_array( $rel, $distignore, true ) );
+}
 foreach ( array( 'easy-svg.php', 'includes', 'vendor', 'languages', 'readme.txt', 'license.txt', 'index.php', 'vendor/enshrined/svg-sanitize/LICENSE' ) as $shipped_path ) {
 	check( "SILENCE: {$shipped_path} still ships", ! in_array( $shipped_path, $distignore, true ) );
 }
