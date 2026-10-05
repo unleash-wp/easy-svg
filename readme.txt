@@ -1,6 +1,4 @@
 === Easy SVG Support ===
-Author URI: https://www.benjamin-zekavica.de
-Plugin URI: https://wordpress.org/plugins/easy-svg/
 Contributors: Benjamin_Zekavica
 Tags: svg, svg support, upload svg, svg media, icons
 Requires at least: 6.0

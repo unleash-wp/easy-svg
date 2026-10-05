@@ -843,6 +843,27 @@ check( 'SILENCE: one changelog entry for this release, with the unreleased 4.2 f
 preg_match( '/^Tags:\s*(.+)$/mi', $readme, $tags_line );
 check( 'SILENCE: at most five tags, as wordpress.org reads them', isset( $tags_line[1] ) && count( array_filter( array_map( 'trim', explode( ',', $tags_line[1] ) ) ) ) <= 5 );
 
+// ─── Who it is from ──────────────────────────────────────────────────────────
+
+/*
+ * The header names the publisher; the readme names the wordpress.org account
+ * that may commit, which must stay a real username. The readme header carries
+ * only the fields wordpress.org reads -- anything else there is noise a
+ * reviewer has to ask about.
+ */
+check( 'BELL: the plugin is published by UnleashWP', 1 === preg_match( '/^\s*Author:\s*UnleashWP\s*$/mi', $main_header_src = (string) file_get_contents( $root . '/easy-svg.php' ) ) );
+check( 'SILENCE: with its site as Author URI', 1 === preg_match( '#^\s*Author URI:\s*https://www\.unleash-wp\.com\s*$#mi', $main_header_src ) );
+check( 'SILENCE: the copyright line is unchanged', false !== strpos( $main_header_src, 'Copyright (C) 2017-2026 Benjamin Zekavica.' ) );
+check( 'SILENCE: the contributor is still the wordpress.org account', 1 === preg_match( '/^Contributors:\s*Benjamin_Zekavica\s*$/mi', $readme ) );
+$readme_head = (string) substr( $readme, 0, (int) strpos( $readme, "\n\n" ) );
+foreach ( array_slice( explode( "\n", $readme_head ), 1 ) as $head_line ) {
+	$field = trim( (string) strstr( $head_line, ':', true ) );
+	check(
+		"BELL: '{$field}' is a field the readme header may carry",
+		in_array( $field, array( 'Contributors', 'Donate link', 'Tags', 'Requires at least', 'Tested up to', 'Requires PHP', 'Stable tag', 'License', 'License URI' ), true )
+	);
+}
+
 // ─── One licence, said the same way everywhere ───────────────────────────────
 
 /*
