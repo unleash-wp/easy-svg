@@ -967,6 +967,40 @@ $public_doctype = '<?xml version="1.0"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.
 	. '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1"/></svg>';
 check( 'SILENCE: an export with a PUBLIC DOCTYPE still sanitises', false !== strpos( (string) easy_svg_sanitizer()->sanitize( $public_doctype ), '<rect' ) );
 
+/*
+ * GHSA-v383-3rw5-q8rf: a DTD attribute declaration made the library remove an
+ * attribute twice, and the second removal crashed the PHP process itself --
+ * nothing a try/catch could see. Run in a child process for that reason: a
+ * crash is a FAIL line here, not a dead suite.
+ */
+$dtd_attr = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE svg [<!ATTLIST svg badhref CDATA #FIXED "javascript:x">]>'
+	. '<svg xmlns="http://www.w3.org/2000/svg" badhref="javascript:x"><rect width="1" height="1"/></svg>';
+$child = 'require ' . var_export( $root . '/vendor/autoload.php', true ) . ';'
+	. '$s = new \\enshrined\\svgSanitize\\Sanitizer();'
+	. 'try { $r = $s->sanitize( base64_decode( $argv[1] ) ); } catch ( \\Throwable $e ) { $r = false; }'
+	. 'echo false === $r ? "refused" : ( false === stripos( (string) $r, "javascript:" ) ? "clean" : "dirty" );';
+$child_out    = array();
+$child_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $child ) . ' ' . escapeshellarg( base64_encode( $dtd_attr ) ) . ' 2>&1', $child_out, $child_status );
+$child_said = implode( ' ', $child_out );
+check( "BELL: GHSA-v383-3rw5-q8rf -- a DTD attribute declaration neither crashes nor survives ({$child_status}: {$child_said})", 0 === $child_status && in_array( $child_said, array( 'refused', 'clean' ), true ) );
+
+/*
+ * GHSA-qhmf-972w-m957: with removeRemoteReferences(true) -- which a site can
+ * switch on through the 4.1 global -- remote references in <style>, in a bare
+ * href and in an unquoted url() were kept.
+ */
+$remote = '<svg xmlns="http://www.w3.org/2000/svg">'
+	. '<style>@import url(https://tracker.invalid/a.css); rect { fill: url(https://tracker.invalid/b); }</style>'
+	. '<image href="https://tracker.invalid/pixel.png" width="1" height="1"/>'
+	. '<rect width="9" height="9" style="fill:url(https://tracker.invalid/c)"/>'
+	. '</svg>';
+$no_remote = easy_svg_sanitizer();
+$no_remote->removeRemoteReferences( true );
+$remote_out = (string) $no_remote->sanitize( $remote );
+check( 'BELL: GHSA-qhmf-972w-m957 -- with remote references off, none survive in style, href or url()', '' !== $remote_out && false === strpos( $remote_out, 'tracker.invalid' ) );
+check( 'SILENCE: and the drawing is still there', false !== strpos( $remote_out, '<rect' ) );
+
 // Pinned, so a downgrade of vendor/ -- a stale checkout, a bad merge -- fails
 // here instead of shipping the vulnerable library again.
 $installed = (array) @include $root . '/vendor/composer/installed.php';
