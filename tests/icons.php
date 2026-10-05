@@ -235,6 +235,56 @@ $half = static function ( $name, $args ) {
 };
 check( 'BELL: only what core took is counted', 1 === easy_svg_register_icons( $icons, $ok_collection, $half ) );
 
+// ─── Reading every icon, a page at a time ────────────────────────────────────
+
+/*
+ * The screen and the registration once read a list capped at 200 while the
+ * add handler counted every post, so the 201st icon was stored, counted -- and
+ * never appeared anywhere. With no product limit the list has no natural end,
+ * so it is read in pages until a page comes back short.
+ */
+$store = static function ( int $n ): callable {
+    return static function ( int $page, int $per_page ) use ( $n ): array {
+        $out   = array();
+        $first = ( $page - 1 ) * $per_page + 1;
+        for ( $id = $first; $id <= min( $n, $first + $per_page - 1 ); $id++ ) {
+            $out[] = array( 'id' => $id, 'slug' => "i{$id}", 'label' => "I{$id}", 'content' => '<svg/>' );
+        }
+        return $out;
+    };
+};
+
+$all = easy_svg_collect_icons( $store( 250 ), 100 );
+check( 'BELL: 250 icons are all read, not the first 200', 250 === count( $all ) );
+check( 'SILENCE: in the order they were stored', 1 === $all[0]['id'] && 250 === $all[249]['id'] );
+check( 'SILENCE: and none twice', 250 === count( array_unique( array_column( $all, 'id' ) ) ) );
+
+$calls   = 0;
+$counted = static function ( int $page, int $per_page ) use ( $store, &$calls ): array {
+    $calls++;
+    return $store( 200 )( $page, $per_page );
+};
+check( 'BELL: exactly two full pages are both read', 200 === count( easy_svg_collect_icons( $counted, 100 ) ) );
+check( 'SILENCE: and the empty third page ends it', 3 === $calls );
+
+$calls = 0;
+$none  = static function ( int $page, int $per_page ) use ( &$calls ): array {
+    $calls++;
+    return array();
+};
+check( 'SILENCE: no icons is an empty list', array() === easy_svg_collect_icons( $none, 100 ) );
+check( 'SILENCE: after one question', 1 === $calls );
+
+/*
+ * A query that ignores `paged` -- a filter on the query, a caching plugin --
+ * hands back the same full page for ever. That must end the loop rather than
+ * the request.
+ */
+$stuck = static function ( int $page, int $per_page ) use ( $store ): array {
+    return $store( 500 )( 1, $per_page );
+};
+check( 'BELL: a page that repeats itself ends the read instead of looping', 100 === count( easy_svg_collect_icons( $stuck, 100 ) ) );
+
 echo 0 === $failed
     ? "all {$passed} checks passed\n"
     : "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";

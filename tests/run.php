@@ -84,6 +84,66 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ): array {
 	return $GLOBALS['filetype'];
 }
 
+// ─── The icon store, as far as the plugin can see it ─────────────────────────
+
+define( 'DAY_IN_SECONDS', 86400 );
+
+/** The esw_icon posts this fake site holds, oldest first. */
+$GLOBALS['icon_posts'] = [];
+/** Every get_posts() call, so a test can tell a cache hit from a query. */
+$GLOBALS['get_posts_calls'] = [];
+
+function get_posts( array $args = [] ): array {
+	$GLOBALS['get_posts_calls'][] = $args;
+	$per_page = (int) ( $args['posts_per_page'] ?? 5 );
+	$page     = max( 1, (int) ( $args['paged'] ?? 1 ) );
+	$posts    = array_values(
+		array_filter(
+			$GLOBALS['icon_posts'],
+			static function ( $p ) use ( $args ) {
+				return ( $args['post_type'] ?? '' ) === $p->post_type && 'publish' === $p->post_status;
+			}
+		)
+	);
+	if ( $per_page < 0 ) {
+		return $posts;
+	}
+	return array_slice( $posts, ( $page - 1 ) * $per_page, $per_page );
+}
+
+function icon_post( int $id, string $type = 'esw_icon' ): object {
+	return (object) [
+		'ID'           => $id,
+		'post_type'    => $type,
+		'post_status'  => 'publish',
+		'post_name'    => "icon-{$id}",
+		'post_title'   => "Icon {$id}",
+		'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>',
+	];
+}
+
+$GLOBALS['transients'] = [];
+$GLOBALS['transient_ttl'] = [];
+function get_transient( string $key ) {
+	return $GLOBALS['transients'][ $key ] ?? false;
+}
+function set_transient( string $key, $value, int $ttl = 0 ): bool {
+	$GLOBALS['transients'][ $key ]    = $value;
+	$GLOBALS['transient_ttl'][ $key ] = $ttl;
+	return true;
+}
+function delete_transient( string $key ): bool {
+	unset( $GLOBALS['transients'][ $key ] );
+	return true;
+}
+
+/** Runs what is registered on a hook, the way do_action would. */
+function fire( string $hook, ...$args ): void {
+	foreach ( $GLOBALS['hooks'][ $hook ] ?? [] as $cb ) {
+		$cb( ...$args );
+	}
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -237,6 +297,68 @@ check(
 check( 'the screen is registered', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
 check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
 check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
+
+// ─── Every icon, read once ───────────────────────────────────────────────────
+
+/*
+ * Two bugs in one place. The list was capped at 200 while the add handler
+ * counted every post, so icon 201 was stored and then appeared nowhere -- not
+ * on the screen, not in the block. And it was read with a full query on EVERY
+ * request on WordPress 7.1, front end included, for a list that changes only
+ * when somebody adds or removes an icon.
+ */
+for ( $i = 1; $i <= 250; $i++ ) {
+	$GLOBALS['icon_posts'][] = icon_post( $i );
+}
+// Not an icon: must never be read, counted or cached as one.
+$GLOBALS['icon_posts'][] = icon_post( 9001, 'page' );
+
+$GLOBALS['get_posts_calls'] = [];
+$listed = easy_svg_stored_icons();
+
+check( 'BELL: all 250 icons are listed, not the first 200', 250 === count( $listed ) );
+check( 'SILENCE: oldest first, so the picker does not reshuffle', 1 === ( $listed[0]['id'] ?? 0 ) && 250 === ( $listed[249]['id'] ?? 0 ) );
+check( 'SILENCE: and a page is not an icon', ! in_array( 9001, array_column( $listed, 'id' ), true ) );
+check(
+	'SILENCE: read in bounded pages rather than one unbounded query',
+	[] !== $GLOBALS['get_posts_calls'] && [] === array_filter(
+		$GLOBALS['get_posts_calls'],
+		static function ( $a ) { return (int) ( $a['posts_per_page'] ?? 0 ) < 1 || (int) $a['posts_per_page'] > 100; }
+	)
+);
+
+$GLOBALS['get_posts_calls'] = [];
+$again = easy_svg_stored_icons();
+check( 'BELL: the second request does not query the database again', [] === $GLOBALS['get_posts_calls'] );
+check( 'SILENCE: and gets the same list', $again === $listed );
+
+$cache_keys = array_keys( $GLOBALS['transients'] );
+check( 'the list is cached in a transient', 1 === count( $cache_keys ) );
+// An expiry keeps it out of autoloaded options, so a site with many icons does
+// not carry their markup into every request's alloptions.
+check( 'BELL: with an expiry, so it is never autoloaded', ( $GLOBALS['transient_ttl'][ $cache_keys[0] ?? '' ] ?? 0 ) > 0 );
+
+// Adding an icon goes through wp_insert_post, which fires save_post_esw_icon.
+$GLOBALS['icon_posts'][] = icon_post( 251 );
+fire( 'save_post_esw_icon', 251, icon_post( 251 ), false );
+$GLOBALS['get_posts_calls'] = [];
+check( 'BELL: an added icon appears at once, because adding drops the cache', 251 === count( easy_svg_stored_icons() ) );
+check( 'SILENCE: by asking the database again', [] !== $GLOBALS['get_posts_calls'] );
+
+// Deleting a PAGE must not throw away the icon cache.
+fire( 'deleted_post', 9001, icon_post( 9001, 'page' ) );
+$GLOBALS['get_posts_calls'] = [];
+easy_svg_stored_icons();
+check( 'SILENCE: deleting something that is not an icon keeps the cache', [] === $GLOBALS['get_posts_calls'] );
+
+// Deleting an icon -- from the screen, WP-CLI or anywhere -- drops it.
+array_pop( $GLOBALS['icon_posts'] );
+fire( 'deleted_post', 251, icon_post( 251 ) );
+check( 'BELL: a deleted icon disappears at once, from wherever it was deleted', 250 === count( easy_svg_stored_icons() ) );
+
+// Whatever else might sit under the key is a miss, not a list.
+$GLOBALS['transients'][ $cache_keys[0] ?? 'x' ] = 'garbage';
+check( 'SILENCE: a cache entry that is not a list is read again, not trusted', 250 === count( easy_svg_stored_icons() ) );
 
 // ─── Every refusal has a sentence ────────────────────────────────────────────
 
@@ -447,6 +569,31 @@ $icons_out    = array();
 $icons_status = 1;
 exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/icons.php' ) . ' 2>&1', $icons_out, $icons_status );
 check( 'the icon checks pass: ' . ( $icons_out[ count( $icons_out ) - 1 ] ?? 'no output' ), 0 === $icons_status );
+
+// ─── On WordPress 7.1 ────────────────────────────────────────────────────────
+
+/*
+ * Everything above ran as an older WordPress, without the icon API. From here
+ * on it exists: defined at RUNTIME inside a block, so the checks before this
+ * point saw it missing. PHP cannot take a function away again, which is why
+ * this section is last.
+ */
+$GLOBALS['registered_icons'] = [];
+if ( ! function_exists( 'wp_register_icon' ) ) {
+	function wp_register_icon_collection( $slug, $args ): bool {
+		return 'easy-svg' === $slug;
+	}
+	function wp_register_icon( $name, $args ): bool {
+		$GLOBALS['registered_icons'][] = $name;
+		return true;
+	}
+}
+
+check( 'the icon API now counts as present', easy_svg_icons_supported() );
+
+easy_svg_boot_icons();
+check( 'BELL: all 250 icons are handed to core, not the first 200', 250 === count( $GLOBALS['registered_icons'] ) );
+check( 'SILENCE: each under its own name', 250 === count( array_unique( $GLOBALS['registered_icons'] ) ) );
 
 // ─── The suite has to be able to fail ────────────────────────────────────────
 

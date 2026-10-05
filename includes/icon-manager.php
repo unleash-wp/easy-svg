@@ -32,6 +32,12 @@ const EASY_SVG_ICON_CAP = 'edit_theme_options';
 /** One nonce action for the screen. */
 const EASY_SVG_ICON_NONCE = 'easy_svg_icons';
 
+/** How many icons one query reads. Bounded, so no single query is "everything". */
+const EASY_SVG_ICON_PAGE_SIZE = 100;
+
+/** Where the list of icons is kept between requests. */
+const EASY_SVG_ICON_CACHE = 'easy_svg_icons';
+
 /**
  * The store.
  *
@@ -68,16 +74,62 @@ function easy_svg_register_icon_store() {
  *
  * Oldest first so the picker does not reshuffle itself when somebody adds one.
  *
+ * ─── Why it is cached ───────────────────────────────────────────────────────
+ *
+ * Core has no lazy hook for its icon registry: it registers its own icons on
+ * every `init`, and so must we, because the Icon block is rendered on the
+ * server for every visitor. Reading the list from the posts table there meant
+ * a full query, markup included, on every request of every 7.1 site -- most of
+ * which have no icons at all -- for a list that changes only when somebody adds
+ * or removes one.
+ *
+ * So the list lives in a transient, dropped whenever an icon is saved or
+ * deleted (see `easy_svg_forget_icons()`; hooked on the post type, so WP-CLI
+ * and anything else that writes icons drops it too). It is given an expiry for
+ * two reasons: a transient with one is not autoloaded, so a site with many
+ * icons does not carry their markup through every request's options; and a
+ * write that bypassed WordPress entirely heals by itself within a day.
+ *
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
 function easy_svg_stored_icons() {
+    $cached = get_transient( EASY_SVG_ICON_CACHE );
+
+    // Anything that is not a list is a miss. Trusting a stray value here would
+    // hand core garbage on every request until it expired.
+    if ( is_array( $cached ) ) {
+        return $cached;
+    }
+
+    $icons = easy_svg_collect_icons( 'easy_svg_icon_page', EASY_SVG_ICON_PAGE_SIZE );
+
+    set_transient( EASY_SVG_ICON_CACHE, $icons, DAY_IN_SECONDS );
+
+    return $icons;
+}
+
+/**
+ * One page of stored icons, straight from the posts table.
+ *
+ * Only the posts themselves are wanted: no found-rows count, no meta or term
+ * caches primed for posts that have neither.
+ *
+ * @param int $page     1-based page number.
+ * @param int $per_page How many icons a page holds.
+ * @return array<int, array{id:int, slug:string, label:string, content:string}>
+ */
+function easy_svg_icon_page( $page, $per_page ) {
     $posts = get_posts(
         array(
-            'post_type'      => EASY_SVG_ICON_POST_TYPE,
-            'post_status'    => 'publish',
-            'posts_per_page' => 200,
-            'orderby'        => 'ID',
-            'order'          => 'ASC',
+            'post_type'              => EASY_SVG_ICON_POST_TYPE,
+            'post_status'            => 'publish',
+            'posts_per_page'         => (int) $per_page,
+            'paged'                  => (int) $page,
+            'orderby'                => 'ID',
+            'order'                  => 'ASC',
+            'no_found_rows'          => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
         )
     );
 
@@ -93,6 +145,32 @@ function easy_svg_stored_icons() {
     }
 
     return $icons;
+}
+
+/**
+ * Drop the cached list, so the next request reads the icons again.
+ *
+ * Hooked on `save_post_esw_icon` rather than called from the screen's
+ * handlers alone: an icon written by WP-CLI, an importer or a REST client has
+ * to show up just the same.
+ */
+function easy_svg_forget_icons() {
+    delete_transient( EASY_SVG_ICON_CACHE );
+}
+
+/**
+ * The same, after a delete -- but only when what was deleted was an icon.
+ *
+ * `deleted_post` fires for every post on the site, and throwing the icon list
+ * away each time somebody empties the trash would undo the cache.
+ *
+ * @param int          $post_id The deleted post's ID.
+ * @param WP_Post|null $post    The deleted post.
+ */
+function easy_svg_forget_deleted_icon( $post_id, $post = null ) {
+    if ( is_object( $post ) && isset( $post->post_type ) && EASY_SVG_ICON_POST_TYPE === $post->post_type ) {
+        easy_svg_forget_icons();
+    }
 }
 
 /**

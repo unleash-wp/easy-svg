@@ -185,6 +185,53 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
 }
 
 /**
+ * Every icon, read a page at a time until a page comes back short.
+ *
+ * There is no product limit, so there is no natural size for this list, and
+ * one query for "all of them" is the kind a host's slow-query log remembers.
+ * Pages keep each query bounded; the loop decides when it is done.
+ *
+ * The fetcher is injected so the loop is checkable without WordPress, and the
+ * loop is where the mistakes live: stopping at a fixed number (the old list
+ * stopped at 200 while the add handler counted everything, so icon 201 was
+ * stored and then shown nowhere), or never stopping at all.
+ *
+ * @param callable $fetch_page ( int $page, int $per_page ) => list of icons with an 'id'.
+ * @param int      $per_page   How many one page holds.
+ * @return array
+ */
+function easy_svg_collect_icons( $fetch_page, $per_page ) {
+    $per_page = max( 1, (int) $per_page );
+    $icons    = array();
+    $seen     = array();
+    $page     = 1;
+
+    do {
+        $batch = array_values( (array) call_user_func( $fetch_page, $page, $per_page ) );
+
+        /*
+         * A query that ignores `paged` -- a filter on the query, a caching
+         * layer -- answers every page with the first one. Without this the
+         * loop would ask for ever and take the request down with it.
+         */
+        if ( array() !== $batch && isset( $batch[0]['id'], $seen[ $batch[0]['id'] ] ) ) {
+            break;
+        }
+
+        foreach ( $batch as $icon ) {
+            if ( isset( $icon['id'] ) ) {
+                $seen[ $icon['id'] ] = true;
+            }
+            $icons[] = $icon;
+        }
+
+        $page++;
+    } while ( count( $batch ) === $per_page );
+
+    return $icons;
+}
+
+/**
  * Hand every icon to core, and answer how many were taken.
  *
  * Injected rather than reaching for globals, so the loop can be checked without

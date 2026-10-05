@@ -255,6 +255,15 @@ require_once __DIR__ . '/includes/icon-manager.php';
 add_action( 'init', 'easy_svg_register_icon_store', 5 );
 add_action( 'init', 'easy_svg_boot_icons', 10 );
 
+/*
+ * The icon list is cached between requests (see `easy_svg_stored_icons()`), and
+ * these drop it. On the post type rather than in the screen's handlers, and on
+ * every request rather than in wp-admin only: WP-CLI, importers and REST
+ * clients write icons too, and their icons must appear just the same.
+ */
+add_action( 'save_post_' . EASY_SVG_ICON_POST_TYPE, 'easy_svg_forget_icons' );
+add_action( 'deleted_post', 'easy_svg_forget_deleted_icon', 10, 2 );
+
 easy_svg_icons_admin();
 
 /**
