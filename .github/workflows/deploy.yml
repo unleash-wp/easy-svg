@@ -24,7 +24,23 @@ jobs:
     # machine to whoever opens a pull request.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Every action here is pinned to a commit: this job has the SVN password
+      # in its environment, and a moving tag is code nobody reviewed.
+      # Full history, so the next step can see where the tag sits.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      # A tag can be pushed on any commit, including one on a branch nobody
+      # merged. Only what is on master may reach 40,000 sites.
+      - name: The tagged commit is on master
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/master:refs/remotes/origin/master
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
+            echo "::error::${GITHUB_REF_NAME} (${GITHUB_SHA}) is not on master; merge first, then tag"
+            exit 1
+          fi
 
       # wordpress.org serves whatever `Stable tag` names, a site compares the
       # plugin header against it, and the action names the SVN tag after the
@@ -43,7 +59,7 @@ jobs:
           fi
 
       # A release is never less checked than a pull request.
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with: { php-version: '8.0' }
       - name: Tests
         run: php tests/run.php
@@ -64,7 +80,7 @@ jobs:
           SLUG: easy-svg
 
       - name: Keep the zip that was deployed
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: easy-svg-${{ github.ref_name }}
           path: ${{ steps.deploy.outputs.zip-path }}

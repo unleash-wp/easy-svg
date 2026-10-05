@@ -1357,6 +1357,14 @@ $deploy = (string) @file_get_contents( $root . '/.github/workflows/deploy.yml' )
 check( 'BELL: there is a deploy workflow', '' !== $deploy );
 check( 'BELL: it runs on a version tag, with no v prefix', false !== strpos( $deploy, "tags: ['[0-9]+.[0-9]+*']" ) );
 check( 'BELL: the deploy action is pinned to a commit, not a moving branch', 1 === preg_match( '#uses:\s*10up/action-wordpress-plugin-deploy@[0-9a-f]{40}\b#', $deploy ) );
+preg_match_all( '/^\s*(?:-\s*)?uses:\s*(\S+)/m', $deploy, $deploy_uses );
+check( 'SILENCE: the deploy workflow uses actions at all', count( $deploy_uses[1] ) >= 3 );
+foreach ( $deploy_uses[1] as $deploy_action ) {
+	check( "BELL: {$deploy_action} is pinned to a commit", 1 === preg_match( '/@[0-9a-f]{40}$/', $deploy_action ) );
+}
+$ancestry_at   = strpos( $deploy, 'merge-base --is-ancestor' );
+$deploy_action_at = strpos( $deploy, '10up/action-wordpress-plugin-deploy' );
+check( 'BELL: only a commit that is on master can be deployed', false !== $ancestry_at && false !== $deploy_action_at && $ancestry_at < $deploy_action_at && 1 === preg_match( '/fetch-depth:\s*0/', $deploy ) );
 check( 'BELL: the workflow token can only read', 1 === preg_match( '/^permissions:\s*\n\s+contents:\s*read\s*$/m', $deploy ) );
 check( 'SILENCE: the slug is the one on wordpress.org', 1 === preg_match( '/SLUG:\s*easy-svg\s*$/m', $deploy ) );
 check( 'SILENCE: the SVN credentials come from secrets', false !== strpos( $deploy, '${{ secrets.SVN_USERNAME }}' ) && false !== strpos( $deploy, '${{ secrets.SVN_PASSWORD }}' ) );
