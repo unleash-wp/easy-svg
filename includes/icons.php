@@ -146,7 +146,17 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
         return array( 'state' => 'empty' );
     }
 
-    $clean = call_user_func( $sanitize, (string) $markup );
+    /*
+     * The library THROWS for well-formed XML without exactly one <svg> root --
+     * an HTML page or an XML export saved as .svg -- where it returns false for
+     * markup it cannot parse at all. Both mean the same thing to the person
+     * uploading, and an uncaught throw here is a white screen on the form.
+     */
+    try {
+        $clean = call_user_func( $sanitize, (string) $markup );
+    } catch ( \Throwable $e ) {
+        return array( 'state' => 'not_svg' );
+    }
 
     /*
      * The sanitiser refusing means it could not read the file. Storing whatever

@@ -405,6 +405,32 @@ $GLOBALS['insert_returns'] = 42;
 check( 'SILENCE: a file that is not an SVG is refused before anything is written', 'not_svg' === easy_svg_add_icon( 'Arrow', 'not markup at all <' ) );
 check( 'SILENCE: nothing was written for it', [] === $GLOBALS['inserted'] );
 
+// ─── A sanitiser that throws is a refusal, not a crash ───────────────────────
+
+/*
+ * The library throws a LogicException for well-formed XML that has no single
+ * <svg> root -- an HTML page or an XML export saved as .svg. Uncaught, that was
+ * a fatal error: a white screen on the icon form, and a broken upload.
+ * Guarded, so a throw is a FAIL line here rather than a dead suite.
+ */
+$not_an_svg = '<?xml version="1.0"?><html><p>not a drawing</p></html>';
+
+try {
+	$state = easy_svg_add_icon( 'Arrow', $not_an_svg );
+} catch ( \Throwable $e ) {
+	$state = 'threw ' . get_class( $e );
+}
+check( "BELL: an XML file with no svg root is refused as not an SVG ({$state})", 'not_svg' === $state );
+
+$file = file_array( $not_an_svg );
+try {
+	$after = $callback( $file );
+} catch ( \Throwable $e ) {
+	$after = [ 'threw' => get_class( $e ) ];
+}
+unlink( $file['tmp_name'] );
+check( 'BELL: and the same file through the media uploader is an upload error, not a fatal', isset( $after['error'] ) && ! isset( $after['threw'] ) );
+
 // ─── Every refusal has a sentence ────────────────────────────────────────────
 
 /*

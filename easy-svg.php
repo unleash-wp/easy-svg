@@ -147,7 +147,18 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
-    $clean = $sanitizer->sanitize( $unclean );
+    /*
+     * Caught, and answered like any other file the sanitiser refuses. The
+     * library throws a LogicException for well-formed XML without exactly one
+     * <svg> root, where it returns false for markup it cannot parse; both mean
+     * "not a usable SVG", and the caller turns false into an upload error the
+     * person can read. Uncaught, the same file was a fatal error.
+     */
+    try {
+        $clean = $sanitizer->sanitize( $unclean );
+    } catch ( \Throwable $e ) {
+        return false;
+    }
 
     if ( false === $clean ) {
         return false;
