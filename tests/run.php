@@ -50,12 +50,13 @@ function add_action( string $hook, $cb, int $priority = 10, int $args = 1 ): boo
 	$GLOBALS['priorities'][ $hook ][ is_string( $cb ) ? $cb : 'closure' ] = $priority;
 	return true;
 }
-function apply_filters( string $hook, $value ) {
+function apply_filters( string $hook, $value, ...$args ) {
 	// Real enough to prove the allow-list is reachable. A stub that always
 	// returned its input would let a plugin ignore the filter entirely and
-	// still pass every check below.
+	// still pass every check below. Extra arguments are passed on, as core
+	// does: `wp_check_filetype_and_ext` hands its callbacks four more.
 	foreach ( $GLOBALS['hooks'][ $hook ] ?? [] as $cb ) {
-		$value = $cb( $value );
+		$value = $cb( $value, ...$args );
 	}
 	return $value;
 }
@@ -69,7 +70,19 @@ function esc_attr( string $text ): string {
 	return $text;
 }
 function get_allowed_mime_types(): array {
-	return [ 'svg' => 'image/svg+xml' ];
+	// Core's list, abridged to the types the checks below need, and run
+	// through `upload_mimes` the way core runs it -- that filter is where this
+	// plugin adds SVG.
+	return apply_filters(
+		'upload_mimes',
+		[
+			'jpg|jpeg|jpe' => 'image/jpeg',
+			'png'          => 'image/png',
+			'mp3|m4a|m4b'  => 'audio/mpeg',
+			'pdf'          => 'application/pdf',
+			'txt|asc|c|cc|h|srt' => 'text/plain',
+		]
+	);
 }
 // Answering false on purpose: this suite is not an admin request, so hiding the
 // icons behind `is_admin()` shows up as icons that never register rather than
@@ -78,10 +91,61 @@ function is_admin(): bool {
 	return false;
 }
 
-/** Answers as core does for a genuine SVG unless a test says otherwise. */
-$GLOBALS['filetype'] = [ 'ext' => 'svg', 'type' => 'image/svg+xml' ];
+/*
+ * Core's file-type check, cut down to the branches that matter here but
+ * otherwise as core writes it (wp-includes/functions.php). Two properties are
+ * the point: the extension comes back AS WRITTEN in the filename, so `X.SVG`
+ * answers `SVG`; and the content is looked at with fileinfo, so a file whose
+ * bytes do not match its name loses its type -- unless a filter on
+ * `wp_check_filetype_and_ext` gives it back. A stub that always answered
+ * "svg" is how a mixed-case name slipped past every check in this file.
+ */
+function wp_check_filetype( $filename, $mimes = null ): array {
+	$mimes = $mimes ?: get_allowed_mime_types();
+	$type  = false;
+	$ext   = false;
+	foreach ( $mimes as $ext_preg => $mime_match ) {
+		if ( preg_match( '!\\.(' . $ext_preg . ')$!i', (string) $filename, $m ) ) {
+			$type = $mime_match;
+			$ext  = $m[1];
+			break;
+		}
+	}
+	return compact( 'ext', 'type' );
+}
 function wp_check_filetype_and_ext( $file, $filename, $mimes = null ): array {
-	return $GLOBALS['filetype'];
+	$proper_filename = false;
+	$checked         = wp_check_filetype( $filename, $mimes );
+	$ext             = $checked['ext'];
+	$type            = $checked['type'];
+	$real_mime       = false;
+
+	if ( $type && 0 === strpos( $type, 'image/' ) && file_exists( $file ) ) {
+		$info      = @getimagesize( $file );
+		$real_mime = $info['mime'] ?? false;
+		if ( $real_mime && $real_mime !== $type ) {
+			$type = false;
+			$ext  = false;
+		}
+	}
+	if ( $type && ! $real_mime && file_exists( $file ) ) {
+		$real_mime = finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $file );
+		if ( 'text/plain' === $real_mime ) {
+			if ( 'text/plain' !== $type ) {
+				$type = false;
+				$ext  = false;
+			}
+		} elseif ( $type !== $real_mime ) {
+			$type = false;
+			$ext  = false;
+		}
+	}
+	if ( $type && ! in_array( $type, get_allowed_mime_types(), true ) ) {
+		$type = false;
+		$ext  = false;
+	}
+
+	return apply_filters( 'wp_check_filetype_and_ext', compact( 'ext', 'type', 'proper_filename' ), $file, $filename, $mimes, $real_mime );
 }
 
 // ─── The icon store, as far as the plugin can see it ─────────────────────────
@@ -310,23 +374,99 @@ if ( is_callable( $sideload_cb ) ) {
 
 // ─── Files that are not what they claim ──────────────────────────────────────
 
-$GLOBALS['filetype'] = [ 'ext' => '', 'type' => 'text/html' ];
-
 $file  = file_array( '<html><script>alert(1)</script></html>', 'evil.svg' );
 $after = $callback( $file );
+$left  = (string) file_get_contents( $file['tmp_name'] );
 unlink( $file['tmp_name'] );
 
 check( 'BELL: a .svg that is not an SVG is refused', isset( $after['error'] ) );
 
-$GLOBALS['filetype'] = [ 'ext' => 'png', 'type' => 'image/png' ];
-
-$file  = file_array( 'not an svg', 'photo.png' );
+$png = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' );
+$file  = file_array( $png, 'photo.png' );
 $after = $callback( $file );
+$kept  = (string) file_get_contents( $file['tmp_name'] );
 unlink( $file['tmp_name'] );
 
 check( 'SILENCE: an ordinary image passes straight through', ! isset( $after['error'] ) );
+check( 'SILENCE: and its bytes are not touched', $png === $kept );
 
-$GLOBALS['filetype'] = [ 'ext' => 'svg', 'type' => 'image/svg+xml' ];
+// ─── One rule for what counts as an SVG ──────────────────────────────────────
+
+/*
+ * Whatever the name looks like, a file that is an SVG -- by its lower-cased
+ * extension or by the type WordPress settled on -- is sanitised or refused.
+ * The name is the uploader's to choose, so its spelling decides nothing.
+ */
+foreach ( array( 'X.SVG', 'x.Svg', 'x.sVg' ) as $mixed_name ) {
+	$file  = file_array( $scripted, $mixed_name );
+	$after = $callback( $file );
+	$clean = (string) file_get_contents( $file['tmp_name'] );
+	unlink( $file['tmp_name'] );
+	check( "BELL: {$mixed_name} is sanitised like x.svg", false === stripos( $clean, '<script' ) && false !== strpos( $clean, 'rect' ) );
+	check( "SILENCE: and {$mixed_name} is accepted as an SVG", ! isset( $after['error'] ) && 'image/svg+xml' === ( $after['type'] ?? '' ) );
+}
+
+// An SVG without an XML declaration that fileinfo calls text/plain is still an
+// SVG by its name -- and so it is sanitised, not waved through.
+$bare = '<svg><script>alert(1)</script><rect/></svg>';
+$file  = file_array( $bare, 'BARE.SVG' );
+$after = $callback( $file );
+$clean = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: an SVG fileinfo cannot name is still sanitised', false === stripos( $clean, '<script' ) || isset( $after['error'] ) );
+
+// A type mapped to SVG under another extension is an SVG too.
+add_filter(
+	'upload_mimes',
+	static function ( $mimes ) {
+		$mimes['svgicon'] = 'image/svg+xml';
+		return $mimes;
+	}
+);
+$file  = file_array( $scripted, 'x.svgicon' );
+$after = $callback( $file );
+$clean = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: a file whose type is image/svg+xml is sanitised whatever its extension', false === stripos( $clean, '<script' ) || isset( $after['error'] ) );
+array_pop( $GLOBALS['hooks']['upload_mimes'] );
+
+// ─── The type check leaves other files to core ───────────────────────────────
+
+/*
+ * `esw_upload_check` exists so an SVG that fileinfo misreads is not refused.
+ * For every other file core's answer stands: a mismatch between name and
+ * bytes stays a refusal.
+ */
+foreach ( array(
+	'x.mp3' => '<?php echo 1;',
+	'x.pdf' => '<html><script>alert(1)</script></html>',
+	'x.PNG' => '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>',
+	'x.jpg' => 'plain text',
+) as $mismatch_name => $mismatch_bytes ) {
+	$path = tempnam( sys_get_temp_dir(), 'esw' );
+	file_put_contents( $path, $mismatch_bytes );
+	$verdict = wp_check_filetype_and_ext( $path, $mismatch_name, get_allowed_mime_types() );
+	unlink( $path );
+	check( "BELL: {$mismatch_name} with other content stays refused by the type check", empty( $verdict['type'] ) && empty( $verdict['ext'] ) );
+}
+
+$path = tempnam( sys_get_temp_dir(), 'esw' );
+file_put_contents( $path, $png );
+$verdict = wp_check_filetype_and_ext( $path, 'photo.png', get_allowed_mime_types() );
+unlink( $path );
+check( 'SILENCE: and a genuine image keeps its type', 'image/png' === ( $verdict['type'] ?? '' ) );
+
+// ─── A cleaned file that cannot be written back is not stored ────────────────
+
+$file = file_array( $scripted );
+chmod( $file['tmp_name'], 0444 );
+set_error_handler( static function () { return true; } );
+$after = $callback( $file );
+restore_error_handler();
+chmod( $file['tmp_name'], 0644 );
+$left = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: when the cleaned bytes cannot be written back, the upload is refused', isset( $after['error'] ) || false === stripos( $left, '<script' ) );
 
 // ─── The icon manager is actually wired ──────────────────────────────────────
 

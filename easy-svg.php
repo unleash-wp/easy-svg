@@ -212,10 +212,26 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
-    // Save cleaned file.
-    file_put_contents( $file, $clean );
+    // The cleaned bytes ARE the check. If they cannot be written back, the
+    // file on disk is still the one that came in, and it must not be stored.
+    if ( false === file_put_contents( $file, $clean ) ) {
+        return false;
+    }
 
     return true;
+}
+
+/**
+ * Whether a filename names an SVG.
+ *
+ * Compared in lower case: the name is whatever the uploader chose, and a check
+ * that depends on how it is spelled is a check the uploader controls.
+ *
+ * @param string $name A filename or path.
+ * @return bool
+ */
+function easy_svg_is_svg_name( $name ) {
+    return 'svg' === strtolower( (string) pathinfo( (string) $name, PATHINFO_EXTENSION ) );
 }
 
 /**
@@ -242,33 +258,35 @@ function esw_svg_upload_filter_check_init( $file ) {
         get_allowed_mime_types()
     );
 
-    $ext  = isset( $checked['ext'] )  ? $checked['ext']  : '';
-    $type = isset( $checked['type'] ) ? $checked['type'] : '';
+    $type = isset( $checked['type'] ) ? strtolower( (string) $checked['type'] ) : '';
 
-    // Fallback: check extension using pathinfo.
-    $pathinfo_ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+    /*
+     * One rule for what is an SVG: its lower-cased extension says so, or the
+     * type WordPress settled on does. Either way it is sanitised or refused --
+     * never stored as it came.
+     */
+    $name_is_svg = easy_svg_is_svg_name( $file['name'] );
+    $type_is_svg = 'image/svg+xml' === $type;
 
-    // Case 1: Genuine SVG (extension and mime type both match).
-    if ( 'svg' === $ext && 'image/svg+xml' === $type ) {
-
-        // Normalize mime type.
-        $file['type'] = 'image/svg+xml';
-
-        // Sanitize SVG content before it is stored.
-        if ( ! esw_svg_file_checker( $file['tmp_name'] ) ) {
-            $file['error'] = __( 'Sorry, please check your SVG file.', 'easy-svg' );
-        }
-
+    if ( ! $name_is_svg && ! $type_is_svg ) {
+        // Not an SVG. Nothing for this plugin to decide.
         return $file;
     }
 
-    // Case 2: File has .svg extension but mime type is not a valid SVG mime type -> reject.
-    if ( 'svg' === $pathinfo_ext && 'image/svg+xml' !== $type ) {
+    // Named like an SVG, but WordPress would not accept it as one (SVG not
+    // allowed on this site, or the check refused the bytes).
+    if ( ! $type_is_svg ) {
         $file['error'] = __( 'Sorry, this SVG file is not allowed for security reasons.', 'easy-svg' );
         return $file;
     }
 
-    // All other files pass through unchanged.
+    $file['type'] = 'image/svg+xml';
+
+    // Sanitize SVG content before it is stored.
+    if ( ! esw_svg_file_checker( $file['tmp_name'] ) ) {
+        $file['error'] = __( 'Sorry, please check your SVG file.', 'easy-svg' );
+    }
+
     return $file;
 }
 add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
@@ -352,22 +370,28 @@ if ( ! function_exists( 'esw_upload_check' ) ) {
 
     function esw_upload_check( $checked, $file, $filename, $mimes ) {
 
-        if ( empty( $checked['type'] ) ) {
-            $esw_upload_check = wp_check_filetype( $filename, $mimes );
-            $ext              = $esw_upload_check['ext'];
-            $type             = $esw_upload_check['type'];
-            $proper_filename  = $filename;
-
-            // Only allow valid image types and avoid mismatched image extensions.
-            if ( $type && 0 === strpos( $type, 'image/' ) && 'svg' !== $ext ) {
-                $ext  = false;
-                $type = false;
-            }
-
-            $checked = compact( 'ext', 'type', 'proper_filename' );
+        /*
+         * Only ever about SVGs. fileinfo often cannot name an SVG (one without
+         * an XML declaration reads as text), and core then drops its type; this
+         * gives the type back so the upload filter can SANITISE the file rather
+         * than have it refused. Every other file keeps core's verdict exactly
+         * as core gave it.
+         */
+        if ( ! easy_svg_is_svg_name( $filename ) || ! empty( $checked['type'] ) ) {
+            return $checked;
         }
 
-        return $checked;
+        // Only where this site allows SVG at all.
+        $by_name = wp_check_filetype( $filename, $mimes );
+        if ( 'image/svg+xml' !== strtolower( (string) $by_name['type'] ) ) {
+            return $checked;
+        }
+
+        return array(
+            'ext'             => 'svg',
+            'type'            => 'image/svg+xml',
+            'proper_filename' => isset( $checked['proper_filename'] ) ? $checked['proper_filename'] : false,
+        );
     }
     add_filter( 'wp_check_filetype_and_ext', 'esw_upload_check', 10, 4 );
 }
