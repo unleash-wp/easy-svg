@@ -13,8 +13,8 @@
  *     wp_register_icon( 'easy-svg/arrow-left', [ 'label' => ..., 'content' => '<svg...>' ] );
  *
  * Both are `@since 7.1.0`. This plugin declares WordPress 6.0, so everything
- * here has to be absent-safe: on an older site the manager hides itself and
- * says why. A fatal on 40,000 installs is not a trade anybody would take.
+ * here has to be absent-safe: on an older site the manager simply is not
+ * there. A fatal on 40,000 installs is not a trade anybody would take.
  *
  * ─── The rules core enforces, checked here on purpose ───────────────────────
  *

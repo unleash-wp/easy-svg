@@ -201,6 +201,12 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 	return null === $doc->documentElement ? '' : (string) $doc->saveXML( $doc->documentElement );
 }
 
+$GLOBALS['media_pages'] = [];
+function add_media_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
+	$GLOBALS['media_pages'][] = $slug;
+	return 'media_page_' . $slug;
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -351,7 +357,15 @@ check(
 	1 !== preg_match( '/is_admin\(\).{0,200}easy_svg_boot_icons/s', $main_source )
 );
 
-check( 'the screen is registered', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
+check( 'the screen is hooked', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
+
+/*
+ * On a WordPress without the icon API there is nothing to manage, and a menu
+ * entry that opens onto "this needs 7.1" is clutter on every older site. This
+ * suite is such a WordPress until its last section.
+ */
+easy_svg_icons_menu();
+check( 'BELL: before 7.1 there is no SVG icons submenu', [] === $GLOBALS['media_pages'] );
 check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
 check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
 
@@ -739,6 +753,9 @@ if ( ! function_exists( 'wp_register_icon' ) ) {
 }
 
 check( 'the icon API now counts as present', easy_svg_icons_supported() );
+
+easy_svg_icons_menu();
+check( 'BELL: on 7.1 the SVG icons submenu is there', [ 'easy-svg-icons' ] === $GLOBALS['media_pages'] );
 
 easy_svg_boot_icons();
 check( 'BELL: all 250 icons are handed to core, not the first 200', 250 === count( $GLOBALS['registered_icons'] ) );

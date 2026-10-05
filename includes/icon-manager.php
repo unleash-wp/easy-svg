@@ -15,9 +15,9 @@
  * ─── Absent-safe ────────────────────────────────────────────────────────────
  *
  * `wp_register_icon()` is `@since 7.1.0` and this plugin declares WordPress
- * 6.0. Nothing here may assume it exists. On an older site the screen says so
- * in a sentence and stops; a fatal on 40,000 installs is not a trade anybody
- * would take.
+ * 6.0. Nothing here may assume it exists. On an older site there is no menu
+ * entry and nothing is registered; a fatal on 40,000 installs is not a trade
+ * anybody would take.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -196,7 +196,18 @@ function easy_svg_icons_admin() {
     add_action( 'admin_post_easy_svg_delete_icon', 'easy_svg_handle_delete_icon' );
 }
 
+/**
+ * Media -> SVG icons, on a WordPress that can hold icons, and nowhere else.
+ *
+ * Before 7.1 there is no icon registry and no Icon block, so there is nothing
+ * to manage. The entry used to appear anyway and open onto a sentence saying
+ * so -- on every one of the older sites, for a feature they cannot use.
+ */
 function easy_svg_icons_menu() {
+    if ( ! easy_svg_icons_supported() ) {
+        return;
+    }
+
     add_media_page(
         __( 'SVG icons', 'easy-svg' ),
         __( 'SVG icons', 'easy-svg' ),
@@ -441,15 +452,13 @@ function easy_svg_icons_screen() {
         return;
     }
 
-    echo '<div class="wrap"><h1>' . esc_html__( 'SVG icons', 'easy-svg' ) . '</h1>';
-
+    // Unreachable through the menu, which is not registered without the icon
+    // API. Kept because a screen callback can be called by other means.
     if ( ! easy_svg_icons_supported() ) {
-        echo '<div class="notice notice-warning"><p>' . esc_html__(
-            'Icons need WordPress 7.1 or newer, which is where the icon block and its registry arrived. Everything else in this plugin works as before.',
-            'easy-svg'
-        ) . '</p></div></div>';
         return;
     }
+
+    echo '<div class="wrap"><h1>' . esc_html__( 'SVG icons', 'easy-svg' ) . '</h1>';
 
     // Read only for display. Nothing is decided from it.
     $state   = isset( $_GET['easy-svg-state'] ) ? sanitize_key( wp_unslash( $_GET['easy-svg-state'] ) ) : '';
