@@ -173,6 +173,21 @@ function easy_svg_sanitizer() {
     $sanitizer->setAllowedTags( new esw_svg_tags() );
     $sanitizer->setAllowedAttrs( new esw_svg_attributes() );
 
+    /*
+     * External references are removed: an SVG that loads a stylesheet, an
+     * image or a font from another server makes every visitor's browser ask
+     * that server. References inside the drawing (`#id`) and local paths stay.
+     *
+     * Precedence: the filter decides, and its default is true. Every other
+     * setting a site made on the 4.1 global still comes through the copy
+     * above; for this one the library offers no way to tell "set to false on
+     * purpose" from its own default, so the filter is the documented switch.
+     * A site that needs external references returns false from it.
+     */
+    $sanitizer->removeRemoteReferences(
+        (bool) apply_filters( 'esw_svg_remove_remote_references', true )
+    );
+
     return $sanitizer;
 }
 

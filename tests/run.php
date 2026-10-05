@@ -60,6 +60,12 @@ function apply_filters( string $hook, $value, ...$args ) {
 	}
 	return $value;
 }
+function __return_false(): bool {
+	return false;
+}
+function __return_true(): bool {
+	return true;
+}
 function __( string $text, string $domain = '' ): string {
 	return $text;
 }
@@ -977,6 +983,39 @@ check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \ensh
 // reconfigured on every upload, so whichever ran last decided what the other
 // one stripped.
 check( 'SILENCE: each call gets its own', easy_svg_sanitizer() !== easy_svg_sanitizer() );
+
+// ─── External references are removed unless a site asks to keep them ────────
+
+/*
+ * An SVG that loads something from another server makes every visitor's
+ * browser ask that server -- a tracking pixel, a stylesheet that changes the
+ * page. Removed by default on every path that sanitises; a filter keeps them
+ * for a site that needs them.
+ */
+$external = '<svg xmlns="http://www.w3.org/2000/svg">'
+	. '<style>@import url(https://elsewhere.invalid/a.css);</style>'
+	. '<image href="https://elsewhere.invalid/p.png" width="1" height="1"/>'
+	. '<rect width="9" height="9"/></svg>';
+
+$ext_out = (string) easy_svg_sanitizer()->sanitize( $external );
+check( 'BELL: external references are removed by default', '' !== $ext_out && false === strpos( $ext_out, 'elsewhere.invalid' ) );
+check( 'SILENCE: and the drawing stays', false !== strpos( $ext_out, '<rect' ) );
+
+$file = file_array( $external, 'ext.svg' );
+$callback( $file );
+$ext_stored = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: on upload too', false === strpos( $ext_stored, 'elsewhere.invalid' ) && false !== strpos( $ext_stored, '<rect' ) );
+check( 'BELL: and an icon keeps none either', 'ok' === easy_svg_accept_icon( 'Ext', $external, array( easy_svg_sanitizer(), 'sanitize' ) )['state'] && false === strpos( easy_svg_accept_icon( 'Ext', $external, array( easy_svg_sanitizer(), 'sanitize' ) )['content'], 'elsewhere.invalid' ) );
+
+add_filter( 'esw_svg_remove_remote_references', '__return_false' );
+$kept_ext = (string) easy_svg_sanitizer()->sanitize( $external );
+check( 'BELL: a site that returns false from esw_svg_remove_remote_references keeps them', false !== strpos( $kept_ext, 'elsewhere.invalid/p.png' ) );
+array_pop( $GLOBALS['hooks']['esw_svg_remove_remote_references'] );
+$readme_now = (string) file_get_contents( $root . '/readme.txt' );
+check( 'BELL: the changelog says external references are now removed', false !== strpos( $readme_now, 'External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behaviour.' ) );
+check( 'SILENCE: and the developer notes show how to keep them', 2 <= substr_count( $readme_now, 'esw_svg_remove_remote_references' ) );
+check( 'SILENCE: and without the filter they go again', false === strpos( (string) easy_svg_sanitizer()->sanitize( $external ), 'elsewhere.invalid' ) );
 
 // ─── The bundled sanitiser is not a known-vulnerable one ─────────────────────
 

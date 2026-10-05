@@ -48,6 +48,10 @@ Allow additional attributes with `esw_svg_allowed_attributes`:
     return $attributes;
 } );`
 
+External references, for example a stylesheet, image or font loaded from another server, are removed by default. A site that needs them can keep them with `esw_svg_remove_remote_references`:
+
+`add_filter( 'esw_svg_remove_remote_references', '__return_false' );`
+
 Add-ons can call `easy_svg_sanitizer()` to clean markup exactly the way the site does. See the FAQ for details.
 
 == Installation ==
@@ -113,6 +117,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 * Security: the bundled sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0. This fixes four published advisories: GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf and GHSA-qhmf-972w-m957. SVGs that rely on custom DTD entities, as some older Illustrator exports do, are now refused.
 * Security: SVGs added outside the media uploader, for example through WP-CLI `wp media import`, `media_sideload_image()`, importers or raw REST uploads, are now sanitized too, or refused.
 * Security hardening of the upload checks.
+* External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behaviour.
 * New: SVG icons for the Icon block under Media → SVG icons (WordPress 7.1 and newer). Each icon is sanitized with this site's allowed tags and attributes before it is stored.
 * New: `easy_svg_sanitizer()` and `EASY_SVG_API` for add-on authors.
 * Fix: a file the sanitizer cannot read now gets a clear upload error.
