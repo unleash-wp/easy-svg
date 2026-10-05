@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-05T20:43:12+00:00\n"
+"POT-Creation-Date: 2026-10-05T20:48:53+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -50,7 +50,7 @@ msgstr ""
 #: includes/icon-manager.php:56
 #: includes/icon-manager.php:212
 #: includes/icon-manager.php:213
-#: includes/icon-manager.php:461
+#: includes/icon-manager.php:481
 msgid "SVG icons"
 msgstr ""
 
@@ -95,24 +95,24 @@ msgstr ""
 msgid "WordPress could not save the icon, so nothing was stored. Please try again."
 msgstr ""
 
-#: includes/icon-manager.php:485
-#: includes/icon-manager.php:516
+#: includes/icon-manager.php:505
+#: includes/icon-manager.php:536
 msgid "Name"
 msgstr ""
 
-#: includes/icon-manager.php:487
+#: includes/icon-manager.php:507
 msgid "Add icon"
 msgstr ""
 
-#: includes/icon-manager.php:515
+#: includes/icon-manager.php:535
 msgid "Icon"
 msgstr ""
 
-#: includes/icon-manager.php:517
+#: includes/icon-manager.php:537
 msgid "Used as"
 msgstr ""
 
-#: includes/icon-manager.php:532
+#: includes/icon-manager.php:552
 msgid "Remove"
 msgstr ""
 

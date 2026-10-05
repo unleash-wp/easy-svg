@@ -444,7 +444,27 @@ function easy_svg_icon_preview_allowed_html() {
  * @return string
  */
 function easy_svg_icon_preview( $content ) {
-    return wp_kses( (string) $content, easy_svg_icon_preview_allowed_html() );
+    /*
+     * First the never-elements go WITH what is inside them. wp_kses removes a
+     * tag and keeps its text, so a stripped `<script>` would leave its source
+     * standing next to the drawing -- inert, and still a bug report. This pass
+     * is tidying only; wp_kses below is what makes the output safe, whether or
+     * not this pattern matched.
+     */
+    $never   = implode( '|', array_map( 'preg_quote', EASY_SVG_PREVIEW_NEVER ) );
+    $pattern = '#<(' . $never . ')\b[^>]*?(?:/>|>.*?</\1\s*>)#is';
+    $content = (string) $content;
+
+    // Bounded, for nesting such as <set> inside <foreignObject>.
+    for ( $pass = 0; $pass < 5; $pass++ ) {
+        $tidied = preg_replace( $pattern, '', $content );
+        if ( null === $tidied || $tidied === $content ) {
+            break;
+        }
+        $content = $tidied;
+    }
+
+    return wp_kses( $content, easy_svg_icon_preview_allowed_html() );
 }
 
 function easy_svg_icons_screen() {

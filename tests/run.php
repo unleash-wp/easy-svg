@@ -185,6 +185,12 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 			}
 			$tag = strtolower( $child->localName );
 			if ( ! isset( $allowed_html[ $tag ] ) ) {
+				// As wp_kses does: the TAG goes, what was inside it stays and is
+				// checked in turn -- text included.
+				$walk( $child );
+				while ( $child->firstChild ) {
+					$node->insertBefore( $child->firstChild, $child );
+				}
 				$node->removeChild( $child );
 				continue;
 			}
@@ -780,6 +786,9 @@ check( 'BELL: a script element is not emitted, even where the site allows it', f
 check( 'BELL: nor an event handler the site allowed', false === stripos( $preview, 'onload' ) );
 check( 'BELL: nor foreignObject, which can carry HTML', false === stripos( $preview, 'foreignobject' ) && false === stripos( $preview, 'iframe' ) );
 check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<path' ) && false !== strpos( $preview, '<rect' ) );
+// wp_kses removes a tag and keeps its text. Inert, but a preview reading
+// "alert(document.cookie)" next to the drawing is a bug report waiting.
+check( 'SILENCE: and the removed script leaves no text behind', false === strpos( $preview, 'alert(' ) );
 
 $preview_html = easy_svg_icon_preview_allowed_html();
 check( 'SILENCE: the preview allow-list is lower case, the way wp_kses looks names up', isset( $preview_html['lineargradient'] ) || isset( $preview_html['path'] ) );
