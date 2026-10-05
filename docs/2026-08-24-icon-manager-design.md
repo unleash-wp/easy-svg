@@ -1,8 +1,18 @@
 # Easy SVG Icons — design, 2026-08-24
 
+> **Changed before release (4.3, 2026-10-05).** This design capped the free
+> plugin at five icons and let a paid add-on lift the cap through a filter.
+> WordPress.org guideline 5 forbids exactly that: functionality in a hosted
+> plugin that is locked until somebody pays. The cap, the `easy_svg_icon_limit`
+> filter and everything around them were removed; the icon manager in the free
+> plugin has no limit, and `EASY_SVG_API` went to 3 to say the filter is gone.
+> A paid add-on may only sell code that lives in the add-on. The sections below
+> are edited to match; nothing here describes a limit any more.
+
 ## What is being built
 
-An icon manager in the FREE plugin, capped at five icons. Pro lifts the cap.
+An icon manager in the free plugin, with no limit on how many icons a site
+keeps.
 
 Registered icons appear in the core `core/icon` block's inserter without any
 editor JavaScript, because WordPress exposes them over `wp/v2/icons`.
@@ -22,24 +32,11 @@ Measured before designing, not remembered:
 ## Who it is for
 
 Somebody with a real icon system: twenty symbols in a corporate design that must
-be identical on every page. Five icons is enough for a blog and enough for
-nobody with a styleguide.
+be identical on every page.
 
 The one thing a generic icon plugin cannot offer: every uploaded icon goes
 through `easy_svg_sanitizer()`, which is THIS SITE's allow-list, not a library
 default.
-
-## Where the line runs
-
-| Free | Pro |
-|---|---|
-| SVG upload, sanitized, on every path | |
-| Icon manager, **5 icons**, one collection | cap removed |
-| | several named collections |
-| | multi-file upload |
-
-Five icons is a complete thing, not crippleware. That is the condition for the
-40,000 existing installs to like the feature rather than feel sold to.
 
 ## Architecture
 
@@ -57,43 +54,22 @@ Collection slug `easy-svg`, icons as `easy-svg/arrow-left`.
 **Capability:** `edit_theme_options`. An icon applies site-wide like a theme
 asset, not like an upload.
 
-**The cap** is checked when an icon is CREATED. Never when one is rendered.
+## The contract an add-on may rely on
 
-## The contract between the two plugins
-
-Pro still knows nothing of Free's internals. The contract grows by exactly one
-filter, and `EASY_SVG_API` goes to **2**:
-
-```php
-apply_filters( 'easy_svg_icon_limit', 5 );
-```
-
-Pro filters it. That is the entire unlock.
-
-## What must never happen
-
-The cap applies to adding, never to output. A lapsed licence on a site with 40
-icons still renders all 40; only the 41st is refused.
-
-A paywall that blanks published pages is the fastest route to an uninstall and a
-one-star review, and it would break the rule this system already follows: the
-plugin never takes the base function away from a customer.
+Still exactly one function, `easy_svg_sanitizer()`, and the number that says
+what shape it has, `EASY_SVG_API`. The icon manager adds nothing to it: there
+is no filter over how many icons a site may keep, and `EASY_SVG_API` is **3**
+because the filter that 2 introduced was removed again before release.
 
 ## Risks
 
 **The API is two versions old.** `@since 7.1.0`, and the free plugin declares
-6.0. The manager must hide itself on older WordPress with a sentence rather than
-a fatal. For 40,000 installs that is not optional.
+6.0. On older WordPress the manager is simply absent -- no menu entry, nothing
+registered -- rather than a fatal. For 40,000 installs that is not optional.
 
 **It may still change.** New in core means going through the documented
 functions and never touching the registry.
 
-**The price was set for a different promise.** 99 and 199 USD a year, tiered by
-site count, come from the agency-security idea. Whether an icon manager carries
-that is a product question, and it is recorded here rather than assumed away.
+## Not in the first version
 
-## Not in 1.0
-
-The library audit (moves to 1.1, already built and tested) · importing whole
-icon sets · syncing icons between sites · any central surface · anything going
-to wordpress.org.
+Importing whole icon sets · syncing icons between sites · any central surface.
