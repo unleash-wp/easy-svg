@@ -755,6 +755,25 @@ check(
 );
 check( 'the changelog mentions it', false !== strpos( $readme, '= ' . ( $header_v[1] ?? 'x' ) ) );
 
+// ─── One licence, said the same way everywhere ───────────────────────────────
+
+/*
+ * WordPress.org guideline 1: the plugin must be GPL-compatible and say so
+ * consistently. The header said "GPL3" and then "All rights reserved", the
+ * readme said "GPLv3" without "or later" while the header text said "any later
+ * version", and license.txt was a summary rather than the licence.
+ */
+$main_header = (string) file_get_contents( $root . '/easy-svg.php' );
+$licence     = (string) file_get_contents( $root . '/license.txt' );
+
+check( 'BELL: the header names the licence by its SPDX id', 1 === preg_match( '/^\s*License:\s*GPL-3\.0-or-later\s*$/mi', $main_header ) );
+check( 'BELL: and links to it', 1 === preg_match( '#^\s*License URI:\s*https://www\.gnu\.org/licenses/gpl-3\.0\.html\s*$#mi', $main_header ) );
+check( 'BELL: and reserves no rights the licence gives away', false === stripos( $main_header, 'All rights reserved' ) );
+check( 'BELL: the readme says the same licence', 1 === preg_match( '/^License:\s*GPLv3 or later\s*$/mi', $readme ) );
+check( 'SILENCE: with the same link', 1 === preg_match( '#^License URI:\s*https://www\.gnu\.org/licenses/gpl-3\.0\.html\s*$#mi', $readme ) );
+check( 'BELL: license.txt is the licence itself', false !== strpos( $licence, 'GNU GENERAL PUBLIC LICENSE' ) && false !== strpos( $licence, 'Version 3, 29 June 2007' ) );
+check( 'SILENCE: all of it', false !== strpos( $licence, 'END OF TERMS AND CONDITIONS' ) );
+
 // ─── This plugin must never update itself ────────────────────────────────────
 
 /*

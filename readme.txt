@@ -7,8 +7,8 @@ Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
 Stable tag: 4.3
-License: GPLv3
-License URI: http://www.gnu.org/licenses/gpl-3.0.txt
+License: GPLv3 or later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 This Plugin allows you to upload SVG Files into your Media library.
 
