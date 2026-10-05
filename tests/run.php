@@ -537,6 +537,21 @@ if ( is_callable( $bits_cb ) ) {
 	check( 'SILENCE: bits for anything that is not an SVG are left alone', is_array( $verdict ) && $scripted === $verdict['bits'] );
 }
 
+/*
+ * "Already clean" means nothing in the bytes beyond the drawing itself. A
+ * document type can declare attribute defaults that no element shows, and
+ * bytes after the closing tag are not part of the drawing but still part of
+ * the file that would be stored.
+ */
+$clean_rect = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="9" height="9"/></svg>';
+check( 'SILENCE: a plain clean SVG counts as clean', easy_svg_markup_is_clean( $clean_rect ) );
+check( 'BELL: a declared attribute default is not clean', ! easy_svg_markup_is_clean( '<!DOCTYPE svg [<!ATTLIST rect onclick CDATA "alert(1)">]>' . $clean_rect ) );
+check( 'BELL: nor a declared link default', ! easy_svg_markup_is_clean( '<!DOCTYPE svg [<!ATTLIST a xlink:href CDATA "javascript:alert(1)" xmlns:xlink CDATA "http://www.w3.org/1999/xlink">]><svg xmlns="http://www.w3.org/2000/svg"><a><rect width="9" height="9"/></a></svg>' ) );
+check( 'BELL: any document type at all is not clean', ! easy_svg_markup_is_clean( '<?xml version="1.0"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' . $clean_rect ) );
+check( 'BELL: bytes after the root element are not clean', ! easy_svg_markup_is_clean( $clean_rect . "\x00<script>alert(1)</script>" ) );
+check( 'BELL: nor markup after it', ! easy_svg_markup_is_clean( $clean_rect . '<script>alert(1)</script>' ) );
+check( 'SILENCE: trailing whitespace is fine', easy_svg_markup_is_clean( $clean_rect . "\n\n" ) );
+
 $attach_cb = $GLOBALS['hooks']['add_attachment'][0] ?? null;
 check( 'BELL: new attachments are checked', is_callable( $attach_cb ) );
 

@@ -391,13 +391,36 @@ add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' )
  * @return bool False when the sanitiser refuses it or would change it.
  */
 function easy_svg_markup_is_clean( $markup ) {
+    $markup = (string) $markup;
+
+    /*
+     * Three things a structural comparison cannot see, refused up front:
+     *
+     * - a document type: its internal subset can declare attribute defaults
+     *   that no element carries in the markup, and the sanitiser's output
+     *   drops it, so the two would compare equal while the stored bytes kept
+     *   it;
+     * - control characters, which a parser may stop at, leaving whatever
+     *   follows unparsed but stored;
+     * - anything but whitespace after the root element's closing `>`.
+     */
+    if ( false !== stripos( $markup, '<!DOCTYPE' ) ) {
+        return false;
+    }
+    if ( 1 === preg_match( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $markup ) ) {
+        return false;
+    }
+    if ( '>' !== substr( rtrim( $markup ), -1 ) ) {
+        return false;
+    }
+
     $sanitizer = easy_svg_sanitizer();
     if ( null === $sanitizer ) {
         return false;
     }
 
     try {
-        $clean = $sanitizer->sanitize( (string) $markup );
+        $clean = $sanitizer->sanitize( $markup );
     } catch ( \Throwable $e ) {
         return false;
     }
@@ -413,7 +436,7 @@ function easy_svg_markup_is_clean( $markup ) {
         $loaded = $doc->loadXML( $xml, LIBXML_NONET );
         libxml_clear_errors();
         libxml_use_internal_errors( $internal );
-        if ( ! $loaded || null === $doc->documentElement ) {
+        if ( ! $loaded || null === $doc->documentElement || null !== $doc->doctype ) {
             return null;
         }
         $parts = array();
@@ -431,7 +454,7 @@ function easy_svg_markup_is_clean( $markup ) {
         return implode( "\n", $parts );
     };
 
-    $before = $fingerprint( (string) $markup );
+    $before = $fingerprint( $markup );
 
     return null !== $before && $before === $fingerprint( $clean );
 }
