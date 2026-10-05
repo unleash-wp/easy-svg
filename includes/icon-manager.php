@@ -351,6 +351,91 @@ function easy_svg_icon_message( $state ) {
     return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
 }
 
+/**
+ * Elements no preview may contain, whatever a site's allow-list says.
+ *
+ * Everything here can run code or pull in a document: `script`; `foreignObject`
+ * (it carries HTML, iframes included); the SVG Tiny `handler` and `listener`;
+ * and the animation elements, which can rewrite an `href` to `javascript:`
+ * after the markup has been checked. A thumbnail needs none of it.
+ */
+const EASY_SVG_PREVIEW_NEVER = array(
+    'script',
+    'foreignobject',
+    'iframe',
+    'embed',
+    'object',
+    'handler',
+    'listener',
+    'set',
+    'animate',
+    'animatecolor',
+    'animatemotion',
+    'animatetransform',
+    'discard',
+);
+
+/**
+ * The wp_kses allow-list for the icon previews.
+ *
+ * This site's own SVG allow-list -- the one the sanitiser applied when the icon
+ * was stored -- so the preview shows what the Icon block will show. Then
+ * everything that can execute is taken out again, because that allow-list is
+ * a filter (`esw_svg_allowed_tags`, `esw_svg_allowed_attributes`) and a site
+ * may have widened it to `script` or `onload` for its own reasons. Storing such
+ * markup is that site's call; running it in an administrator's browser the
+ * moment this screen opens is not.
+ *
+ * Lower case throughout, because wp_kses looks names up in lower case.
+ *
+ * @return array<string, array<string, bool>>
+ */
+function easy_svg_icon_preview_allowed_html() {
+    $attributes = array();
+    foreach ( (array) esw_svg_attributes::getAttributes() as $attribute ) {
+        $attribute = strtolower( (string) $attribute );
+
+        // Event handlers, whatever the allow-list says. `on` is the whole
+        // namespace of them, including ones no list has heard of yet.
+        if ( '' === $attribute || 0 === strpos( $attribute, 'on' ) ) {
+            continue;
+        }
+
+        $attributes[ $attribute ] = true;
+    }
+
+    $allowed = array();
+    foreach ( (array) esw_svg_tags::getTags() as $tag ) {
+        $tag = strtolower( (string) $tag );
+
+        if ( '' === $tag || in_array( $tag, EASY_SVG_PREVIEW_NEVER, true ) ) {
+            continue;
+        }
+
+        // The sanitiser's model: one attribute list, valid on every element.
+        $allowed[ $tag ] = $attributes;
+    }
+
+    return $allowed;
+}
+
+/**
+ * One stored icon, made safe to print as a drawing.
+ *
+ * Not esc_html: that would show the source instead of the picture. wp_kses with
+ * an SVG allow-list prints the picture and nothing that can run. `href` and
+ * `xlink:href` stay, because `<use href="#part">` is how many icons are built;
+ * their values were already checked by the sanitiser when the icon was stored
+ * -- it cleans `javascript:` and `data:` references no matter what the
+ * allow-list says -- and wp_kses checks the protocol of `href` again here.
+ *
+ * @param string $content Stored SVG markup.
+ * @return string
+ */
+function easy_svg_icon_preview( $content ) {
+    return wp_kses( (string) $content, easy_svg_icon_preview_allowed_html() );
+}
+
 function easy_svg_icons_screen() {
     if ( ! current_user_can( EASY_SVG_ICON_CAP ) ) {
         return;
@@ -419,18 +504,10 @@ function easy_svg_icons_screen() {
 
     foreach ( $icons as $icon ) {
         echo '<tr><td style="width:4rem"><span class="easy-svg-icon-preview">';
-        /*
-         * Printed unescaped, and that is the one place in this file where that
-         * is true. It is SVG markup and escaping it would show source code
-         * instead of a drawing.
-         *
-         * What makes it safe is not this line, it is that nothing reaches
-         * `post_content` without going through the sanitiser first -- see
-         * `easy_svg_accept_icon()`, which stores the CLEANED markup and refuses
-         * anything the sanitiser could not read.
-         */
+        // Escaped by wp_kses inside easy_svg_icon_preview(); see there for why
+        // that, and not esc_html, is the right escape for a drawing.
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        echo $icon['content'];
+        echo easy_svg_icon_preview( $icon['content'] );
         echo '</span></td><td>' . esc_html( $icon['label'] ) . '</td>';
         echo '<td><code>' . esc_html( easy_svg_icon_name( $icon['slug'] ) ) . '</code></td>';
         echo '<td><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';

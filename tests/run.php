@@ -162,6 +162,45 @@ function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_h
 	return ( ! $wp_error && $answer instanceof WP_Error ) ? 0 : $answer;
 }
 
+// ─── wp_kses, as far as an allow-list goes ───────────────────────────────────
+
+/*
+ * Not WordPress's parser -- that needs WordPress. What this proves is the
+ * ALLOW-LIST the plugin hands over: an element or attribute it leaves out is
+ * dropped, exactly as wp_kses drops it. The real wp_kses is exercised on a real
+ * WordPress in the Playground smoke run.
+ */
+$GLOBALS['kses_calls'] = 0;
+function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] ): string {
+	$GLOBALS['kses_calls']++;
+	$doc = new DOMDocument();
+	if ( ! @$doc->loadXML( $content ) ) {
+		return '';
+	}
+	$walk = static function ( DOMNode $node ) use ( &$walk, $allowed_html ): void {
+		for ( $i = $node->childNodes->length - 1; $i >= 0; $i-- ) {
+			$child = $node->childNodes->item( $i );
+			if ( ! $child instanceof DOMElement ) {
+				continue;
+			}
+			$tag = strtolower( $child->localName );
+			if ( ! isset( $allowed_html[ $tag ] ) ) {
+				$node->removeChild( $child );
+				continue;
+			}
+			for ( $a = $child->attributes->length - 1; $a >= 0; $a-- ) {
+				$attr = $child->attributes->item( $a );
+				if ( empty( $allowed_html[ $tag ][ strtolower( $attr->nodeName ) ] ) ) {
+					$child->removeAttributeNode( $attr );
+				}
+			}
+			$walk( $child );
+		}
+	};
+	$walk( $doc );
+	return null === $doc->documentElement ? '' : (string) $doc->saveXML( $doc->documentElement );
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -581,6 +620,45 @@ check( 'BELL: a site that allows an attribute keeps it on upload', false !== str
 check(
 	'BELL: and the API hands an add-on that same attribute list',
 	false !== strpos( (string) easy_svg_sanitizer()->sanitize( $handler ), 'onload' )
+);
+
+// ─── The preview cannot run what the store let through ───────────────────────
+
+/*
+ * The icons screen printed stored markup raw. That was safe only as long as
+ * the site's allow-list was: a site that widens it -- as the filters above now
+ * have, to `script` and `onload` -- stores icons that would run in an
+ * administrator's browser the moment the screen opened.
+ *
+ * So the preview goes through wp_kses with the site's own SVG allow-list, minus
+ * everything that can execute, whatever a filter added.
+ */
+$hostile = '<?xml version="1.0"?>'
+	. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+	. '<script>alert(document.cookie)</script>'
+	. '<rect onload="alert(1)" width="24" height="24"/>'
+	. '<foreignObject><body xmlns="http://www.w3.org/1999/xhtml"><iframe src="javascript:alert(1)"/></body></foreignObject>'
+	. '<path d="M0 0L24 24"/></svg>';
+
+$GLOBALS['kses_calls'] = 0;
+$preview = easy_svg_icon_preview( $hostile );
+
+check( 'BELL: the preview goes through wp_kses', 1 === $GLOBALS['kses_calls'] );
+check( 'BELL: a script element is not emitted, even where the site allows it', false === stripos( $preview, '<script' ) );
+check( 'BELL: nor an event handler the site allowed', false === stripos( $preview, 'onload' ) );
+check( 'BELL: nor foreignObject, which can carry HTML', false === stripos( $preview, 'foreignobject' ) && false === stripos( $preview, 'iframe' ) );
+check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<path' ) && false !== strpos( $preview, '<rect' ) );
+
+$preview_html = easy_svg_icon_preview_allowed_html();
+check( 'SILENCE: the preview allow-list is lower case, the way wp_kses looks names up', isset( $preview_html['lineargradient'] ) || isset( $preview_html['path'] ) );
+foreach ( array( 'script', 'foreignobject', 'iframe', 'set', 'animate', 'handler', 'listener' ) as $never ) {
+	check( "BELL: '{$never}' is never in the preview allow-list", ! isset( $preview_html[ $never ] ) );
+}
+
+$manager_source = (string) file_get_contents( $root . '/includes/icon-manager.php' );
+check(
+	'BELL: the screen no longer prints stored markup raw',
+	1 !== preg_match( '/echo\s+\$icon\[\s*\'content\'\s*\]/', $manager_source )
 );
 
 // ─── The two places a version is written ─────────────────────────────────────
