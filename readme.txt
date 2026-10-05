@@ -37,9 +37,11 @@ The sanitizer removes every tag and attribute that is not on its allow-list. Two
 Allow additional tags with `esw_svg_allowed_tags`:
 
 `add_filter( 'esw_svg_allowed_tags', function ( $tags ) {
-    $tags[] = 'animate';
+    $tags[] = 'view';
     return $tags;
 } );`
+
+Most drawing elements are already on the list, so you rarely need this. Never add `script`, `style`, `foreignObject`, or the animation elements (`animate`, `set`, `animateTransform`, `animateMotion`): the list only decides which names may appear, it does not check what their attributes point at, so those elements can put back the very things the sanitizer is there to remove.
 
 Allow additional attributes with `esw_svg_allowed_attributes`:
 

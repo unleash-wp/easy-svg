@@ -1621,6 +1621,21 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
 }
 
+// ─── The readme must not hand out a dangerous allow-list example ─────────────
+// The "For developers" snippets are copy-paste: each `$tags[] = '...'` or
+// `$attributes[] = '...'` line adds one token to a site's allow-list. A reader
+// pastes them verbatim, so none may name an element that can run code or load a
+// document -- the allow-list only decides which names appear, it does not check
+// what their attributes point at.
+$readme = (string) file_get_contents( ABSPATH . 'readme.txt' );
+preg_match_all( "/\\\$(?:tags|attributes)\\[\\]\\s*=\\s*'([^']+)'/", $readme, $readme_examples );
+$recommended = array_map( 'strtolower', $readme_examples[1] );
+$dangerous   = [ 'animate', 'animatetransform', 'animatemotion', 'animatecolor', 'set', 'script', 'style', 'foreignobject', 'handler', 'listener', 'iframe', 'embed', 'object' ];
+check(
+	'BELL: the readme developer examples recommend no active element',
+	[] === array_intersect( $recommended, $dangerous )
+);
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
