@@ -40,44 +40,12 @@ const EASY_SVG_ICON_COLLECTION = 'easy-svg';
 const EASY_SVG_ICON_POST_TYPE = 'esw_icon';
 
 /**
- * How many icons a site may keep.
- *
- * Enough to be a complete thing rather than a demonstration, and the number a
- * paid add-on lifts. Read through `easy_svg_icon_limit()`, never directly, so
- * the filter is the only way in.
- */
-const EASY_SVG_ICON_LIMIT = 5;
-
-/**
  * Exactly what core will accept as the part after the slash.
  *
  * Duplicated from WP_Icons_Registry deliberately -- see the note above about
  * how core refuses.
  */
 const EASY_SVG_ICON_NAME_PATTERN = '/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/';
-
-/**
- * How many icons this site may keep.
- *
- * @return int A number, never below zero.
- */
-function easy_svg_icon_limit() {
-    /**
-     * Filters how many icons this site may keep.
-     *
-     * Part of the contract an add-on may rely on. Easy SVG Pro raises it; that
-     * is the whole of what the paid plugin does to this feature.
-     *
-     * @since 4.3
-     *
-     * @param int $limit The default limit.
-     */
-    $limit = (int) apply_filters( 'easy_svg_icon_limit', EASY_SVG_ICON_LIMIT );
-
-    // A negative limit would read as "none allowed" in one place and "no limit"
-    // in another, depending on who compared what.
-    return max( 0, $limit );
-}
 
 /**
  * A name core will accept, or '' when the label cannot make one.
@@ -126,25 +94,6 @@ function easy_svg_icon_name( $slug ) {
 }
 
 /**
- * Whether one more icon may be added.
- *
- * Asked when an icon is CREATED, and never when one is rendered. A site that
- * drops below a paid limit keeps showing every icon it already has; only the
- * next one is refused.
- *
- * A paywall that blanks published pages is the fastest route to an uninstall,
- * and it would break the rule this plugin already follows: never take the base
- * function away from somebody who is using it.
- *
- * @param int $existing How many icons the site already has.
- * @param int $limit    What it is allowed.
- * @return bool
- */
-function easy_svg_icon_may_add( $existing, $limit ) {
-    return (int) $existing < (int) $limit;
-}
-
-/**
  * The argument array core accepts, and nothing besides.
  *
  * `WP_Icons_Registry::register()` refuses any key other than `label`,
@@ -171,28 +120,23 @@ function easy_svg_icons_supported() {
  * Whether a submitted icon may be stored, and in what shape.
  *
  * Every decision about accepting an icon lives here, injected and testable:
- * the limit, the name, and what the sanitiser does to the markup. The
- * WordPress side below only carries the answer out.
+ * the name, and what the sanitiser does to the markup. The WordPress side
+ * below only carries the answer out.
  *
- * The states are separate words because they need separate sentences. "You
- * have five icons already" and "that file is not an SVG" send a person to two
+ * There is deliberately no count among the inputs. A site keeps as many icons
+ * as it likes; nothing here may refuse an icon for being one too many.
+ *
+ * The states are separate words because they need separate sentences. "That
+ * name makes no icon name" and "that file is not an SVG" send a person to two
  * different places, and one message covering both sends half of them wrong.
  *
- * @param string   $label    What the person typed.
- * @param string   $markup   The bytes they uploaded.
- * @param callable $sanitize Cleans SVG markup, or returns false.
- * @param int      $existing How many icons the site already has.
- * @param int      $limit    How many it may have.
- * @param callable|null $slugger Turns the label into a slug.
+ * @param string        $label    What the person typed.
+ * @param string        $markup   The bytes they uploaded.
+ * @param callable      $sanitize Cleans SVG markup, or returns false.
+ * @param callable|null $slugger  Turns the label into a slug.
  * @return array{state: string, slug?: string, content?: string}
  */
-function easy_svg_accept_icon( $label, $markup, $sanitize, $existing, $limit, $slugger = null ) {
-    // Asked FIRST, so a site at its limit is told that rather than being walked
-    // through a validation it was never going to pass.
-    if ( ! easy_svg_icon_may_add( $existing, $limit ) ) {
-        return array( 'state' => 'limit_reached' );
-    }
-
+function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
     $slug = easy_svg_icon_slug( $label, $slugger );
     if ( '' === $slug ) {
         return array( 'state' => 'bad_name' );

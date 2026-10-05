@@ -1,6 +1,6 @@
 <?php
 /**
- * Names, limits, and the shapes core refuses in silence.
+ * Names, and the shapes core refuses in silence.
  *
  * `WP_Icons_Registry::register()` rejects a bad name through
  * `_doing_it_wrong`, which on a production site means the icon never appears
@@ -109,25 +109,6 @@ check( 'BELL: the collection is not core, which is reserved', 0 !== strpos( easy
 check( 'a slug core would refuse yields no name at all', '' === easy_svg_icon_name( 'Arrow' ) );
 check( 'and neither does an already-namespaced one', '' === easy_svg_icon_name( 'easy-svg/arrow' ) );
 
-// ─── The limit ───────────────────────────────────────────────────────────────
-
-check( 'the default limit is five', 5 === easy_svg_icon_limit() );
-
-// The whole unlock a paid add-on performs.
-add_filter( 'easy_svg_icon_limit', static function ( $n ) { return 500; } );
-check( 'BELL: the filter is what raises it', 500 === easy_svg_icon_limit() );
-
-add_filter( 'easy_svg_icon_limit', static function ( $n ) { return -3; } );
-// Negative would read as "none allowed" in one comparison and "no limit" in
-// another, depending on who compared what.
-check( 'SILENCE: a negative limit becomes zero, not infinity', 0 === easy_svg_icon_limit() );
-
-check( 'under the limit, one more may be added', easy_svg_icon_may_add( 4, 5 ) );
-check( 'BELL: at the limit, it may not', ! easy_svg_icon_may_add( 5, 5 ) );
-// The property the product depends on: a site that drops below its paid limit
-// keeps every icon it has. Only the next one is refused.
-check( 'BELL: over the limit, still only ADDING is refused', ! easy_svg_icon_may_add( 40, 5 ) );
-
 // ─── The argument array ──────────────────────────────────────────────────────
 
 $args = easy_svg_icon_args( 'Arrow left', '<svg/>' );
@@ -158,31 +139,26 @@ $refuse = static function ( string $svg ) {
 
 $SVG = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
 
-$out = easy_svg_accept_icon( 'Arrow Left', $SVG, $strip, 0, 5, $sanitize );
+$out = easy_svg_accept_icon( 'Arrow Left', $SVG, $strip, $sanitize );
 check( 'BELL: a good icon is accepted', 'ok' === $out['state'] );
 check( 'with a name core will take', 'arrow-left' === $out['slug'] );
 check( 'and the markup', false !== strpos( $out['content'], '<path' ) );
 
 // The reason this plugin is the right home for an icon manager.
 $dirty = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>';
-$out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, 0, 5, $sanitize );
+$out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, $sanitize );
 check( 'BELL: what gets stored is the CLEANED markup', 'ok' === $out['state'] && false === strpos( $out['content'], '<script' ) );
 check( 'SILENCE: and the drawing survives it', false !== strpos( $out['content'], '<path' ) );
 
 // ─── Every refusal is its own word ───────────────────────────────────────────
 
 /*
- * "You have five already" and "that is not an SVG" send a person to two
+ * "That name makes no icon name" and "that is not an SVG" send a person to two
  * different places. One message covering both sends half of them wrong.
  */
-check( 'BELL: at the limit, that is what it says', 'limit_reached' === easy_svg_accept_icon( 'X', $SVG, $strip, 5, 5, $sanitize )['state'] );
-// Asked FIRST, so a full site is not walked through a validation it was never
-// going to pass.
-check( 'SILENCE: and it says so even for markup that is also bad', 'limit_reached' === easy_svg_accept_icon( 'X', 'nonsense', $strip, 5, 5, $sanitize )['state'] );
-
-check( 'BELL: a label that makes no name says so', 'bad_name' === easy_svg_accept_icon( '###', $SVG, $strip, 0, 5, $sanitize )['state'] );
-check( 'BELL: empty markup says so', 'empty' === easy_svg_accept_icon( 'X', '   ', $strip, 0, 5, $sanitize )['state'] );
-check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg_accept_icon( 'X', $SVG, $refuse, 0, 5, $sanitize )['state'] );
+check( 'BELL: a label that makes no name says so', 'bad_name' === easy_svg_accept_icon( '###', $SVG, $strip, $sanitize )['state'] );
+check( 'BELL: empty markup says so', 'empty' === easy_svg_accept_icon( 'X', '   ', $strip, $sanitize )['state'] );
+check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg_accept_icon( 'X', $SVG, $refuse, $sanitize )['state'] );
 
 /*
  * A whole HTML document survives a sanitiser as a string and contains no
@@ -190,7 +166,25 @@ check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg
  * explain it, so the `<svg` root is required of the CLEANED markup.
  */
 $html = '<html><body><script>alert(1)</script><p>hello</p></body></html>';
-check( 'BELL: markup with no svg root is refused', 'not_svg' === easy_svg_accept_icon( 'X', $html, $strip, 0, 5, $sanitize )['state'] );
+check( 'BELL: markup with no svg root is refused', 'not_svg' === easy_svg_accept_icon( 'X', $html, $strip, $sanitize )['state'] );
+
+// ─── There is no cap ─────────────────────────────────────────────────────────
+
+/*
+ * WordPress.org guideline 5: no functionality in a hosted plugin may be locked
+ * until somebody pays. 4.3 was going to ship five icons and a filter a paid
+ * add-on raised -- the whole feature present, with its sixth use for sale. The
+ * free plugin is unlimited instead, and these checks keep it that way.
+ */
+check( 'BELL: there is no icon limit left to filter', ! function_exists( 'easy_svg_icon_limit' ) );
+check( 'BELL: and no number it would have read', ! defined( 'EASY_SVG_ICON_LIMIT' ) );
+check( 'BELL: and nothing that decides whether one more is allowed', ! function_exists( 'easy_svg_icon_may_add' ) );
+
+// A site that still carries a filter from an older add-on must not be capped
+// by it. Registered on the real hook registry this file stubs, so a plugin
+// that went on reading the filter would be caught here.
+add_filter( 'easy_svg_icon_limit', static function () { return 0; } );
+check( 'BELL: a leftover limit filter cannot refuse an icon', 'ok' === easy_svg_accept_icon( 'Sixth', $SVG, $strip, $sanitize )['state'] );
 
 // ─── Handing them to core ────────────────────────────────────────────────────
 

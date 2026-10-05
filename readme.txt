@@ -89,11 +89,13 @@ internal detail that may be renamed or removed:
 allowed tags and attributes, or null when the sanitizing library is not
 loaded.
 
-`easy_svg_icon_limit` is a filter over how many icons this site may keep.
-
-`EASY_SVG_API` is an integer that changes only when one of those changes
-shape. It is 2. Compare against it rather than against a version string:
+`EASY_SVG_API` is an integer that changes only when that function changes
+shape. It is 3. Compare against it rather than against a version string:
 a release number moves for reasons that have nothing to do with this.
+
+API 3 means the `easy_svg_icon_limit` filter no longer exists. Version 2
+introduced it while icons were capped; the icon manager now has no limit,
+so nothing reads that filter and an add-on must not rely on it.
 
 Use it rather than the classes behind it. A site widens the allow-list
 through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters,
@@ -105,9 +107,9 @@ its own.
 
 == Changelog ==
 = 4.3 =
-* Icons: manage up to five SVG icons and use them in the Icon block. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen says so and everything else works as before.
+* Icons: manage your own SVG icons, as many as you like, and use them in the Icon block. Needs WordPress 7.1, which is where the icon registry arrived; on older versions the screen says so and everything else works as before.
 * Every icon is sanitized with this site's own allowed-tag settings before it is stored, and what is stored is the cleaned markup.
-* Added the easy_svg_icon_limit filter and raised EASY_SVG_API to 2.
+* EASY_SVG_API is 3. The icon limit filter that 2 introduced is gone, because there is no limit.
 
 = 4.2 =
 * Security: SVGs that do not arrive through the media uploader are now sanitized too. WordPress builds the filter name from the action, so listening only to wp_handle_upload_prefilter left media_sideload_image(), WP-CLI `wp media import` and every importer unchecked.

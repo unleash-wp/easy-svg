@@ -79,18 +79,18 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
  * The surface it covers:
  *
  *     easy_svg_sanitizer()      a sanitiser with this site's allow-list
- *     easy_svg_icon_limit       filter: how many icons this site may keep
  *
- * Bumped only when one of those changes shape. Everything else in this plugin
+ * Bumped only when that surface changes shape. Everything else in this plugin
  * is an internal detail and may be renamed, moved or deleted without touching
  * this number.
  *
- * 2 added the icon limit filter. An add-on that lifts the cap needs to know
- * whether the cap exists at all, and a version string cannot say that -- 4.3
- * with the feature and 4.3.1 without it are both "4.3" to a comparison
- * somebody wrote in a hurry.
+ * 2 added a filter over how many icons a site may keep. 3 removes it again:
+ * the icon manager has no limit, so there is nothing left to filter, and an
+ * add-on must not build on that filter or expect it to change anything. A
+ * number says that where a version string cannot -- "4.3" with the filter and
+ * "4.3" without it look the same to a comparison somebody wrote in a hurry.
  */
-define( 'EASY_SVG_API', 2 );
+define( 'EASY_SVG_API', 3 );
 
 /**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
@@ -99,9 +99,9 @@ define( 'EASY_SVG_API', 2 );
  *
  * `esw_svg_tags` and `esw_svg_attributes` are internals. An add-on that reaches
  * for them by name pins every rename in this file, and the breakage is silent:
- * `class_exists()` goes false, the add-on decides the free plugin is not
- * installed, and it tells a paying customer to install something that is
- * already active. One documented function instead, and the rest is free to move.
+ * `class_exists()` goes false, the add-on decides this plugin is not
+ * installed, and it tells somebody to install something that is already
+ * active. One documented function instead, and the rest is free to move.
  *
  * ─── Why this plugin uses it too ────────────────────────────────────────────
  *

@@ -245,7 +245,7 @@ check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_sv
  * states come from `easy_svg_accept_icon()`, so the two lists are checked
  * against each other rather than a hand-written copy of one of them.
  */
-foreach ( array( 'added', 'deleted', 'limit_reached', 'bad_name', 'empty', 'not_svg', 'no_sanitizer' ) as $state ) {
+foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer' ) as $state ) {
 	check(
 		"the '{$state}' state has something to say",
 		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )
@@ -256,36 +256,38 @@ check(
 	function_exists( 'easy_svg_icon_message' ) && '' === easy_svg_icon_message( 'nonsense' )
 );
 
-// ─── A lifted cap is a word, not a number ────────────────────────────────────
+// ─── The count is a count, not a quota ───────────────────────────────────────
 
 /*
- * An add-on lifting the limit sets it to PHP_INT_MAX, and a screen printing
- * that says "3 of 9223372036854775807 icons". The message function is checked
- * directly because the screen itself needs a WordPress that is not here.
+ * With no cap there is nothing to count against, and the line above the table
+ * says only what is there. "N of 5" would advertise a limit that is gone.
  */
-add_filter( 'easy_svg_icon_limit', static function () { return PHP_INT_MAX; } );
+check( 'BELL: the counter names how many there are, and nothing to be measured against', '7 icons. They appear in the Icon block.' === easy_svg_icon_count_message( 7 ) );
+check( 'SILENCE: and one icon reads as one', '1 icon. They appear in the Icon block.' === easy_svg_icon_count_message( 1 ) );
+check( 'SILENCE: there is no refusal for being full', '' === easy_svg_icon_message( 'limit_reached' ) );
 
-check( 'the filter really lifted it', PHP_INT_MAX === easy_svg_icon_limit() );
+// ─── Nothing in this plugin is for sale ──────────────────────────────────────
 
+/*
+ * WordPress.org guideline 5: a hosted plugin may not hold back functionality
+ * until somebody pays. The free plugin is unlimited, and a paid add-on may only
+ * sell code that lives in the add-on.
+ *
+ * Asserted against the SHIPPED source as a shape, because the way back in is
+ * never the same spelling twice: a constant, a filter, a state, or a comment
+ * telling a reviewer which product lifts what.
+ */
+$shipped = '';
+foreach ( array_merge( array( $root . '/easy-svg.php' ), glob( $root . '/includes/*.php' ) ?: array() ) as $shipped_file ) {
+	$shipped .= (string) file_get_contents( $shipped_file );
+}
+check( 'SILENCE: the shipped source was read', false !== strpos( $shipped, 'easy_svg_accept_icon' ) );
+foreach ( array( 'easy_svg_icon_limit', 'EASY_SVG_ICON_LIMIT', 'limit_reached', 'PHP_INT_MAX', 'icon_may_add' ) as $needle ) {
+	check( "BELL: the shipped code carries no '{$needle}'", false === strpos( $shipped, $needle ) );
+}
 check(
-	'BELL: with no limit, the counter does not print a huge number',
-	false === strpos( easy_svg_icon_count_message( 3, PHP_INT_MAX ), (string) PHP_INT_MAX )
-);
-check( 'SILENCE: and it still says how many there are', false !== strpos( easy_svg_icon_count_message( 3, PHP_INT_MAX ), '3' ) );
-check( 'SILENCE: with a real limit both numbers are named', '5 of 5 icons. They appear in the Icon block.' === easy_svg_icon_count_message( 5, 5 ) );
-check( 'SILENCE: and one icon reads as one', false !== strpos( easy_svg_icon_count_message( 1, PHP_INT_MAX ), '1 icon,' ) );
-check(
-	'BELL: with no limit, the refusal does not name a number',
-	false === strpos( easy_svg_icon_message( 'limit_reached' ), (string) PHP_INT_MAX )
-);
-// And it still says something, rather than going quiet and showing an empty
-// notice box.
-check( 'SILENCE: it still has a sentence', '' !== easy_svg_icon_message( 'limit_reached' ) );
-
-$GLOBALS['hooks']['easy_svg_icon_limit'] = [];
-check(
-	'SILENCE: and with a real limit the number is still named',
-	false !== strpos( easy_svg_icon_message( 'limit_reached' ), '5' )
+	'BELL: and no comment pointing at a paid product',
+	1 !== preg_match( '/easy svg pro|\bpro\b|\bpaid\b|\bpaying\b|premium|lifts? the (cap|limit)/i', $shipped )
 );
 
 // ─── The contract an add-on may rely on ──────────────────────────────────────
@@ -303,23 +305,12 @@ check( 'BELL: the API version is declared', defined( 'EASY_SVG_API' ) && is_int(
 /*
  * The number and the surface must move together.
  *
- * An add-on decides what it may call by comparing this integer. Shipping the
- * icon filter without raising it means an add-on that correctly refuses to run
- * against version 1 -- and is looking at a plugin that would have worked.
- * Shipping the number without the filter is the same mistake pointing the other
- * way, and that one ends in a fatal on somebody's site.
+ * An add-on decides what it may call by comparing this integer. 3 is the
+ * version WITHOUT the icon limit filter that 2 introduced: an add-on that
+ * checks for 3 knows the filter is gone and must not build on it.
  */
-check( 'BELL: at API 2 the icon limit filter exists', EASY_SVG_API < 2 || function_exists( 'easy_svg_icon_limit' ) );
-check( 'BELL: and the icon feature it belongs to', EASY_SVG_API < 2 || function_exists( 'easy_svg_accept_icon' ) );
-
-/*
- * And the other direction, which a probe showed was missing: the line above
- * only catches a number claiming more than exists. Under-claiming is the same
- * bug pointing the other way -- an add-on correctly refuses to run, against a
- * plugin that would have worked, and the customer is told to update something
- * that is already current.
- */
-check( 'BELL: and a plugin that HAS the filter says so in the number', ! function_exists( 'easy_svg_icon_limit' ) || EASY_SVG_API >= 2 );
+check( 'BELL: at API 3 nothing answers to the icon limit filter', EASY_SVG_API < 3 || ! function_exists( 'easy_svg_icon_limit' ) );
+check( 'BELL: and the icon feature is still there, unlimited', function_exists( 'easy_svg_accept_icon' ) );
 
 /*
  * Pinned to today's value, on purpose.
@@ -330,12 +321,13 @@ check( 'BELL: and a plugin that HAS the filter says so in the number', ! functio
  * number covers. Add-ons in other repositories compare against it, and they
  * cannot be asked from here.
  */
-check( 'BELL: the API is 2 (raise this line WITH the surface it covers)', 2 === EASY_SVG_API );
+check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === EASY_SVG_API );
 
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
-check( 'the filter is documented for add-on authors', false !== strpos( $readme_text, 'easy_svg_icon_limit' ) );
-check( 'and so is the API number it belongs to', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
+check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
+check( 'BELL: with the value it has today', false !== strpos( $readme_text, 'It is 3.' ) );
+check( 'BELL: and the readme says the limit filter is gone', 1 === preg_match( '/easy_svg_icon_limit`? (filter )?(no longer exists|was removed)/', $readme_text ) );
 check( 'BELL: the sanitiser is reachable by function', function_exists( 'easy_svg_sanitizer' ) );
 check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
 
