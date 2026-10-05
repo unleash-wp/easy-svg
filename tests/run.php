@@ -277,6 +277,21 @@ function add_media_page( string $page_title, string $menu_title, string $capabil
 	return 'media_page_' . $slug;
 }
 
+// ─── Attachments, as far as the safety net sees them ─────────────────────────
+
+$GLOBALS['attachments'] = [];   // id => [ 'file' => path, 'mime' => type ]
+$GLOBALS['deleted_attachments'] = [];
+function get_attached_file( $id ) {
+	return $GLOBALS['attachments'][ $id ]['file'] ?? false;
+}
+function get_post_mime_type( $id = null ) {
+	return $GLOBALS['attachments'][ $id ]['mime'] ?? false;
+}
+function wp_delete_attachment( $id, $force = false ) {
+	$GLOBALS['deleted_attachments'][] = [ $id, $force ];
+	return (object) [ 'ID' => $id ];
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -429,6 +444,71 @@ $clean = (string) file_get_contents( $file['tmp_name'] );
 unlink( $file['tmp_name'] );
 check( 'BELL: a file whose type is image/svg+xml is sanitised whatever its extension', false === stripos( $clean, '<script' ) || isset( $after['error'] ) );
 array_pop( $GLOBALS['hooks']['upload_mimes'] );
+
+// ─── Ways in that never pass the upload filter ───────────────────────────────
+
+/*
+ * Two routes put a file on disk without `wp_handle_upload` or
+ * `wp_handle_sideload`: `wp_upload_bits()` (XML-RPC media uploads use it) and
+ * importers that copy a file into place themselves. The first is checked on
+ * its own filter; behind both, every new SVG attachment is checked once more.
+ */
+$bits_cb = $GLOBALS['hooks']['wp_upload_bits'][0] ?? null;
+check( 'BELL: wp_upload_bits is filtered', is_callable( $bits_cb ) );
+
+if ( is_callable( $bits_cb ) ) {
+	$clean_svg = (string) easy_svg_sanitizer()->sanitize( '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>' );
+	$verdict   = $bits_cb( [ 'name' => 'x.SVG', 'bits' => $scripted, 'time' => null ] );
+	check( 'BELL: bits for an SVG that the sanitiser would change are refused', is_string( $verdict ) && '' !== $verdict );
+
+	$verdict = $bits_cb( [ 'name' => 'x.svg', 'bits' => '<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY e "x">]><svg xmlns="http://www.w3.org/2000/svg">&e;</svg>', 'time' => null ] );
+	check( 'BELL: bits the sanitiser cannot use are refused', is_string( $verdict ) );
+
+	$verdict = $bits_cb( [ 'name' => 'x.svg', 'bits' => $clean_svg, 'time' => null ] );
+	check( 'SILENCE: an SVG that is already clean passes', is_array( $verdict ) && $clean_svg === $verdict['bits'] );
+
+	// The WordPress importer reserves the file with empty bits and fills it
+	// afterwards; that must not be refused here (the attachment check below
+	// sees the finished file).
+	$verdict = $bits_cb( [ 'name' => 'x.svg', 'bits' => '', 'time' => null ] );
+	check( 'SILENCE: empty bits, as the importer writes them first, pass', is_array( $verdict ) );
+
+	$verdict = $bits_cb( [ 'name' => 'photo.png', 'bits' => $scripted, 'time' => null ] );
+	check( 'SILENCE: bits for anything that is not an SVG are left alone', is_array( $verdict ) && $scripted === $verdict['bits'] );
+}
+
+$attach_cb = $GLOBALS['hooks']['add_attachment'][0] ?? null;
+check( 'BELL: new attachments are checked', is_callable( $attach_cb ) );
+
+if ( is_callable( $attach_cb ) ) {
+	$path = tempnam( sys_get_temp_dir(), 'esw' ) . '.SVG';
+	file_put_contents( $path, $scripted );
+	$GLOBALS['attachments'][501] = [ 'file' => $path, 'mime' => 'image/svg+xml' ];
+	$attach_cb( 501 );
+	$cleaned = (string) file_get_contents( $path );
+	check( 'BELL: an SVG attachment that skipped the upload filter is sanitised in place', false === stripos( $cleaned, '<script' ) && false !== strpos( $cleaned, 'rect' ) );
+	check( 'SILENCE: and kept', [] === $GLOBALS['deleted_attachments'] );
+	unlink( $path );
+
+	$path = tempnam( sys_get_temp_dir(), 'esw' ) . '.svg';
+	file_put_contents( $path, '<html><script>alert(1)</script></html>' );
+	$GLOBALS['attachments'][502] = [ 'file' => $path, 'mime' => 'image/svg+xml' ];
+	$attach_cb( 502 );
+	check( 'BELL: one the sanitiser cannot use is deleted, file and all', [ [ 502, true ] ] === $GLOBALS['deleted_attachments'] );
+	@unlink( $path );
+
+	$GLOBALS['deleted_attachments'] = [];
+	$GLOBALS['attachments'][503] = [ 'file' => sys_get_temp_dir() . '/does-not-exist.svg', 'mime' => 'image/svg+xml' ];
+	$attach_cb( 503 );
+	check( 'SILENCE: an attachment with no local file (offloaded media) is not deleted', [] === $GLOBALS['deleted_attachments'] );
+
+	$path = tempnam( sys_get_temp_dir(), 'esw' ) . '.png';
+	file_put_contents( $path, $png );
+	$GLOBALS['attachments'][504] = [ 'file' => $path, 'mime' => 'image/png' ];
+	$attach_cb( 504 );
+	check( 'SILENCE: other attachments are not touched', $png === file_get_contents( $path ) && [] === $GLOBALS['deleted_attachments'] );
+	unlink( $path );
+}
 
 // ─── The type check leaves other files to core ───────────────────────────────
 

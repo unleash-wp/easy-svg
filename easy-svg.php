@@ -314,6 +314,134 @@ add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
  */
 add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
 
+/**
+ * Whether SVG markup is already clean: the sanitiser would remove nothing.
+ *
+ * Compared by structure, not by bytes -- the sanitiser re-serialises every
+ * file, so its output never equals the input byte for byte, even when it took
+ * nothing out. Elements, attributes, text and processing instructions are
+ * compared; whitespace, the XML declaration and comments are not.
+ *
+ * @param string $markup SVG markup.
+ * @return bool False when the sanitiser refuses it or would change it.
+ */
+function easy_svg_markup_is_clean( $markup ) {
+    $sanitizer = easy_svg_sanitizer();
+    if ( null === $sanitizer ) {
+        return false;
+    }
+
+    try {
+        $clean = $sanitizer->sanitize( (string) $markup );
+    } catch ( \Throwable $e ) {
+        return false;
+    }
+
+    if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
+        return false;
+    }
+
+    $fingerprint = static function ( $xml ) {
+        $doc      = new DOMDocument();
+        $internal = libxml_use_internal_errors( true );
+        // No entity substitution and no network: only the markup as written.
+        $loaded = $doc->loadXML( $xml, LIBXML_NONET );
+        libxml_clear_errors();
+        libxml_use_internal_errors( $internal );
+        if ( ! $loaded || null === $doc->documentElement ) {
+            return null;
+        }
+        $parts = array();
+        $xpath = new DOMXPath( $doc );
+        foreach ( $xpath->query( '//*' ) as $element ) {
+            $attrs = array();
+            foreach ( $element->attributes as $attr ) {
+                $attrs[] = $attr->nodeName . '=' . $attr->nodeValue;
+            }
+            sort( $attrs );
+            $parts[] = $element->nodeName . '[' . implode( ' ', $attrs ) . ']';
+        }
+        $parts[] = 'pi:' . $xpath->query( '//processing-instruction()' )->length;
+        $parts[] = 'text:' . preg_replace( '/\s+/', ' ', trim( $doc->documentElement->textContent ) );
+        return implode( "\n", $parts );
+    };
+
+    $before = $fingerprint( (string) $markup );
+
+    return null !== $before && $before === $fingerprint( $clean );
+}
+
+/**
+ * The check for `wp_upload_bits()`, which writes files without any upload
+ * filter. XML-RPC media uploads go through it.
+ *
+ * Its filter cannot replace the bytes, only refuse them -- so an SVG passes
+ * only when the sanitiser would leave it exactly as it is. Anything else is
+ * refused with a sentence; the media library, which cleans files, is the way
+ * to upload it.
+ *
+ * Empty bits pass: the WordPress importer reserves a file that way and fills
+ * it afterwards, and the attachment check below sees the finished file.
+ *
+ * @param array $upload { name, bits, time }.
+ * @return array|string The upload unchanged, or an error message.
+ */
+function easy_svg_upload_bits_check( $upload ) {
+    if ( ! is_array( $upload ) || empty( $upload['name'] ) || ! easy_svg_is_svg_name( $upload['name'] ) ) {
+        return $upload;
+    }
+
+    if ( ! isset( $upload['bits'] ) || '' === (string) $upload['bits'] ) {
+        return $upload;
+    }
+
+    if ( easy_svg_markup_is_clean( (string) $upload['bits'] ) ) {
+        return $upload;
+    }
+
+    return __( 'This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it.', 'easy-svg' );
+}
+add_filter( 'wp_upload_bits', 'easy_svg_upload_bits_check' );
+
+/**
+ * The last check: every new SVG attachment, however its file got there.
+ *
+ * Importers copy files into place themselves, and other plugins write files
+ * and then register them; none of that passes an upload filter. So when an
+ * attachment that is an SVG is created, its file is sanitised in place with
+ * the same checker the uploads use. If the sanitiser cannot use it, the
+ * attachment and its file are deleted -- a file nobody could clean must not
+ * stay reachable under the uploads URL.
+ *
+ * For a file that already went through the upload filter this is a second,
+ * harmless pass. An attachment with no local file (offloaded media, an
+ * attachment that only points somewhere) is left alone: there is nothing here
+ * to check, and deleting it would lose somebody's library entry.
+ *
+ * @param int $attachment_id The new attachment.
+ */
+function easy_svg_check_new_attachment( $attachment_id ) {
+    $path = get_attached_file( $attachment_id );
+    $mime = strtolower( (string) get_post_mime_type( $attachment_id ) );
+
+    if ( ! is_string( $path ) || '' === $path ) {
+        return;
+    }
+
+    if ( 'image/svg+xml' !== $mime && ! easy_svg_is_svg_name( $path ) ) {
+        return;
+    }
+
+    if ( ! is_file( $path ) || ! is_readable( $path ) ) {
+        return;
+    }
+
+    if ( ! esw_svg_file_checker( $path ) ) {
+        wp_delete_attachment( $attachment_id, true );
+    }
+}
+add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
+
 /*
  * The icon manager.
  *
