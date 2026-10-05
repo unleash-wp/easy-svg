@@ -348,6 +348,11 @@ function get_attached_file( $id ) {
 function get_post_mime_type( $id = null ) {
 	return $GLOBALS['attachments'][ $id ]['mime'] ?? false;
 }
+/** The uploads directory; temporary files in the checks below live in it. */
+function wp_upload_dir( $time = null, $create_dir = true, $refresh_cache = false ): array {
+	$base = (string) realpath( sys_get_temp_dir() );
+	return [ 'basedir' => $base, 'path' => $base, 'error' => false ];
+}
 function wp_delete_attachment( $id, $force = false ) {
 	$GLOBALS['deleted_attachments'][] = [ $id, $force ];
 	return (object) [ 'ID' => $id ];
@@ -582,6 +587,35 @@ if ( is_callable( $attach_cb ) ) {
 	$GLOBALS['attachments'][503] = [ 'file' => sys_get_temp_dir() . '/does-not-exist.svg', 'mime' => 'image/svg+xml' ];
 	$attach_cb( 503 );
 	check( 'SILENCE: an attachment with no local file (offloaded media) is not deleted', [] === $GLOBALS['deleted_attachments'] );
+
+	/*
+	 * Only files under the uploads directory are this check's business. A
+	 * plugin may register an SVG it ships in its own folder as an attachment;
+	 * rewriting that file, or deleting the library entry because it cannot be
+	 * written, is not this plugin's call.
+	 */
+	$outside = $root . '/tests/outside-uploads.svg';
+	file_put_contents( $outside, $scripted );
+	$GLOBALS['deleted_attachments'] = [];
+	$GLOBALS['attachments'][505] = [ 'file' => $outside, 'mime' => 'image/svg+xml' ];
+	$attach_cb( 505 );
+	check( 'BELL: a file outside the uploads directory is not rewritten', $scripted === file_get_contents( $outside ) );
+	unlink( $outside );
+
+	$outside = $root . '/tests/outside-broken.svg';
+	file_put_contents( $outside, '<html><script>alert(1)</script></html>' );
+	chmod( $outside, 0444 );
+	$GLOBALS['attachments'][506] = [ 'file' => $outside, 'mime' => 'image/svg+xml' ];
+	$attach_cb( 506 );
+	chmod( $outside, 0644 );
+	unlink( $outside );
+	check( 'BELL: and its attachment is not deleted, even when the file is unusable and unwritable', [] === $GLOBALS['deleted_attachments'] );
+
+	// A path that only looks inside: ../ out of the uploads directory.
+	$escape = (string) realpath( sys_get_temp_dir() ) . '/../' . basename( dirname( $root ) ) . '-esw-escape.svg';
+	$GLOBALS['attachments'][507] = [ 'file' => $escape, 'mime' => 'image/svg+xml' ];
+	$attach_cb( 507 );
+	check( 'SILENCE: a path that climbs out of the uploads directory counts as outside', [] === $GLOBALS['deleted_attachments'] );
 
 	$path = tempnam( sys_get_temp_dir(), 'esw' ) . '.png';
 	file_put_contents( $path, $png );

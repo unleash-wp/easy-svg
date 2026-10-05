@@ -515,9 +515,10 @@ add_filter( 'wp_upload_bits', 'easy_svg_upload_bits_check' );
  * stay reachable under the uploads URL.
  *
  * For a file that already went through the upload filter this is a second,
- * harmless pass. An attachment with no local file (offloaded media, an
- * attachment that only points somewhere) is left alone: there is nothing here
- * to check, and deleting it would lose somebody's library entry.
+ * harmless pass. Files outside the uploads directory are left alone (see
+ * below), and so is an attachment with no local file (offloaded media, an
+ * attachment that only points somewhere): there is nothing here to check,
+ * and deleting it would lose somebody's library entry.
  *
  * @param int $attachment_id The new attachment.
  */
@@ -534,6 +535,20 @@ function easy_svg_check_new_attachment( $attachment_id ) {
     }
 
     if ( ! is_file( $path ) || ! is_readable( $path ) ) {
+        return;
+    }
+
+    /*
+     * Only files under the uploads directory. A plugin may register an SVG it
+     * ships in its own folder as an attachment; that file is part of the
+     * plugin, not an upload, and neither rewriting it nor deleting the library
+     * entry is this check's call. Compared as resolved paths, so `../` cannot
+     * make a file elsewhere look like it is inside.
+     */
+    $uploads = wp_upload_dir( null, false );
+    $base    = empty( $uploads['basedir'] ) ? false : realpath( $uploads['basedir'] );
+    $real    = realpath( $path );
+    if ( false === $base || false === $real || 0 !== strpos( $real, rtrim( $base, '/\\' ) . DIRECTORY_SEPARATOR ) ) {
         return;
     }
 
