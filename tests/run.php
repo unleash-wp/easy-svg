@@ -165,11 +165,14 @@ function get_posts( array $args = [] ): array {
 		array_filter(
 			$GLOBALS['icon_posts'],
 			static function ( $p ) use ( $args ) {
-				return ( $args['post_type'] ?? '' ) === $p->post_type && 'publish' === $p->post_status;
+				return ( $args['post_type'] ?? '' ) === $p->post_type && ( 'any' === ( $args['post_status'] ?? 'publish' ) || 'publish' === $p->post_status );
 			}
 		)
 	);
 	$result = $per_page < 0 ? $posts : array_slice( $posts, ( $page - 1 ) * $per_page, $per_page );
+	if ( 'ids' === ( $args['fields'] ?? '' ) ) {
+		$result = array_map( static function ( $p ) { return $p->ID; }, $result );
+	}
 	// Something else happening on the site AFTER this read answered and
 	// before the reader stores what it got.
 	if ( isset( $GLOBALS['during_query'] ) && count( $result ) < $per_page ) {
@@ -261,6 +264,7 @@ function get_post( $id ) {
 function wp_delete_post( $id, $force = false ) {
 	$GLOBALS['deleted_posts'][] = $id;
 	unset( $GLOBALS['stored_posts'][ $id ] );
+	$GLOBALS['icon_posts'] = array_values( array_filter( $GLOBALS['icon_posts'] ?? [], static function ( $p ) use ( $id ) { return $p->ID !== $id; } ) );
 	return true;
 }
 function wp_slash( $value ) {
@@ -662,12 +666,7 @@ check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_sv
  * and an Editor could change anybody's. Every capability maps to the screen's.
  */
 easy_svg_register_icon_store();
-$store_args = $GLOBALS['post_types']['esw_icon'] ?? [];
-$caps       = (array) ( $store_args['capabilities'] ?? [] );
-foreach ( array( 'edit_post', 'read_post', 'delete_post', 'edit_posts', 'edit_others_posts', 'delete_posts', 'publish_posts', 'read_private_posts', 'create_posts' ) as $cap ) {
-	check( "BELL: '{$cap}' on icons needs edit_theme_options", 'edit_theme_options' === ( $caps[ $cap ] ?? null ) );
-}
-check( 'BELL: and no meta capability is mapped back to post-author rules', false === ( $store_args['map_meta_cap'] ?? null ) );
+check( 'BELL: before 7.1 the icon post type is not registered at all', ! isset( $GLOBALS['post_types']['esw_icon'] ) );
 
 // ─── Every icon, read once ───────────────────────────────────────────────────
 
@@ -1337,7 +1336,7 @@ foreach ( glob( $root . '/vendor/enshrined/svg-sanitize/*' ) ?: array() as $lib_
 	}
 	check( "BELL: the library's {$rel} is kept out of the release", in_array( $rel, $distignore, true ) );
 }
-foreach ( array( 'easy-svg.php', 'includes', 'vendor', 'languages', 'readme.txt', 'license.txt', 'index.php', 'vendor/enshrined/svg-sanitize/LICENSE' ) as $shipped_path ) {
+foreach ( array( 'easy-svg.php', 'uninstall.php', 'includes', 'vendor', 'languages', 'readme.txt', 'license.txt', 'index.php', 'vendor/enshrined/svg-sanitize/LICENSE' ) as $shipped_path ) {
 	check( "SILENCE: {$shipped_path} still ships", ! in_array( $shipped_path, $distignore, true ) );
 }
 $gitignore = (string) @file_get_contents( $root . '/.gitignore' );
@@ -1428,9 +1427,67 @@ check( 'the icon API now counts as present', easy_svg_icons_supported() );
 easy_svg_icons_menu();
 check( 'BELL: on 7.1 the SVG icons submenu is there', [ 'easy-svg-icons' ] === $GLOBALS['media_pages'] );
 
+easy_svg_register_icon_store();
+$store_args = $GLOBALS['post_types']['esw_icon'] ?? [];
+$caps       = (array) ( $store_args['capabilities'] ?? [] );
+check( 'on 7.1 the icon post type is registered', [] !== $store_args );
+foreach ( array( 'edit_post', 'read_post', 'delete_post', 'edit_posts', 'edit_others_posts', 'delete_posts', 'publish_posts', 'read_private_posts', 'create_posts' ) as $cap ) {
+	check( "BELL: '{$cap}' on icons needs edit_theme_options", 'edit_theme_options' === ( $caps[ $cap ] ?? null ) );
+}
+check( 'BELL: and no meta capability is mapped back to post-author rules', false === ( $store_args['map_meta_cap'] ?? null ) );
+
 easy_svg_boot_icons();
 check( 'BELL: all 250 icons are handed to core, not the first 200', 250 === count( $GLOBALS['registered_icons'] ) );
 check( 'SILENCE: each under its own name', 250 === count( array_unique( $GLOBALS['registered_icons'] ) ) );
+
+// ─── Uninstalling takes the icons with it ────────────────────────────────────
+
+check( 'BELL: there is an uninstall.php', is_file( $root . '/uninstall.php' ) );
+
+// Without WordPress uninstalling it, the file does nothing at all.
+$un_out    = array();
+$un_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root . '/uninstall.php' ) . ' 2>&1', $un_out, $un_status );
+check( 'BELL: opened directly, uninstall.php does nothing', 0 === $un_status && array() === $un_out );
+
+if ( is_file( $root . '/uninstall.php' ) ) {
+	$GLOBALS['blog_switches'] = [];
+	function is_multisite(): bool {
+		return true;
+	}
+	function get_sites( array $args = [] ): array {
+		return [ 1, 2 ];
+	}
+	function switch_to_blog( $id ): bool {
+		$GLOBALS['blog_switches'][] = $id;
+		return true;
+	}
+	function restore_current_blog(): bool {
+		$GLOBALS['blog_switches'][] = 'restore';
+		return true;
+	}
+	function delete_option( string $key ): bool {
+		unset( $GLOBALS['options'][ $key ] );
+		return true;
+	}
+
+	$GLOBALS['icon_posts'] = [];
+	for ( $i = 1; $i <= 130; $i++ ) {
+		$GLOBALS['icon_posts'][] = icon_post( 1000 + $i );
+	}
+	$GLOBALS['icon_posts'][]       = icon_post( 2001, 'page' );
+	$GLOBALS['transients']['easy_svg_icons'] = [ 'version' => 1, 'icons' => [] ];
+	$GLOBALS['options']['easy_svg_icons_version'] = 3;
+
+	define( 'WP_UNINSTALL_PLUGIN', 'easy-svg/easy-svg.php' );
+	include $root . '/uninstall.php';
+
+	$left_types = array_column( array_map( 'get_object_vars', $GLOBALS['icon_posts'] ), 'post_type' );
+	check( 'BELL: uninstalling deletes every icon, past one page of them', ! in_array( 'esw_icon', $left_types, true ) );
+	check( 'SILENCE: and nothing that is not an icon', in_array( 'page', $left_types, true ) );
+	check( 'BELL: and the cached list and its version', ! isset( $GLOBALS['transients']['easy_svg_icons'] ) && ! isset( $GLOBALS['options']['easy_svg_icons_version'] ) );
+	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
+}
 
 // ─── The suite has to be able to fail ────────────────────────────────────────
 

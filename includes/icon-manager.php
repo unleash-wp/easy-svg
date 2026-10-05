@@ -53,6 +53,13 @@ const EASY_SVG_ICON_VERSION = 'easy_svg_icons_version';
  * somebody would paste anything into.
  */
 function easy_svg_register_icon_store() {
+    // Nothing to store before 7.1, which has no icon registry to hand icons
+    // to. Uninstalling does not need the type registered: it deletes by
+    // post type straight from the table.
+    if ( ! easy_svg_icons_supported() ) {
+        return;
+    }
+
     register_post_type(
         EASY_SVG_ICON_POST_TYPE,
         array(
