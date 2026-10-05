@@ -944,6 +944,17 @@ check( 'BELL: no custom readme section for add-on authors', false === strpos( $r
 $faq = (string) substr( $readme_text, (int) strpos( $readme_text, '== Frequently Asked Questions ==' ), (int) strpos( $readme_text, '== Screenshots ==' ) - (int) strpos( $readme_text, '== Frequently Asked Questions ==' ) );
 check( 'BELL: the add-on notes are in the FAQ', false !== strpos( $faq, 'easy_svg_sanitizer()' ) && false !== strpos( $faq, 'EASY_SVG_API' ) );
 check( 'SILENCE: "Then you can", not "Than you can"', false === strpos( $readme_text, 'Than you can' ) );
+// Support runs through the wordpress.org forum only; a personal address on a
+// page 40,000 sites read is one nobody can hand over or rotate.
+check( 'BELL: the readme points to the support forum', false !== strpos( $readme_text, 'https://wordpress.org/support/plugin/easy-svg/' ) );
+check( 'SILENCE: and names no e-mail address', 1 !== preg_match( '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $readme_text ) );
+check( 'SILENCE: the free plugin page advertises no paid product', 1 !== preg_match( '/\bPro\b|premium|upgrade to/i', $readme_text ) );
+check( 'SILENCE: the old typos stay gone', false === stripos( $readme_text, 'Libary' ) && false === stripos( $readme_text, 'direcly' ) && false === stripos( $readme_text, 'persons' ) );
+check( 'BELL: the readme explains why an SVG needs sanitizing', false !== strpos( $readme_text, 'It is XML' ) && false !== strpos( $readme_text, 'enshrined/svg-sanitize' ) );
+check( 'BELL: the short description fits the 150 characters wordpress.org shows', ( static function ( $text ) {
+	$blocks = explode( "\n\n", str_replace( "\r\n", "\n", $text ) );
+	return isset( $blocks[1] ) && '' !== trim( $blocks[1] ) && mb_strlen( trim( $blocks[1] ) ) <= 150;
+} )( $readme_text ) );
 check( 'BELL: the sanitiser is reachable by function', function_exists( 'easy_svg_sanitizer' ) );
 check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
 
