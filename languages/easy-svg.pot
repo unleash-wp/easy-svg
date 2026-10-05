@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-05T21:15:29+00:00\n"
+"POT-Creation-Date: 2026-10-05T21:22:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -39,84 +39,90 @@ msgstr ""
 msgid "https://www.unleash-wp.com"
 msgstr ""
 
-#: easy-svg.php:279
+#. translators: %s: path of the file the older sanitizer was loaded from
+#: easy-svg.php:217
+#, php-format
+msgid "Easy SVG Support: another plugin has loaded an older version of the SVG sanitizer (%s) before this plugin could load its own, so SVG uploads are being sanitized with that older version. Please update or deactivate the plugin it belongs to."
+msgstr ""
+
+#: easy-svg.php:345
 msgid "Sorry, this SVG file is not allowed for security reasons."
 msgstr ""
 
-#: easy-svg.php:287
+#: easy-svg.php:353
 msgid "Sorry, please check your SVG file."
 msgstr ""
 
-#: easy-svg.php:402
+#: easy-svg.php:468
 msgid "This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it."
 msgstr ""
 
-#: includes/icon-manager.php:56
-#: includes/icon-manager.php:212
-#: includes/icon-manager.php:213
-#: includes/icon-manager.php:481
+#: includes/icon-manager.php:66
+#: includes/icon-manager.php:268
+#: includes/icon-manager.php:269
+#: includes/icon-manager.php:600
 msgid "SVG icons"
 msgstr ""
 
-#: includes/icon-manager.php:234
-#: includes/icon-manager.php:313
+#: includes/icon-manager.php:290
+#: includes/icon-manager.php:403
 msgid "You are not allowed to do this."
 msgstr ""
 
 #. translators: %d: how many icons this site has
-#: includes/icon-manager.php:345
+#: includes/icon-manager.php:435
 #, php-format
 msgid "%d icon. They appear in the Icon block."
 msgid_plural "%d icons. They appear in the Icon block."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/icon-manager.php:353
+#: includes/icon-manager.php:443
 msgid "Icon added."
 msgstr ""
 
-#: includes/icon-manager.php:354
+#: includes/icon-manager.php:444
 msgid "Icon removed. Pages already using it will show nothing where it was."
 msgstr ""
 
-#: includes/icon-manager.php:355
+#: includes/icon-manager.php:445
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 
-#: includes/icon-manager.php:356
+#: includes/icon-manager.php:446
 msgid "No file was uploaded."
 msgstr ""
 
-#: includes/icon-manager.php:357
+#: includes/icon-manager.php:447
 msgid "That file could not be read as an SVG, so nothing was stored."
 msgstr ""
 
-#: includes/icon-manager.php:358
+#: includes/icon-manager.php:448
 msgid "The SVG sanitiser did not load, so nothing was checked and nothing was stored."
 msgstr ""
 
-#: includes/icon-manager.php:359
+#: includes/icon-manager.php:449
 msgid "WordPress could not save the icon, so nothing was stored. Please try again."
 msgstr ""
 
-#: includes/icon-manager.php:505
-#: includes/icon-manager.php:536
+#: includes/icon-manager.php:624
+#: includes/icon-manager.php:655
 msgid "Name"
 msgstr ""
 
-#: includes/icon-manager.php:507
+#: includes/icon-manager.php:626
 msgid "Add icon"
 msgstr ""
 
-#: includes/icon-manager.php:535
+#: includes/icon-manager.php:654
 msgid "Icon"
 msgstr ""
 
-#: includes/icon-manager.php:537
+#: includes/icon-manager.php:656
 msgid "Used as"
 msgstr ""
 
-#: includes/icon-manager.php:552
+#: includes/icon-manager.php:671
 msgid "Remove"
 msgstr ""
 

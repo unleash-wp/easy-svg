@@ -1041,6 +1041,19 @@ $remote_out = (string) $no_remote->sanitize( $remote );
 check( 'BELL: GHSA-qhmf-972w-m957 -- with remote references off, none survive in style, href or url()', '' !== $remote_out && false === strpos( $remote_out, 'tracker.invalid' ) );
 check( 'SILENCE: and the drawing is still there', false !== strpos( $remote_out, '<rect' ) );
 
+/*
+ * Composer classes are global. If another plugin bundles an older copy of this
+ * library and its autoloader runs first, its Sanitizer is the one every
+ * upload here uses -- with every advisory above unfixed, and nothing on screen
+ * saying so. `removeDoctype` exists only from 1.0.0 on: it is the fix itself.
+ */
+check( 'BELL: the loaded sanitiser is recognised as current', easy_svg_sanitizer_is_current() );
+check( 'SILENCE: and then there is nothing to warn about', '' === easy_svg_outdated_sanitizer_message() );
+eval( 'namespace OldCopy; class Sanitizer { public function sanitize( $s ) { return $s; } }' );
+check( 'BELL: an older copy without the 1.0.0 fix is recognised as outdated', ! easy_svg_sanitizer_is_current( '\\OldCopy\\Sanitizer' ) );
+check( 'BELL: and produces a warning for administrators', '' !== easy_svg_outdated_sanitizer_message( '\\OldCopy\\Sanitizer' ) );
+check( 'SILENCE: the warning is wired to the admin', in_array( 'easy_svg_outdated_sanitizer_notice', $GLOBALS['hooks']['admin_notices'] ?? [], true ) );
+
 // Pinned, so a downgrade of vendor/ -- a stale checkout, a bad merge -- fails
 // here instead of shipping the vulnerable library again.
 $installed = (array) @include $root . '/vendor/composer/installed.php';

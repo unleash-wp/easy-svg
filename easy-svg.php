@@ -177,6 +177,72 @@ function easy_svg_sanitizer() {
 }
 
 /**
+ * Whether the sanitiser PHP will use is the version this plugin ships.
+ *
+ * Composer classes are global, and the first autoloader to answer for a class
+ * wins. A plugin that bundles an older copy of this library and loads first
+ * puts ITS Sanitizer behind every upload here. `removeDoctype()` exists only
+ * from 1.0.0 on -- it is the fix for the most serious of the advisories that
+ * release closed -- so its presence is what tells the two apart.
+ *
+ * @param string $class The sanitiser class; injectable so it can be checked.
+ * @return bool
+ */
+function easy_svg_sanitizer_is_current( $class = '\\enshrined\\svgSanitize\\Sanitizer' ) {
+    return class_exists( $class ) && method_exists( $class, 'removeDoctype' );
+}
+
+/**
+ * The sentence for an outdated sanitiser, or '' when there is nothing to say.
+ *
+ * Names the file the class came from, which is the quickest way for an
+ * administrator to find the plugin responsible.
+ *
+ * @param string $class The sanitiser class.
+ * @return string
+ */
+function easy_svg_outdated_sanitizer_message( $class = '\\enshrined\\svgSanitize\\Sanitizer' ) {
+    if ( ! class_exists( $class ) || easy_svg_sanitizer_is_current( $class ) ) {
+        return '';
+    }
+
+    $reflection = new ReflectionClass( $class );
+    $source     = (string) $reflection->getFileName();
+    if ( defined( 'WP_CONTENT_DIR' ) && 0 === strpos( $source, WP_CONTENT_DIR ) ) {
+        $source = 'wp-content' . substr( $source, strlen( WP_CONTENT_DIR ) );
+    }
+
+    return sprintf(
+        /* translators: %s: path of the file the older sanitizer was loaded from */
+        __( 'Easy SVG Support: another plugin has loaded an older version of the SVG sanitizer (%s) before this plugin could load its own, so SVG uploads are being sanitized with that older version. Please update or deactivate the plugin it belongs to.', 'easy-svg' ),
+        $source
+    );
+}
+
+/**
+ * Shown to administrators, on the screens where they would act on it.
+ *
+ * Once per request, on the dashboard, the plugins screen and the media
+ * library -- not on every admin page, where it would be noise.
+ */
+function easy_svg_outdated_sanitizer_notice() {
+    if ( ! current_user_can( 'activate_plugins' ) ) {
+        return;
+    }
+
+    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+    if ( ! $screen || ! in_array( $screen->id, array( 'dashboard', 'plugins', 'upload' ), true ) ) {
+        return;
+    }
+
+    $message = easy_svg_outdated_sanitizer_message();
+    if ( '' !== $message ) {
+        echo '<div class="notice notice-warning"><p>' . esc_html( $message ) . '</p></div>';
+    }
+}
+add_action( 'admin_notices', 'easy_svg_outdated_sanitizer_notice' );
+
+/**
  * Check and sanitize SVG file content.
  *
  * @param string $file Path to the file.
