@@ -144,6 +144,24 @@ function fire( string $hook, ...$args ): void {
 	}
 }
 
+// ─── Saving an icon ──────────────────────────────────────────────────────────
+
+class WP_Error {
+	public function __construct( string $code = '', string $message = '' ) {}
+}
+function is_wp_error( $thing ): bool {
+	return $thing instanceof WP_Error;
+}
+/** What wp_insert_post() answers next; a test sets it. */
+$GLOBALS['insert_returns'] = 1;
+$GLOBALS['inserted']       = [];
+function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_hooks = true ) {
+	$GLOBALS['inserted'][] = [ 'post' => $post, 'wp_error' => $wp_error ];
+	$answer = $GLOBALS['insert_returns'];
+	// As core does: without $wp_error a failure is 0, never an object.
+	return ( ! $wp_error && $answer instanceof WP_Error ) ? 0 : $answer;
+}
+
 /*
  * Caught, so a plugin that does not load is a FAIL LINE rather than a dead
  * process. A suite that dies reports nothing, and "nothing" is the one result
@@ -360,6 +378,33 @@ check( 'BELL: a deleted icon disappears at once, from wherever it was deleted', 
 $GLOBALS['transients'][ $cache_keys[0] ?? 'x' ] = 'garbage';
 check( 'SILENCE: a cache entry that is not a list is read again, not trusted', 250 === count( easy_svg_stored_icons() ) );
 
+// ─── A failed save is not "Icon added." ──────────────────────────────────────
+
+/*
+ * The handler said "Icon added." whatever wp_insert_post() answered. A full
+ * disk, a read-only replica, a plugin vetoing the insert -- each showed a green
+ * notice above a table without the icon.
+ */
+$good_svg = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
+
+$GLOBALS['inserted']       = [];
+$GLOBALS['insert_returns'] = 42;
+check( 'SILENCE: a saved icon is reported as added', 'added' === easy_svg_add_icon( 'Arrow', $good_svg ) );
+check( 'SILENCE: and was written once', 1 === count( $GLOBALS['inserted'] ) );
+check( 'BELL: asking for a WP_Error, so a failure says why instead of 0', true === ( $GLOBALS['inserted'][0]['wp_error'] ?? false ) );
+check( 'BELL: what is written is the cleaned markup', false !== strpos( (string) ( $GLOBALS['inserted'][0]['post']['post_content'] ?? '' ), '<path' ) );
+
+$GLOBALS['insert_returns'] = new WP_Error( 'db_insert_error', 'Could not insert post into the database.' );
+check( 'BELL: a WP_Error from the insert is not reported as added', 'not_saved' === easy_svg_add_icon( 'Arrow', $good_svg ) );
+
+$GLOBALS['insert_returns'] = 0;
+check( 'BELL: neither is a 0', 'not_saved' === easy_svg_add_icon( 'Arrow', $good_svg ) );
+
+$GLOBALS['inserted']       = [];
+$GLOBALS['insert_returns'] = 42;
+check( 'SILENCE: a file that is not an SVG is refused before anything is written', 'not_svg' === easy_svg_add_icon( 'Arrow', 'not markup at all <' ) );
+check( 'SILENCE: nothing was written for it', [] === $GLOBALS['inserted'] );
+
 // ─── Every refusal has a sentence ────────────────────────────────────────────
 
 /*
@@ -367,7 +412,7 @@ check( 'SILENCE: a cache entry that is not a list is read again, not trusted', 2
  * states come from `easy_svg_accept_icon()`, so the two lists are checked
  * against each other rather than a hand-written copy of one of them.
  */
-foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer' ) as $state ) {
+foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved' ) as $state ) {
 	check(
 		"the '{$state}' state has something to say",
 		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )

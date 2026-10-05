@@ -226,14 +226,36 @@ function easy_svg_handle_add_icon() {
 
     $label = isset( $_POST['label'] ) ? sanitize_text_field( wp_unslash( $_POST['label'] ) ) : '';
 
+    /*
+     * The uploaded file is read, never moved or kept: its bytes go through the
+     * sanitiser below and only the cleaned markup is stored. `is_uploaded_file()`
+     * is the check that the path really is PHP's own temporary upload, which is
+     * all a tmp_name needs -- there is nothing in it to sanitise as text.
+     */
     $markup = '';
-    if ( isset( $_FILES['icon']['tmp_name'] ) && is_uploaded_file( $_FILES['icon']['tmp_name'] ) ) {
-        $markup = (string) file_get_contents( $_FILES['icon']['tmp_name'] );
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a temporary path, verified by is_uploaded_file().
+    $tmp_name = isset( $_FILES['icon']['tmp_name'] ) ? (string) $_FILES['icon']['tmp_name'] : '';
+    if ( '' !== $tmp_name && is_uploaded_file( $tmp_name ) ) {
+        $markup = (string) file_get_contents( $tmp_name );
     }
 
+    easy_svg_icons_redirect( easy_svg_add_icon( $label, $markup ) );
+}
+
+/**
+ * Store one icon, and answer with the word for what happened.
+ *
+ * Split from the handler so the answer can be checked: the handler ends in a
+ * redirect and an `exit`, and a check cannot run past either.
+ *
+ * @param string $label  What the person typed, already sanitised as text.
+ * @param string $markup The bytes they uploaded.
+ * @return string A state `easy_svg_icon_message()` has a sentence for.
+ */
+function easy_svg_add_icon( $label, $markup ) {
     $sanitizer = easy_svg_sanitizer();
     if ( null === $sanitizer ) {
-        easy_svg_icons_redirect( 'no_sanitizer' );
+        return 'no_sanitizer';
     }
 
     $decision = easy_svg_accept_icon(
@@ -243,7 +265,7 @@ function easy_svg_handle_add_icon() {
     );
 
     if ( 'ok' !== $decision['state'] ) {
-        easy_svg_icons_redirect( $decision['state'] );
+        return $decision['state'];
     }
 
     /*
@@ -252,18 +274,27 @@ function easy_svg_handle_add_icon() {
      * rather than one silently replacing the other -- and the second name is
      * still one core accepts, because `wp_unique_post_slug` only ever appends
      * `-<number>`.
+     *
+     * Asked for a WP_Error, and the answer is checked. "Icon added." above a
+     * table without the icon -- a full disk, a read-only database, a plugin
+     * vetoing the insert -- sends a person looking for a bug in the wrong place.
      */
-    wp_insert_post(
+    $id = wp_insert_post(
         array(
             'post_type'    => EASY_SVG_ICON_POST_TYPE,
             'post_status'  => 'publish',
             'post_title'   => $label,
             'post_name'    => $decision['slug'],
             'post_content' => $decision['content'],
-        )
+        ),
+        true
     );
 
-    easy_svg_icons_redirect( 'added' );
+    if ( is_wp_error( $id ) || ! $id ) {
+        return 'not_saved';
+    }
+
+    return 'added';
 }
 
 function easy_svg_handle_delete_icon() {
@@ -314,6 +345,7 @@ function easy_svg_icon_message( $state ) {
         'empty'        => __( 'No file was uploaded.', 'easy-svg' ),
         'not_svg'      => __( 'That file could not be read as an SVG, so nothing was stored.', 'easy-svg' ),
         'no_sanitizer' => __( 'The SVG sanitiser did not load, so nothing was checked and nothing was stored.', 'easy-svg' ),
+        'not_saved'    => __( 'WordPress could not save the icon, so nothing was stored. Please try again.', 'easy-svg' ),
     );
 
     return isset( $messages[ $state ] ) ? $messages[ $state ] : '';
