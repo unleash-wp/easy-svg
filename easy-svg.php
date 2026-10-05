@@ -32,11 +32,40 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-// Helper: Load Composer dependencies.
-$composer_package = __DIR__ . '/vendor/autoload.php';
+// Composer's autoloader, for the sanitiser. Written without a variable: this
+// file runs in the global scope, so a `$composer_package` here was a global
+// with nobody's prefix on it.
+if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+    require __DIR__ . '/vendor/autoload.php';
+}
 
-if ( file_exists( $composer_package ) ) {
-    require $composer_package;
+/*
+ * The `esw_` names below -- functions, the two allow-list classes and the
+ * `esw_svg_allowed_tags` / `esw_svg_allowed_attributes` filters -- are older
+ * than the `easy_svg_` prefix and stay as they are: sites hook those filters
+ * and call those functions, and renaming them would break every one of them.
+ */
+
+/*
+ * The sanitiser 4.1 kept in a global, kept for the snippets that configure it.
+ *
+ * 4.1 created `$sanitizer` here and cleaned every upload with it, so a site
+ * could write `global $sanitizer; $sanitizer->removeRemoteReferences( true );`
+ * and have that apply. Dropping the global turned such a snippet into a fatal
+ * call on null -- or, where it built its own, into a setting silently ignored.
+ *
+ * It is no longer the object anybody sanitises WITH: `easy_svg_sanitizer()`
+ * hands each caller a copy of it (see there for why a shared instance is
+ * wrong). It is the template the copies start from.
+ *
+ * Only created when the name is free. 4.1 overwrote it unconditionally, which
+ * clobbered any other plugin's `$sanitizer` -- a common enough name -- and a
+ * Sanitizer some earlier code already put there is exactly what should be
+ * honoured, not replaced.
+ */
+if ( class_exists( '\enshrined\svgSanitize\Sanitizer' ) && ! isset( $GLOBALS['sanitizer'] ) ) {
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- the 4.1 name, kept for site snippets.
+    $GLOBALS['sanitizer'] = new \enshrined\svgSanitize\Sanitizer();
 }
 
 /**
@@ -118,10 +147,27 @@ function easy_svg_sanitizer() {
         return null;
     }
 
-    // A fresh instance per call. The old shared global was reconfigured on
-    // every upload, so two callers meant whichever ran last decided what the
-    // other one stripped.
-    $sanitizer = new \enshrined\svgSanitize\Sanitizer();
+    /*
+     * One instance per call. The 4.1 global was reconfigured on every upload,
+     * so two callers meant whichever ran last decided what the other one
+     * stripped.
+     *
+     * A COPY of that global when it holds a Sanitizer, so whatever a site
+     * snippet set on it -- remote references, minifying, the XML declaration,
+     * nesting limits -- still applies, as it did in 4.1. A clone is safe to
+     * hand out: the library builds a new DOMDocument on every sanitize() call,
+     * so nothing a caller does reaches the template. The allow-lists are set on
+     * the copy below and replace anything set on the global; 4.1 did exactly
+     * that on every upload, so a snippet never could set them there.
+     *
+     * Anything else under that name is somebody else's variable and is left
+     * alone.
+     */
+    $legacy    = isset( $GLOBALS['sanitizer'] ) ? $GLOBALS['sanitizer'] : null;
+    $sanitizer = $legacy instanceof \enshrined\svgSanitize\Sanitizer
+        ? clone $legacy
+        : new \enshrined\svgSanitize\Sanitizer();
+
     $sanitizer->setAllowedTags( new esw_svg_tags() );
     $sanitizer->setAllowedAttrs( new esw_svg_attributes() );
 

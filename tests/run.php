@@ -582,6 +582,65 @@ check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \ensh
 // one stripped.
 check( 'SILENCE: each call gets its own', easy_svg_sanitizer() !== easy_svg_sanitizer() );
 
+// ─── The 4.1 global, still honoured ──────────────────────────────────────────
+
+/*
+ * 4.1 created `$sanitizer` at load and sanitised every upload with it, so a
+ * site snippet could write
+ *
+ *     global $sanitizer;
+ *     $sanitizer->removeRemoteReferences( true );
+ *
+ * 4.2 dropped the global. Such a snippet then either died on a method call on
+ * null, or -- if it created its own -- was silently ignored. Both are a
+ * regression on a site that did nothing but update.
+ */
+$legacy = $GLOBALS['sanitizer'] ?? null;
+check( 'BELL: the 4.1 global exists after load', $legacy instanceof \enshrined\svgSanitize\Sanitizer );
+
+$plain_svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1"/></svg>';
+
+if ( $legacy instanceof \enshrined\svgSanitize\Sanitizer ) {
+	$tags_before = $legacy->getAllowedTags();
+
+	// What a 4.1-era snippet does: configure the global.
+	$legacy->removeXMLTag( true );
+
+	check( 'BELL: a snippet configuring the global reaches easy_svg_sanitizer()', false === strpos( (string) easy_svg_sanitizer()->sanitize( $plain_svg ), '<?xml' ) );
+
+	$file = file_array( $plain_svg );
+	$callback( $file );
+	$uploaded = (string) file_get_contents( $file['tmp_name'] );
+	unlink( $file['tmp_name'] );
+	check( 'BELL: and reaches the upload, as it did in 4.1', false === strpos( $uploaded, '<?xml' ) && false !== strpos( $uploaded, '<rect' ) );
+
+	// Still one object per caller: the global is a template, never handed out.
+	check( 'SILENCE: callers get a copy, not the global itself', easy_svg_sanitizer() !== $legacy );
+	check( 'SILENCE: and the global is not reconfigured by being used', $tags_before === $legacy->getAllowedTags() );
+
+	$legacy->removeXMLTag( false );
+}
+
+// A site where the global is gone, or holds something else entirely.
+unset( $GLOBALS['sanitizer'] );
+check( 'SILENCE: with the global absent there is still a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
+
+$GLOBALS['sanitizer'] = new stdClass();
+try {
+	$foreign = easy_svg_sanitizer();
+} catch ( \Throwable $e ) {
+	$foreign = null;
+}
+check( 'BELL: another plugin\'s $sanitizer is ignored, not called', $foreign instanceof \enshrined\svgSanitize\Sanitizer );
+
+$GLOBALS['sanitizer'] = $legacy;
+
+/*
+ * The prefix rule asks for no unprefixed globals, and the autoloader path was
+ * one. The 4.1 `$sanitizer` is the deliberate exception above.
+ */
+check( 'SILENCE: no unprefixed $composer_package global', ! array_key_exists( 'composer_package', $GLOBALS ) );
+
 /*
  * The upload path goes through that same function, proved at the BYTES.
  *
