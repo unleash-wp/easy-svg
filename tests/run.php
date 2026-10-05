@@ -19,6 +19,7 @@ declare(strict_types=1);
 $root = dirname( __DIR__ );
 
 define( 'ABSPATH', $root . '/' );
+define( 'MB_IN_BYTES', 1048576 );
 
 $passed = 0;
 $failed = 0;
@@ -458,6 +459,24 @@ if ( is_callable( $sideload_cb ) ) {
 } else {
 	check( 'BELL: a sideloaded file is sanitised too', false );
 }
+
+// ─── Size and emptiness, before the sanitiser does any real work ─────────────
+
+// An SVG larger than the cap is refused before it is parsed. Parsing scales
+// with size; a ceiling keeps one upload from tying up a request.
+$huge  = '<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat( '<rect/>', 400000 ) . '</svg>';
+$file  = file_array( $huge, 'huge.svg' );
+$after = $callback( $file );
+unlink( $file['tmp_name'] );
+check( 'BELL: an oversized SVG is refused before it is parsed', isset( $after['error'] ) );
+
+// The sanitiser returns '' for input PHP empty() treats as empty -- a file
+// whose only content is "0" among them. That is a refusal, not an empty
+// stored file.
+$file  = file_array( '0', 'zero.svg' );
+$after = $callback( $file );
+unlink( $file['tmp_name'] );
+check( 'BELL: an SVG that sanitises to nothing is refused', isset( $after['error'] ) );
 
 // ─── Files that are not what they claim ──────────────────────────────────────
 

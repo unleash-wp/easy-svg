@@ -124,6 +124,20 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 define( 'EASY_SVG_API', 3 );
 
 /**
+ * The largest SVG this plugin will parse, in bytes.
+ *
+ * SVG is XML, and the work of parsing and cleaning it scales with its size.
+ * A ceiling in front of every sanitise keeps one upload from tying up a
+ * request, whatever the parser does with it. Two megabytes is far above any
+ * icon or ordinary drawing; a site that needs more can raise it.
+ *
+ * @return int
+ */
+function easy_svg_max_bytes() {
+    return (int) apply_filters( 'easy_svg_max_bytes', 2 * MB_IN_BYTES );
+}
+
+/**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
  *
  * ─── Why an add-on gets a function and not the classes ──────────────────────
@@ -276,6 +290,10 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
+    if ( strlen( $unclean ) > easy_svg_max_bytes() ) {
+        return false;
+    }
+
     /*
      * Caught, and answered like any other file the sanitiser refuses. The
      * library throws a LogicException for well-formed XML without exactly one
@@ -289,7 +307,11 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
-    if ( false === $clean ) {
+    // A refusal, and so is a result of nothing: the library returns '' for
+    // input PHP empty() treats as empty (a file whose only content is "0"
+    // among them), and an empty .svg is not what the person meant to store.
+    // The other two sanitise paths already refuse a trim()-empty result.
+    if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
         return false;
     }
 
@@ -406,6 +428,10 @@ add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' )
  */
 function easy_svg_markup_is_clean( $markup ) {
     $markup = (string) $markup;
+
+    if ( strlen( $markup ) > easy_svg_max_bytes() ) {
+        return false;
+    }
 
     /*
      * Three things a structural comparison cannot see, refused up front:
