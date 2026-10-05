@@ -1640,6 +1640,35 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
 }
 
+// ─── The media-library display filter reads dimensions, and tolerates junk ───
+
+$display_cb = $GLOBALS['hooks']['wp_prepare_attachment_for_js'][0] ?? null;
+if ( is_callable( $display_cb ) ) {
+	$svg_response = static function ( $file ) use ( $display_cb ) {
+		$path = tempnam( sys_get_temp_dir(), 'eswdisp' );
+		file_put_contents( $path, $file );
+		$GLOBALS['attachments'][99] = [ 'file' => $path, 'mime' => 'image/svg+xml' ];
+		$resp = $display_cb(
+			[ 'type' => 'image', 'subtype' => 'svg+xml', 'url' => 'x.svg' ],
+			(object) [ 'ID' => 99 ],
+			[]
+		);
+		unlink( $path );
+		return $resp;
+	};
+
+	$ok = $svg_response( '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24"><rect/></svg>' );
+	check( 'SILENCE: a normal SVG gets its width and height read for the library', 48 === ( $ok['image']['width'] ?? 0 ) && 24 === ( $ok['image']['height'] ?? 0 ) );
+
+	// One oversized stored file must not read into memory or break the shared
+	// listing. The filter returns the response unchanged, no dimensions.
+	$big = $svg_response( '<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat( '<rect/>', 400000 ) . '</svg>' );
+	check( 'BELL: an oversized stored SVG is not parsed for the library', ! isset( $big['image'] ) );
+} else {
+	check( 'SILENCE: a normal SVG gets its width and height read for the library', false );
+	check( 'BELL: an oversized stored SVG is not parsed for the library', false );
+}
+
 // ─── The readme must not hand out a dangerous allow-list example ─────────────
 // The "For developers" snippets are copy-paste: each `$tags[] = '...'` or
 // `$attributes[] = '...'` line adds one token to a site's allow-list. A reader

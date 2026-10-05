@@ -683,10 +683,21 @@ if ( ! function_exists( 'esw_display_svg_media' ) ) {
             'svg+xml' === $response['subtype'] &&
             class_exists( 'SimpleXMLElement' )
         ) {
-            try {
-                $path = get_attached_file( $attachment->ID );
-                if ( file_exists( $path ) ) {
-                    $svg    = new SimpleXMLElement( file_get_contents( $path ) );
+            $path = get_attached_file( $attachment->ID );
+
+            // Only a real local file, and only one small enough to parse. This
+            // runs for every SVG in every media listing; an oversized or
+            // unreadable file must not read into memory or raise a fatal that
+            // breaks the listing for everyone paging over it.
+            if (
+                is_string( $path ) && '' !== $path && is_file( $path ) &&
+                filesize( $path ) <= easy_svg_max_bytes()
+            ) {
+                // No warnings on the way out: this is an AJAX response, and a
+                // libxml warning printed into it would corrupt the JSON.
+                $internal = libxml_use_internal_errors( true );
+                try {
+                    $svg    = new SimpleXMLElement( (string) file_get_contents( $path ) );
                     $src    = $response['url'];
                     $width  = (int) $svg['width'];
                     $height = (int) $svg['height'];
@@ -700,9 +711,12 @@ if ( ! function_exists( 'esw_display_svg_media' ) ) {
                         'url'         => $src,
                         'orientation' => ( $height > $width ) ? 'portrait' : 'landscape',
                     );
+                } catch ( \Throwable $e ) {
+                    // Keep the default response if the SVG cannot be read.
+                } finally {
+                    libxml_clear_errors();
+                    libxml_use_internal_errors( $internal );
                 }
-            } catch ( Exception $e ) {
-                // Fail silently, keep default response if SVG parsing fails.
             }
         }
 
