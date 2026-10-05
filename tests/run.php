@@ -933,8 +933,19 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
-check( 'BELL: with the value it has today', false !== strpos( $readme_text, 'It is 3.' ) );
-check( 'BELL: and the readme says the limit filter is gone', 1 === preg_match( '/easy_svg_icon_limit`? (filter )?(no longer exists|was removed)/', $readme_text ) );
+check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
+// The cap never shipped. A readme explaining its removal would document,
+// to 40,000 sites, a feature they never had.
+check( 'SILENCE: the readme does not mention the cap that never shipped', false === strpos( $readme_text, 'easy_svg_icon_limit' ) && false === stripos( $readme_text, 'capped' ) && 1 !== preg_match( '/\bAPI 2\b|that 2 introduced/', $readme_text ) );
+
+/*
+ * wordpress.org merges sections it does not know into the Description, so the
+ * add-on notes live under the FAQ, a section it renders on its own.
+ */
+check( 'BELL: no custom readme section for add-on authors', false === strpos( $readme_text, '== For add-on authors ==' ) );
+$faq = (string) substr( $readme_text, (int) strpos( $readme_text, '== Frequently Asked Questions ==' ), (int) strpos( $readme_text, '== Screenshots ==' ) - (int) strpos( $readme_text, '== Frequently Asked Questions ==' ) );
+check( 'BELL: the add-on notes are in the FAQ', false !== strpos( $faq, 'easy_svg_sanitizer()' ) && false !== strpos( $faq, 'EASY_SVG_API' ) );
+check( 'SILENCE: "Then you can", not "Than you can"', false === strpos( $readme_text, 'Than you can' ) );
 check( 'BELL: the sanitiser is reachable by function', function_exists( 'easy_svg_sanitizer' ) );
 check( 'BELL: and it returns a sanitiser', easy_svg_sanitizer() instanceof \enshrined\svgSanitize\Sanitizer );
 
@@ -1239,9 +1250,12 @@ $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade N
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
 check( 'SILENCE: and no longer talks about WordPress 4', false === strpos( $upgrade_notice, '4.0 to 4.9' ) );
+$changelog_43 = (string) substr( $readme, (int) strpos( $readme, '== Changelog ==' ), 4000 );
 foreach ( array( 'GHSA-9rjx-3jch-6vjf', 'GHSA-m9xh-6747-9r6f', 'GHSA-v383-3rw5-q8rf', 'GHSA-qhmf-972w-m957' ) as $advisory ) {
-	check( "BELL: the upgrade notice names {$advisory}", false !== strpos( $upgrade_notice, $advisory ) );
+	check( "BELL: the changelog names {$advisory}", false !== strpos( $changelog_43, $advisory ) );
 }
+check( 'BELL: the upgrade notice names the advisories in words a site owner reads', false !== strpos( $upgrade_notice, 'four published security advisories in the bundled sanitizer' ) );
+check( 'BELL: and warns that SVGs with custom DTD entities are now refused', false !== strpos( $upgrade_notice, 'DTD entities' ) );
 check( 'SILENCE: the upgrade notice fits the 300 characters wordpress.org shows', mb_strlen( trim( (string) substr( $upgrade_notice, (int) strpos( $upgrade_notice, '= 4.3 =' ) + 7 ) ) ) <= 300 );
 check( 'SILENCE: one changelog entry for this release, with the unreleased 4.2 folded in', false === strpos( $readme, '= 4.2 =' ) );
 preg_match( '/^Tags:\s*(.+)$/mi', $readme, $tags_line );

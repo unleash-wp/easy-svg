@@ -38,7 +38,7 @@ On WordPress versions before 7.1, which have no icon registry, the SVG icons scr
 
 = Documentation & Support =
 
-Got a problem or need help with Easy SVG Support? Than you can write me an e-mail:
+Got a problem or need help with Easy SVG Support? Then you can write me an e-mail:
 
 info@benjamin-zekavica.de or you can ask your question in the forums section.
 
@@ -80,6 +80,25 @@ info@benjamin-zekavica.de or you can ask your question in the forums section.
 
 Under Media → SVG icons, on WordPress 7.1 or newer. Give the icon a name, choose an SVG file and add it; it then appears in the Icon block under "Easy SVG". You need the capability to edit theme options, because an icon is available site-wide. There is no limit on how many icons you keep.
 
+= For add-on authors: what may an add-on rely on? =
+
+Exactly one function; everything else in this plugin is an internal detail
+that may be renamed or removed.
+
+`easy_svg_sanitizer()` returns a sanitizer configured with THIS SITE'S
+allowed tags and attributes, or null when the sanitizing library is not
+loaded. Use it rather than the classes behind it: a site widens the
+allow-list through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes`
+filters, so an add-on configured any other way removes things this site
+never would, and reports problems that do not exist.
+
+`EASY_SVG_API` is an integer that changes only when that function changes
+shape. It is 3. Compare against it rather than against a version string: a
+release number moves for reasons that have nothing to do with this.
+
+This plugin updates through wordpress.org and carries no update mechanism of
+its own.
+
 = Do you need a Source Code? =
 
 Please check out the repository on GitHub:
@@ -92,31 +111,6 @@ Please check out the repository on GitHub:
 3. An SVG as the featured image in the block editor
 
 
-== For add-on authors ==
-
-This plugin offers exactly one function, and everything else in it is an
-internal detail that may be renamed or removed:
-
-`easy_svg_sanitizer()` returns a sanitizer configured with THIS SITE'S
-allowed tags and attributes, or null when the sanitizing library is not
-loaded.
-
-`EASY_SVG_API` is an integer that changes only when that function changes
-shape. It is 3. Compare against it rather than against a version string:
-a release number moves for reasons that have nothing to do with this.
-
-API 3 means the `easy_svg_icon_limit` filter no longer exists. Version 2
-introduced it while icons were capped; the icon manager now has no limit,
-so nothing reads that filter and an add-on must not rely on it.
-
-Use the function rather than the classes behind it. A site widens the allow-list
-through the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters,
-so an add-on configured any other way removes things this site never would,
-and reports problems that do not exist.
-
-This plugin updates through wordpress.org and carries no update mechanism of
-its own.
-
 == Changelog ==
 = 4.3 =
 * Security: the bundled SVG sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0, which fixes four published advisories: GHSA-9rjx-3jch-6vjf (stored XSS through a DTD entity named like an HTML character reference), GHSA-m9xh-6747-9r6f (mixed-case xlink:href escaping the nested-`<use>` check), GHSA-v383-3rw5-q8rf (denial of service through a DTD attribute declaration) and GHSA-qhmf-972w-m957 (CSS injection and remote-reference bypass). Note: an SVG that relies on custom DTD entities, as some older Adobe Illustrator exports do, is now refused; export it again without them.
@@ -128,7 +122,10 @@ its own.
 * The icon list is cached and read only when it changes, so sites pay nothing on every request for it.
 * Compatibility: the global `$sanitizer` from 4.1 exists again, and settings a site snippet makes on it are applied, as they were in 4.1.
 * Removed an AJAX endpoint that could never fire. It was registered under a hook name WordPress does not build, so it had not worked in any released version, and nothing called it.
-* For add-on authors: easy_svg_sanitizer() and EASY_SVG_API (3), so an add-on cleans files exactly the way this site does. See "For add-on authors".
+* For add-on authors: easy_svg_sanitizer() and EASY_SVG_API (3), so an add-on cleans files exactly the way this site does. See the FAQ.
+* Only users who can edit theme options can create or change SVG icons, through any route.
+* On multisite, sub-site administrators can add SVG icons; previously the icon was saved empty.
+* Uninstalling the plugin removes its SVG icons and their cache (uploaded SVG files stay in the media library).
 * Licence: GPL-3.0-or-later, stated the same way everywhere, with the full licence text included.
 * Tested with WordPress 7.1.
 
@@ -317,4 +314,4 @@ its own.
 == Upgrade Notice ==
 
 = 4.3 =
-Security: SVG sanitizer 1.0.0 (fixes GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf, GHSA-qhmf-972w-m957). SVGs added via WP-CLI `wp media import`, media_sideload_image(), importers or raw REST uploads are now sanitized. New: SVG icons on WP 7.1+.
+Security: fixes four published security advisories in the bundled sanitizer; SVGs added via WP-CLI `wp media import`, importers or raw REST uploads are now sanitized. SVGs with custom DTD entities (some older Illustrator exports) are now refused. New: SVG icons on WP 7.1+.
