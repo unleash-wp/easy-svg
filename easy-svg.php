@@ -290,7 +290,7 @@ function esw_svg_file_checker( $file ) {
 /**
  * Whether a filename names an SVG.
  *
- * File extensions are case-insensitive, so the comparison is too.
+ * The extension is compared case-insensitively.
  *
  * @param string $name A filename or path.
  * @return bool
@@ -363,9 +363,8 @@ add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
  *
  *     $file = apply_filters( "{$action}_prefilter", $file );   wp-admin/includes/file.php
  *
- * and `$action` is `wp_handle_upload` OR `wp_handle_sideload`. Listening to the
- * first one only covered a person choosing a file in the media library, and
- * nothing else. Everything that sideloads went in unchecked:
+ * and `$action` is `wp_handle_upload` OR `wp_handle_sideload`. The second is
+ * what these use:
  *
  *   - `media_sideload_image()`, which themes and page builders use to pull in
  *     remote assets
@@ -460,8 +459,8 @@ function easy_svg_markup_is_clean( $markup ) {
 }
 
 /**
- * The check for `wp_upload_bits()`, which writes files without any upload
- * filter. XML-RPC media uploads go through it.
+ * The check on `wp_upload_bits()`, the function XML-RPC media uploads and
+ * some plugins use to write a file.
  *
  * Its filter cannot replace the bytes, only refuse them -- so an SVG passes
  * only when the sanitiser would leave it exactly as it is. Anything else is
@@ -494,10 +493,9 @@ add_filter( 'wp_upload_bits', 'easy_svg_upload_bits_check' );
 /**
  * The last check: every new SVG attachment, however its file got there.
  *
- * Importers copy files into place themselves, and other plugins write files
- * and then register them; none of that passes an upload filter. So when an
- * attachment that is an SVG is created, its file is sanitised in place with
- * the same checker the uploads use. If the sanitiser cannot use it, the
+ * When an attachment that is an SVG is created -- by an upload, an importer,
+ * or a plugin that writes a file and registers it -- its file is sanitised in
+ * place with the same checker the uploads use. If the sanitiser cannot use it, the
  * attachment and its file are deleted -- a file nobody could clean must not
  * stay reachable under the uploads URL.
  *
@@ -587,11 +585,10 @@ if ( ! function_exists( 'esw_upload_check' ) ) {
     function esw_upload_check( $checked, $file, $filename, $mimes ) {
 
         /*
-         * Only ever about SVGs. fileinfo often cannot name an SVG (one without
-         * an XML declaration reads as text), and core then drops its type; this
-         * gives the type back so the upload filter can SANITISE the file rather
-         * than have it refused. Every other file keeps core's verdict exactly
-         * as core gave it.
+         * Only about SVGs. fileinfo often cannot name an SVG (one without an
+         * XML declaration reads as text), and core then drops its type; this
+         * gives the type back so the upload filter can sanitise the file. Any
+         * other file is returned as core judged it.
          */
         if ( ! easy_svg_is_svg_name( $filename ) || ! empty( $checked['type'] ) ) {
             return $checked;
