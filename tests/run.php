@@ -93,12 +93,11 @@ function is_admin(): bool {
 
 /*
  * Core's file-type check, cut down to the branches that matter here but
- * otherwise as core writes it (wp-includes/functions.php). Two properties are
- * the point: the extension comes back AS WRITTEN in the filename, so `X.SVG`
- * answers `SVG`; and the content is looked at with fileinfo, so a file whose
- * bytes do not match its name loses its type -- unless a filter on
- * `wp_check_filetype_and_ext` gives it back. A stub that always answered
- * "svg" is how a mixed-case name slipped past every check in this file.
+ * otherwise as core writes it (wp-includes/functions.php): the extension is
+ * taken from the filename, the content is looked at with fileinfo, and the
+ * result goes through the `wp_check_filetype_and_ext` filter with all of its
+ * arguments. Close to core on purpose, so the upload checks below are tested
+ * against what WordPress really answers.
  */
 function wp_check_filetype( $filename, $mimes = null ): array {
 	$mimes = $mimes ?: get_allowed_mime_types();
@@ -470,9 +469,8 @@ check( 'SILENCE: and its bytes are not touched', $png === $kept );
 // ─── One rule for what counts as an SVG ──────────────────────────────────────
 
 /*
- * Whatever the name looks like, a file that is an SVG -- by its lower-cased
- * extension or by the type WordPress settled on -- is sanitised or refused.
- * The name is the uploader's to choose, so its spelling decides nothing.
+ * A file that is an SVG -- by its extension, in any case, or by the type
+ * WordPress settled on -- is sanitised or refused.
  */
 foreach ( array( 'X.SVG', 'x.Svg', 'x.sVg' ) as $mixed_name ) {
 	$file  = file_array( $scripted, $mixed_name );

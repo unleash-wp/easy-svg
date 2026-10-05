@@ -290,8 +290,7 @@ function esw_svg_file_checker( $file ) {
 /**
  * Whether a filename names an SVG.
  *
- * Compared in lower case: the name is whatever the uploader chose, and a check
- * that depends on how it is spelled is a check the uploader controls.
+ * File extensions are case-insensitive, so the comparison is too.
  *
  * @param string $name A filename or path.
  * @return bool
