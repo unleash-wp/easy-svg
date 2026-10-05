@@ -7,5 +7,4 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'enshrined\\svgSanitize\\' => array($vendorDir . '/enshrined/svg-sanitize/src'),
-    'Benjaminzekavica\\EasySvg\\' => array($baseDir . '/easy-svg.php'),
 );

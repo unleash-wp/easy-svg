@@ -790,6 +790,50 @@ check( 'SILENCE: with the same link', 1 === preg_match( '#^License URI:\s*https:
 check( 'BELL: license.txt is the licence itself', false !== strpos( $licence, 'GNU GENERAL PUBLIC LICENSE' ) && false !== strpos( $licence, 'Version 3, 29 June 2007' ) );
 check( 'SILENCE: all of it', false !== strpos( $licence, 'END OF TERMS AND CONDITIONS' ) );
 
+// ─── What reaches wordpress.org ──────────────────────────────────────────────
+
+/*
+ * The deploy action copies the repository into SVN minus `.distignore`;
+ * `git archive` builds a zip minus `export-ignore`. Two lists that must say
+ * the same thing, or the zip somebody tests is not the release 40,000 sites
+ * get. `.git` is the one entry only rsync needs: git archive never packs it.
+ */
+$read_list = static function ( string $file, bool $attributes ): array {
+	$out = [];
+	foreach ( (array) @file( $file, FILE_IGNORE_NEW_LINES ) as $line ) {
+		$line = trim( (string) $line );
+		if ( '' === $line || '#' === $line[0] ) {
+			continue;
+		}
+		if ( $attributes ) {
+			if ( 1 !== preg_match( '/^(\S+)\s+export-ignore\s*$/', $line, $m ) ) {
+				continue;
+			}
+			$line = $m[1];
+		}
+		$out[] = ltrim( $line, '/' );
+	}
+	sort( $out );
+	return $out;
+};
+
+$distignore = $read_list( $root . '/.distignore', false );
+$exportign  = $read_list( $root . '/.gitattributes', true );
+
+foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php' ) as $kept_out ) {
+	check( "BELL: .distignore keeps {$kept_out} out of the release", in_array( $kept_out, $distignore, true ) );
+}
+check(
+	'BELL: and .gitattributes export-ignores exactly the same set',
+	array_values( array_diff( $distignore, array( '.git' ) ) ) === $exportign
+);
+foreach ( array( 'easy-svg.php', 'includes', 'vendor', 'languages', 'readme.txt', 'license.txt', 'index.php', 'vendor/enshrined/svg-sanitize/LICENSE' ) as $shipped_path ) {
+	check( "SILENCE: {$shipped_path} still ships", ! in_array( $shipped_path, $distignore, true ) );
+}
+$gitignore = (string) @file_get_contents( $root . '/.gitignore' );
+check( 'SILENCE: composer.lock is tracked, so .gitignore does not claim to ignore it', 1 !== preg_match( '/^composer\.lock\s*$/m', $gitignore ) );
+check( 'SILENCE: and .DS_Store is ignored', 1 === preg_match( '/^\.DS_Store\s*$/m', $gitignore ) );
+
 // ─── This plugin must never update itself ────────────────────────────────────
 
 /*
