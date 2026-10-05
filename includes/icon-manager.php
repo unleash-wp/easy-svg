@@ -429,11 +429,13 @@ function easy_svg_icon_message( $state ) {
  *
  * Everything here can run code or pull in a document: `script`; `foreignObject`
  * (it carries HTML, iframes included); the SVG Tiny `handler` and `listener`;
- * and the animation elements, which can rewrite an `href` to `javascript:`
- * after the markup has been checked. A thumbnail needs none of it.
+ * the animation elements, which can rewrite an `href` to `javascript:`
+ * after the markup has been checked; and `style`, whose rules would apply to
+ * the whole admin page, not to the icon. A thumbnail needs none of it.
  */
 const EASY_SVG_PREVIEW_NEVER = array(
     'script',
+    'style',
     'foreignobject',
     'iframe',
     'embed',
@@ -495,38 +497,65 @@ function easy_svg_icon_preview_allowed_html() {
 /**
  * One stored icon, made safe to print as a drawing.
  *
- * Not esc_html: that would show the source instead of the picture. wp_kses with
- * an SVG allow-list prints the picture and nothing that can run. `href` and
- * `xlink:href` stay, because `<use href="#part">` is how many icons are built;
- * their values were already checked by the sanitiser when the icon was stored
- * -- it cleans `javascript:` and `data:` references no matter what the
- * allow-list says -- and wp_kses checks the protocol of `href` again here.
+ * Not esc_html: that would show the source instead of the picture. Two passes:
+ *
+ * 1. As XML, which stored icons are (they are the sanitiser's output): the
+ *    never-elements go WITH their content -- wp_kses would remove the tag and
+ *    leave a script's source standing as text -- and every `href` /
+ *    `xlink:href` that does not point at a part of the same drawing (`#id`)
+ *    goes. A thumbnail has no reason to link anywhere, and wp_kses checks
+ *    neither `xlink:href` nor what a value means.
+ * 2. wp_kses with the SVG allow-list above, which is what makes the output
+ *    safe to print, whatever pass 1 did or did not catch.
+ *
+ * Markup that is not XML previews as nothing rather than as a guess.
  *
  * @param string $content Stored SVG markup.
  * @return string
  */
 function easy_svg_icon_preview( $content ) {
-    /*
-     * First the never-elements go WITH what is inside them. wp_kses removes a
-     * tag and keeps its text, so a stripped `<script>` would leave its source
-     * standing next to the drawing -- inert, and still a bug report. This pass
-     * is tidying only; wp_kses below is what makes the output safe, whether or
-     * not this pattern matched.
-     */
-    $never   = implode( '|', array_map( 'preg_quote', EASY_SVG_PREVIEW_NEVER ) );
-    $pattern = '#<(' . $never . ')\b[^>]*?(?:/>|>.*?</\1\s*>)#is';
-    $content = (string) $content;
+    $doc      = new DOMDocument();
+    $internal = libxml_use_internal_errors( true );
+    // No entity substitution and no network access while reading.
+    $loaded = $doc->loadXML( (string) $content, LIBXML_NONET );
+    libxml_clear_errors();
+    libxml_use_internal_errors( $internal );
 
-    // Bounded, for nesting such as <set> inside <foreignObject>.
-    for ( $pass = 0; $pass < 5; $pass++ ) {
-        $tidied = preg_replace( $pattern, '', $content );
-        if ( null === $tidied || $tidied === $content ) {
-            break;
-        }
-        $content = $tidied;
+    if ( ! $loaded || null === $doc->documentElement ) {
+        return '';
     }
 
-    return wp_kses( $content, easy_svg_icon_preview_allowed_html() );
+    $xpath = new DOMXPath( $doc );
+
+    // Snapshot first: removing nodes while walking a live list skips some.
+    $doomed = array();
+    foreach ( $xpath->query( '//*' ) as $element ) {
+        if ( in_array( strtolower( $element->localName ), EASY_SVG_PREVIEW_NEVER, true ) ) {
+            $doomed[] = $element;
+        }
+    }
+    foreach ( $doomed as $element ) {
+        if ( $element->parentNode ) {
+            $element->parentNode->removeChild( $element );
+        }
+    }
+
+    foreach ( $xpath->query( '//*' ) as $element ) {
+        $drop = array();
+        foreach ( $element->attributes as $attribute ) {
+            $is_href = 'href' === strtolower( $attribute->localName );
+            if ( $is_href && 0 !== strpos( ltrim( (string) $attribute->nodeValue ), '#' ) ) {
+                $drop[] = $attribute;
+            }
+        }
+        foreach ( $drop as $attribute ) {
+            $element->removeAttributeNode( $attribute );
+        }
+    }
+
+    $markup = $doc->saveXML( $doc->documentElement );
+
+    return wp_kses( (string) $markup, easy_svg_icon_preview_allowed_html() );
 }
 
 function easy_svg_icons_screen() {

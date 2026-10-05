@@ -1150,9 +1150,24 @@ check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<
 // "alert(document.cookie)" next to the drawing is a bug report waiting.
 check( 'SILENCE: and the removed script leaves no text behind', false === strpos( $preview, 'alert(' ) );
 
+// A link in a thumbnail has nowhere legitimate to go except a part of the same
+// drawing; a stylesheet in it styles the whole admin page.
+$linked = easy_svg_icon_preview(
+	'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+	. '<defs><path id="p" d="M0 0h9"/></defs>'
+	. '<a xlink:href="javascript:alert(1)"><rect width="9" height="9"/></a>'
+	. '<a href=" https://example.invalid/"><circle r="1"/></a>'
+	. '<use xlink:href="#p"/><use href="#p"/>'
+	. '<style>body{display:none}</style></svg>'
+);
+check( 'BELL: a preview keeps no href that leaves the drawing', false === stripos( $linked, 'javascript' ) && false === strpos( $linked, 'example.invalid' ) );
+check( 'SILENCE: references to its own parts stay', 2 === substr_count( $linked, '"#p"' ) );
+check( 'BELL: a preview carries no style element', false === stripos( $linked, '<style' ) && false === strpos( $linked, 'display:none' ) );
+check( 'SILENCE: markup that is not XML previews as nothing', '' === easy_svg_icon_preview( '<svg><scr<script>ipt>alert(1)</script></svg>' ) );
+
 $preview_html = easy_svg_icon_preview_allowed_html();
 check( 'SILENCE: the preview allow-list is lower case, the way wp_kses looks names up', isset( $preview_html['lineargradient'] ) || isset( $preview_html['path'] ) );
-foreach ( array( 'script', 'foreignobject', 'iframe', 'set', 'animate', 'handler', 'listener' ) as $never ) {
+foreach ( array( 'script', 'foreignobject', 'iframe', 'set', 'animate', 'handler', 'listener', 'style' ) as $never ) {
 	check( "BELL: '{$never}' is never in the preview allow-list", ! isset( $preview_html[ $never ] ) );
 }
 
