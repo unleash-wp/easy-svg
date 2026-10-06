@@ -142,6 +142,36 @@ function easy_svg_max_bytes() {
 }
 
 /**
+ * The width and height of an SVG on disk, or [] when it cannot be read safely.
+ *
+ * The one whole-file SVG parse in the plugin besides the sanitiser. Bounded by
+ * easy_svg_max_bytes(), warnings silenced, every failure swallowed -- this runs
+ * in media listings and in attachment metadata, where a fatal would break the
+ * screen for everyone.
+ *
+ * @param string $path
+ * @return array{width:int,height:int}|array{}
+ */
+function easy_svg_read_svg_dimensions( $path ) {
+    if ( ! is_string( $path ) || '' === $path || ! is_file( $path ) || ! class_exists( 'SimpleXMLElement' ) ) {
+        return array();
+    }
+    if ( filesize( $path ) > easy_svg_max_bytes() ) {
+        return array();
+    }
+    $internal = libxml_use_internal_errors( true );
+    try {
+        $svg = new SimpleXMLElement( (string) file_get_contents( $path ) );
+        return array( 'width' => (int) $svg['width'], 'height' => (int) $svg['height'] );
+    } catch ( \Throwable $e ) {
+        return array();
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors( $internal );
+    }
+}
+
+/**
  * Remove any animation element that drives an `href` or an `on*` handler.
  *
  * The default allow-list has no animation elements, so this is a no-op on an
@@ -790,40 +820,24 @@ if ( ! function_exists( 'esw_display_svg_media' ) ) {
             'svg+xml' === $response['subtype'] &&
             class_exists( 'SimpleXMLElement' )
         ) {
-            $path = get_attached_file( $attachment->ID );
+            // One shared reader, bounded and fail-safe (see
+            // easy_svg_read_svg_dimensions). An oversized or unreadable file
+            // yields nothing and the default response stands.
+            $dim = easy_svg_read_svg_dimensions( get_attached_file( $attachment->ID ) );
+            if ( array() !== $dim ) {
+                $src    = $response['url'];
+                $width  = $dim['width'];
+                $height = $dim['height'];
 
-            // Only a real local file, and only one small enough to parse. This
-            // runs for every SVG in every media listing; an oversized or
-            // unreadable file must not read into memory or raise a fatal that
-            // breaks the listing for everyone paging over it.
-            if (
-                is_string( $path ) && '' !== $path && is_file( $path ) &&
-                filesize( $path ) <= easy_svg_max_bytes()
-            ) {
-                // No warnings on the way out: this is an AJAX response, and a
-                // libxml warning printed into it would corrupt the JSON.
-                $internal = libxml_use_internal_errors( true );
-                try {
-                    $svg    = new SimpleXMLElement( (string) file_get_contents( $path ) );
-                    $src    = $response['url'];
-                    $width  = (int) $svg['width'];
-                    $height = (int) $svg['height'];
+                $response['image'] = compact( 'src', 'width', 'height' );
+                $response['thumb'] = compact( 'src', 'width', 'height' );
 
-                    $response['image'] = compact( 'src', 'width', 'height' );
-                    $response['thumb'] = compact( 'src', 'width', 'height' );
-
-                    $response['sizes']['full'] = array(
-                        'height'      => $height,
-                        'width'       => $width,
-                        'url'         => $src,
-                        'orientation' => ( $height > $width ) ? 'portrait' : 'landscape',
-                    );
-                } catch ( \Throwable $e ) {
-                    // Keep the default response if the SVG cannot be read.
-                } finally {
-                    libxml_clear_errors();
-                    libxml_use_internal_errors( $internal );
-                }
+                $response['sizes']['full'] = array(
+                    'height'      => $height,
+                    'width'       => $width,
+                    'url'         => $src,
+                    'orientation' => ( $height > $width ) ? 'portrait' : 'landscape',
+                );
             }
         }
 

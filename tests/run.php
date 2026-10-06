@@ -1792,6 +1792,15 @@ check( 'BELL: icon registration is gated on the icons toggle', (bool) preg_match
 check( 'BELL: a settings page callback is on admin_menu', in_array( 'easy_svg_settings_menu', $GLOBALS['hooks']['admin_menu'] ?? array(), true ) );
 check( 'BELL: the setting is registered on admin_init', in_array( 'easy_svg_settings_register', $GLOBALS['hooks']['admin_init'] ?? array(), true ) );
 
+// ─── One place reads an SVG's width and height ───────────────────────────────
+$dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
+file_put_contents( $dim_path, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect/></svg>' );
+check( 'the dimension reader returns width and height', array( 'width' => 64, 'height' => 32 ) === easy_svg_read_svg_dimensions( $dim_path ) );
+file_put_contents( $dim_path, str_repeat( 'x', easy_svg_max_bytes() + 1 ) );
+check( 'BELL: an oversized file yields no dimensions, no crash', array() === easy_svg_read_svg_dimensions( $dim_path ) );
+@unlink( $dim_path );
+check( 'SILENCE: a missing file yields no dimensions', array() === easy_svg_read_svg_dimensions( $dim_path ) );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
