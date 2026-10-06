@@ -150,6 +150,31 @@ $out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, $sanitize );
 check( 'BELL: what gets stored is the CLEANED markup', 'ok' === $out['state'] && false === strpos( $out['content'], '<script' ) );
 check( 'SILENCE: and the drawing survives it', false !== strpos( $out['content'], '<path' ) );
 
+// ─── Stored icon markup carries nothing active ───────────────────────────────
+
+/*
+ * An icon is inlined into the page by the core Icon block, so whatever is
+ * stored runs in the document's own context. A site's SVG allow-list may keep
+ * a `<style>` element (its rules would then apply to the whole page) or an
+ * animation element (which can rewrite an href to javascript: after the
+ * sanitiser has checked it). The stored markup must carry none of it, whatever
+ * the sanitiser left -- the admin preview already strips these; so must what is
+ * registered. The fake sanitiser here does not remove them, so this measures
+ * the icon hardening, not the sanitiser.
+ */
+$withStyle = '<svg xmlns="http://www.w3.org/2000/svg"><style>body{outline:5px solid red}</style><path d="M0 0"/></svg>';
+$out = easy_svg_accept_icon( 'Styled', $withStyle, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no style element', 'ok' === $out['state'] && false === stripos( $out['content'], '<style' ) );
+check( 'SILENCE: and the drawing survives the stripping', false !== strpos( $out['content'], '<path' ) );
+
+$withAnim = '<svg xmlns="http://www.w3.org/2000/svg"><a href="#x"><path d="M0 0"/></a><animate attributeName="href" values="javascript:alert(1)"/></svg>';
+$out = easy_svg_accept_icon( 'Animated', $withAnim, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no animation element', 'ok' === $out['state'] && false === stripos( $out['content'], '<animate' ) );
+
+$withExtHref = '<svg xmlns="http://www.w3.org/2000/svg"><a href="https://evil.example/x"><path d="M0 0"/></a></svg>';
+$out = easy_svg_accept_icon( 'Linked', $withExtHref, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no off-drawing href', 'ok' === $out['state'] && false === stripos( $out['content'], 'evil.example' ) );
+
 // ─── Every refusal is its own word ───────────────────────────────────────────
 
 /*

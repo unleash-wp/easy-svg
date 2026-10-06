@@ -130,6 +130,88 @@ function easy_svg_icons_supported() {
  * name makes no icon name" and "that file is not an SVG" send a person to two
  * different places, and one message covering both sends half of them wrong.
  *
+/**
+ * Elements an icon may never carry, whatever a site's SVG allow-list permits.
+ *
+ * An icon is inlined into the page by the core Icon block, so it runs in the
+ * document's own context, not isolated the way an <img> is. `style` would then
+ * style the whole page; `script`, `foreignObject`, `iframe`, `embed`, `object`,
+ * the SVG Tiny `handler`/`listener`, and the animation elements (which can
+ * rewrite an href to javascript: after the sanitiser has checked it) can run
+ * code or pull in a document. None of it belongs in a drawing. The admin
+ * preview strips the same set (see EASY_SVG_PREVIEW_NEVER, which points here).
+ */
+const EASY_SVG_ICON_UNSAFE_ELEMENTS = array(
+    'script',
+    'style',
+    'foreignobject',
+    'iframe',
+    'embed',
+    'object',
+    'handler',
+    'listener',
+    'set',
+    'animate',
+    'animatecolor',
+    'animatemotion',
+    'animatetransform',
+    'discard',
+);
+
+/**
+ * Icon markup with everything active taken out: the unsafe elements above, and
+ * every href / xlink:href that does not point inside the same drawing (`#id`).
+ *
+ * Runs on the sanitiser's already-cleaned output as a second, fixed layer that
+ * does not depend on how a site configured its allow-list. Parsed as XML --
+ * stored icons are the sanitiser's XML output -- with no network and no entity
+ * substitution. Unparseable markup returns '' so the caller refuses it.
+ *
+ * @param string $markup Cleaned SVG markup.
+ * @return string Hardened markup, or '' when it cannot be parsed.
+ */
+function easy_svg_harden_icon_markup( $markup ) {
+    $doc      = new DOMDocument();
+    $internal = libxml_use_internal_errors( true );
+    $loaded   = $doc->loadXML( (string) $markup, LIBXML_NONET );
+    libxml_clear_errors();
+    libxml_use_internal_errors( $internal );
+
+    if ( ! $loaded || null === $doc->documentElement ) {
+        return '';
+    }
+
+    $xpath = new DOMXPath( $doc );
+
+    // Snapshot first: removing nodes while walking a live list skips some.
+    $doomed = array();
+    foreach ( $xpath->query( '//*' ) as $element ) {
+        if ( in_array( strtolower( $element->localName ), EASY_SVG_ICON_UNSAFE_ELEMENTS, true ) ) {
+            $doomed[] = $element;
+        }
+    }
+    foreach ( $doomed as $element ) {
+        if ( $element->parentNode ) {
+            $element->parentNode->removeChild( $element );
+        }
+    }
+
+    foreach ( $xpath->query( '//*' ) as $element ) {
+        $drop = array();
+        foreach ( $element->attributes as $attribute ) {
+            if ( 'href' === strtolower( $attribute->localName ) && 0 !== strpos( ltrim( (string) $attribute->nodeValue ), '#' ) ) {
+                $drop[] = $attribute;
+            }
+        }
+        foreach ( $drop as $attribute ) {
+            $element->removeAttributeNode( $attribute );
+        }
+    }
+
+    return (string) $doc->saveXML( $doc->documentElement );
+}
+
+/**
  * @param string        $label    What the person typed.
  * @param string        $markup   The bytes they uploaded.
  * @param callable      $sanitize Cleans SVG markup, or returns false.
@@ -184,12 +266,24 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
         return array( 'state' => 'not_svg' );
     }
 
+    /*
+     * One fixed layer on top of the site's allow-list: an icon is inlined by
+     * the core Icon block, so it must carry nothing active even if the site
+     * widened its allow-list to style or animation. Refuse if this leaves no
+     * drawing (unparseable, or nothing but the stripped elements).
+     */
+    $clean = easy_svg_harden_icon_markup( $clean );
+    if ( '' === trim( $clean ) || false === stripos( $clean, '<svg' ) ) {
+        return array( 'state' => 'not_svg' );
+    }
+
     return array(
         'state'   => 'ok',
         'slug'    => $slug,
-        // The CLEANED markup is what gets stored. The whole reason this plugin
-        // is the right home for an icon manager is that the thing on the page
-        // has been through this site's allow-list.
+        // The CLEANED, hardened markup is what gets stored. The whole reason
+        // this plugin is the right home for an icon manager is that the thing
+        // on the page has been through this site's allow-list -- and then had
+        // everything active taken out, because the block inlines it.
         'content' => $clean,
     );
 }

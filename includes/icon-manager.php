@@ -455,28 +455,11 @@ function easy_svg_icon_message( $state ) {
 /**
  * Elements no preview may contain, whatever a site's allow-list says.
  *
- * Everything here can run code or pull in a document: `script`; `foreignObject`
- * (it carries HTML, iframes included); the SVG Tiny `handler` and `listener`;
- * the animation elements, which can rewrite an `href` to `javascript:`
- * after the markup has been checked; and `style`, whose rules would apply to
- * the whole admin page, not to the icon. A thumbnail needs none of it.
+ * The same set the stored markup is hardened against (icons.php), because the
+ * preview and the registered icon run in the same kind of document context.
+ * One source, so the two layers cannot drift apart.
  */
-const EASY_SVG_PREVIEW_NEVER = array(
-    'script',
-    'style',
-    'foreignobject',
-    'iframe',
-    'embed',
-    'object',
-    'handler',
-    'listener',
-    'set',
-    'animate',
-    'animatecolor',
-    'animatemotion',
-    'animatetransform',
-    'discard',
-);
+const EASY_SVG_PREVIEW_NEVER = EASY_SVG_ICON_UNSAFE_ELEMENTS;
 
 /**
  * The wp_kses allow-list for the icon previews.
