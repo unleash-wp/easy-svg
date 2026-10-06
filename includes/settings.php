@@ -24,15 +24,22 @@ function easy_svg_settings_defaults(): array {
 	);
 }
 
-/** Stored settings over the defaults, read once per request. */
+/**
+ * Stored settings over the defaults.
+ *
+ * Not memoised: get_option() is already served from WordPress's options cache
+ * (one query per request), and leaving it un-cached keeps the gate honest when
+ * the option changes mid-request -- and testable without a static to reset.
+ */
 function easy_svg_settings(): array {
-	static $cache = null;
-	if ( null !== $cache ) {
-		return $cache;
-	}
 	$stored = get_option( EASY_SVG_SETTINGS_OPTION, array() );
-	$cache  = easy_svg_sanitize_settings( is_array( $stored ) ? $stored : array() );
-	return $cache;
+	return easy_svg_sanitize_settings( is_array( $stored ) ? $stored : array() );
+}
+
+/** Whether a feature is on. Unknown keys are off. */
+function easy_svg_feature_enabled( string $key ): bool {
+	$settings = easy_svg_settings();
+	return ! empty( $settings[ $key ] );
 }
 
 /**

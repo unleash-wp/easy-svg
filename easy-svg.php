@@ -137,7 +137,8 @@ require_once __DIR__ . '/includes/settings.php';
  * @return int
  */
 function easy_svg_max_bytes() {
-    return (int) apply_filters( 'easy_svg_max_bytes', 2 * MB_IN_BYTES );
+    $mb = easy_svg_settings()['max_mb'];
+    return (int) apply_filters( 'easy_svg_max_bytes', $mb * MB_IN_BYTES );
 }
 
 /**

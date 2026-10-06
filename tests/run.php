@@ -1771,6 +1771,16 @@ check( 'BELL: a wild max_mb is clamped into range', 20 === easy_svg_sanitize_set
 check( 'a missing toggle falls back to its default (on)', true === easy_svg_sanitize_settings( array() )['icons'] );
 check( 'an explicit off is kept', false === easy_svg_sanitize_settings( array( 'icons' => false ) )['icons'] );
 
+// ─── Gate and size read the stored option ────────────────────────────────────
+check( 'a default feature reads as enabled', true === easy_svg_feature_enabled( 'icons' ) );
+check( 'an unknown feature is off', false === easy_svg_feature_enabled( 'no_such_feature' ) );
+check( 'the default size cap is 2 MB', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
+$GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] = array( 'svg_upload' => false, 'max_mb' => 5 );
+check( 'BELL: a feature switched off in the option reports disabled', false === easy_svg_feature_enabled( 'svg_upload' ) );
+check( 'BELL: the size cap follows the option (5 MB)', 5 * MB_IN_BYTES === easy_svg_max_bytes() );
+unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
+check( 'SILENCE: and it is back to default once the option is gone', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
