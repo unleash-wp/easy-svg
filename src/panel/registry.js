@@ -31,6 +31,9 @@ export function installRegistry() {
     get(id) {
       return registered.get(id)
     },
+    list() {
+      return [...registered.values()]
+    },
     subscribe(fn) {
       listeners.add(fn)
       return () => listeners.delete(fn)

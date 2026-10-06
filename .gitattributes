@@ -15,3 +15,8 @@
 /vendor/enshrined/svg-sanitize/CHANGELOG.md export-ignore
 /vendor/enshrined/svg-sanitize/composer.json export-ignore
 .DS_Store export-ignore
+/src export-ignore
+/node_modules export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/vite.config.js export-ignore

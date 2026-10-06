@@ -28,7 +28,12 @@ export default function App({ config }) {
   useEffect(() => {
     const reg = getRegistry()
     if (!reg) return undefined
-    return reg.subscribe(() => force((n) => n + 1))
+    const unsub = reg.subscribe(() => force((n) => n + 1))
+    // Pro may have registered a tab between this component's first render and
+    // this effect running — that notify had no listener yet and was lost. Read
+    // the registry once more now so a registration caught in that race shows.
+    force((n) => n + 1)
+    return unsub
   }, [])
 
   const reg = getRegistry()
@@ -39,6 +44,13 @@ export default function App({ config }) {
     proLicensed: !!config.proLicensed,
     iconsEnabled: !!config.iconsEnabled,
   }
+
+  // Tabs Pro registered that are NOT in the catalogue (e.g. Features): shown only
+  // when Pro is active and licensed, using the label/order it passed.
+  const knownIds = new Set([...FREE_TABS, ...PRO_TABS, UPSELL_TAB].map((t) => t.id))
+  const extras = (reg && config.proLicensed ? reg.list() : [])
+    .filter((t) => !knownIds.has(t.id))
+    .map((t) => ({ id: t.id, label: t.label || t.id, order: t.order ?? 65, locked: false, render: (c) => t.render(c) }))
 
   const tabs = [
     ...FREE_TABS,
@@ -51,6 +63,7 @@ export default function App({ config }) {
         render: unlocked ? (c) => got.render(c) : () => <LockedTab tab={t} proActive={config.proActive} />,
       }
     }),
+    ...extras,
     UPSELL_TAB,
   ].sort((a, b) => a.order - b.order)
 
