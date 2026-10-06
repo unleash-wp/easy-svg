@@ -381,6 +381,18 @@ function register_post_type( string $type, array $args = [] ) {
  * process. A suite that dies reports nothing, and "nothing" is the one result
  * indistinguishable from "not covered".
  */
+/*
+ * Features are OFF by default (5.0): a fresh install registers no upload or icon
+ * hooks until the admin turns them on. The behavioural tests below exercise
+ * those paths, so the option is seeded ON before the plugin loads -- the hooks
+ * register at require time. The default-off behaviour itself is asserted in the
+ * settings section near the end of this file.
+ */
+$GLOBALS['options']['easy_svg_settings'] = array(
+	'svg_upload' => true,
+	'icons'      => true,
+	'max_mb'     => 2,
+);
 $loaded = true;
 try {
 	require $root . '/easy-svg.php';
@@ -1766,13 +1778,19 @@ check(
 );
 
 // ─── Settings: defaults, and a sanitiser that clamps the size ────────────────
-check( 'defaults turn every feature on', easy_svg_settings_defaults() === array( 'svg_upload' => true, 'icons' => true, 'max_mb' => 2 ) );
+check( 'BELL: features are OFF by default, the size cap stays', easy_svg_settings_defaults() === array( 'svg_upload' => false, 'icons' => false, 'max_mb' => 2 ) );
 check( 'BELL: a wild max_mb is clamped into range', 20 === easy_svg_sanitize_settings( array( 'max_mb' => 9999 ) )['max_mb'] && 1 === easy_svg_sanitize_settings( array( 'max_mb' => 0 ) )['max_mb'] );
-check( 'a missing toggle falls back to its default (on)', true === easy_svg_sanitize_settings( array() )['icons'] );
+check( 'BELL: a missing toggle falls back to its default (off)', false === easy_svg_sanitize_settings( array() )['icons'] );
+check( 'an explicit on is kept', true === easy_svg_sanitize_settings( array( 'icons' => true ) )['icons'] );
 check( 'an explicit off is kept', false === easy_svg_sanitize_settings( array( 'icons' => false ) )['icons'] );
 
 // ─── Gate and size read the stored option ────────────────────────────────────
-check( 'a default feature reads as enabled', true === easy_svg_feature_enabled( 'icons' ) );
+// Drop the top-of-file seed so these read the real defaults.
+unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
+check( 'BELL: a feature is disabled until switched on', false === easy_svg_feature_enabled( 'icons' ) );
+$GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] = array( 'icons' => true );
+check( 'BELL: switching a feature on reports enabled', true === easy_svg_feature_enabled( 'icons' ) );
+unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
 check( 'an unknown feature is off', false === easy_svg_feature_enabled( 'no_such_feature' ) );
 check( 'the default size cap is 2 MB', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
 $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] = array( 'svg_upload' => false, 'max_mb' => 5 );

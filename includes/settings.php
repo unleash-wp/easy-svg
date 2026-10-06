@@ -15,11 +15,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 const EASY_SVG_SETTINGS_OPTION = 'easy_svg_settings';
 
-/** The shape and the on-by-default values. */
+/**
+ * The shape and the defaults.
+ *
+ * Features are OFF by default: a fresh install does nothing until the admin
+ * turns on what they need, so the plugin adds exactly what was asked for and
+ * no more. `max_mb` is NOT a feature -- it is the security cap on what the
+ * sanitiser will parse, always enforced, never off; only its value is settable.
+ */
 function easy_svg_settings_defaults(): array {
 	return array(
-		'svg_upload' => true,
-		'icons'      => true,
+		'svg_upload' => false,
+		'icons'      => false,
 		'max_mb'     => 2,
 	);
 }
@@ -113,8 +120,8 @@ function easy_svg_settings_render(): void {
 /**
  * Booleans are booleans; the size is an integer megabyte in 1..20.
  *
- * A missing key keeps its default (on), so an older stored option without a
- * newer toggle does not read as "off".
+ * A missing key keeps its default (off): features are opt-in, so a saved form
+ * with a box unchecked -- which sends no key -- reads as off, as it should.
  *
  * @param mixed $input
  * @return array
