@@ -471,6 +471,27 @@ if ( is_callable( $sideload_cb ) ) {
 	check( 'BELL: a sideloaded file is sanitised too', false );
 }
 
+// ─── CVE-2025-12451: the client Content-Type cannot skip the sanitiser ───────
+//
+// The reported attack (<= 4.0): upload a .svg carrying a script, then change
+// the request Content-Type to image/gif so the old, type-header-driven check
+// was skipped and the raw file was stored. The decision is now server-side
+// (wp_check_filetype_and_ext over the bytes and the name), so a spoofed
+// $file['type'] is ignored: the file is sanitised, exactly as with an honest
+// type. The same bytes also behave identically whichever type is claimed.
+$spoofed        = file_array( $scripted, 'poc.svg' );
+$spoofed['type'] = 'image/gif'; // the attacker's forged header
+$after          = $callback( $spoofed );
+$stored         = (string) file_get_contents( $spoofed['tmp_name'] );
+unlink( $spoofed['tmp_name'] );
+check( 'BELL: CVE-2025-12451 -- a Content-Type-spoofed SVG is sanitised, not stored raw', ! isset( $after['error'] ) && false === strpos( $stored, '<script' ) && false !== strpos( $stored, 'rect' ) );
+
+$honest        = file_array( $scripted, 'poc.svg' ); // same bytes, truthful type
+$after_h       = $callback( $honest );
+$stored_h      = (string) file_get_contents( $honest['tmp_name'] );
+unlink( $honest['tmp_name'] );
+check( 'BELL: and the forged type changes nothing -- same outcome as an honest one', ( isset( $after['error'] ) === isset( $after_h['error'] ) ) && $stored === $stored_h );
+
 // ─── Size and emptiness, before the sanitiser does any real work ─────────────
 
 // An SVG larger than the cap is refused before it is parsed. Parsing scales
