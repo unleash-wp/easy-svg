@@ -117,6 +117,63 @@ function easy_svg_icons_supported() {
 }
 
 /**
+ * The stored markup for one icon slug, or '' when there is none.
+ *
+ * Reads the esw_icon post directly -- the content is the sanitiser's hardened
+ * output, so it is safe to print, and this path does not need the 7.1 icon
+ * registry, which is why the template tag works on older WordPress too.
+ *
+ * @param string $slug
+ * @return string
+ */
+function easy_svg_icon_markup( $slug ) {
+    $slug = (string) $slug;
+    $post = function_exists( 'get_page_by_path' ) ? get_page_by_path( $slug, OBJECT, EASY_SVG_ICON_POST_TYPE ) : null;
+    if ( ! is_object( $post ) || ! isset( $post->post_type ) || EASY_SVG_ICON_POST_TYPE !== $post->post_type ) {
+        return '';
+    }
+    return (string) $post->post_content;
+}
+
+/**
+ * Render a stored icon. Accepts 'slug' or 'easy-svg/slug'.
+ *
+ * Reads the store directly, so it renders the full hardened SVG (richer than
+ * core's path/polygon-only icon registry) and works the same before and after
+ * WordPress 7.1.
+ *
+ * @param string $name Icon name, bare slug or collection-qualified.
+ * @param array  $args Optional: 'class' (string), 'label' (string -> aria-label + role="img").
+ * @return string SVG markup ready to echo, or '' when the icon is unknown.
+ */
+function easy_svg_icon( $name, $args = array() ) {
+    $name   = (string) $name;
+    $prefix = EASY_SVG_ICON_COLLECTION . '/';
+    if ( 0 === strpos( $name, $prefix ) ) {
+        $name = substr( $name, strlen( $prefix ) );
+    }
+
+    $markup = easy_svg_icon_markup( $name );
+    if ( '' === $markup ) {
+        return '';
+    }
+
+    $attrs = '';
+    if ( ! empty( $args['class'] ) ) {
+        $attrs .= ' class="' . esc_attr( (string) $args['class'] ) . '"';
+    }
+    if ( ! empty( $args['label'] ) ) {
+        $attrs .= ' role="img" aria-label="' . esc_attr( (string) $args['label'] ) . '"';
+    }
+    if ( '' === $attrs ) {
+        return $markup;
+    }
+
+    // Inject the wrapper attributes onto the root <svg> once.
+    return preg_replace( '/<svg\b/', '<svg' . $attrs, $markup, 1 );
+}
+
+/**
  * Elements an icon may never carry, whatever a site's SVG allow-list permits.
  *
  * An icon is inlined into the page by the core Icon block, so it runs in the

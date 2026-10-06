@@ -29,6 +29,9 @@ function add_filter( string $hook, $cb, int $p = 10, int $n = 1 ): bool {
 function __( string $text, string $domain = '' ): string {
     return $text;
 }
+function esc_attr( $text ): string {
+    return htmlspecialchars( (string) $text, ENT_QUOTES );
+}
 
 require dirname( __DIR__ ) . '/includes/icons.php';
 
@@ -184,6 +187,23 @@ check( 'BELL: a stored icon keeps no off-drawing xlink:href', 'ok' === $out['sta
 // is refused rather than stored as a blank icon with a success message.
 $allActive = '<svg xmlns="http://www.w3.org/2000/svg"><style>body{color:red}</style></svg>';
 check( 'BELL: an icon that is only active markup is refused', 'not_svg' === easy_svg_accept_icon( 'Empty', $allActive, $strip, $sanitize )['state'] );
+
+// ─── The template tag renders a stored icon, with or without the 7.1 API ─────
+if ( ! defined( 'OBJECT' ) ) {
+	define( 'OBJECT', 'OBJECT' );
+}
+$GLOBALS['esw_pages'] = array(
+	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+);
+if ( ! function_exists( 'get_page_by_path' ) ) {
+	function get_page_by_path( $slug, $output = OBJECT, $post_type = 'page' ) {
+		return $GLOBALS['esw_pages'][ $slug ] ?? null;
+	}
+}
+check( 'BELL: the template tag returns the stored icon markup', false !== strpos( easy_svg_icon( 'arrow-left' ), '<path' ) );
+check( 'BELL: a collection-qualified name resolves the same icon', easy_svg_icon( 'easy-svg/arrow-left' ) === easy_svg_icon( 'arrow-left' ) );
+check( 'SILENCE: an unknown icon returns empty', '' === easy_svg_icon( 'no-such-icon' ) );
+check( 'BELL: a class argument is applied to the svg', false !== strpos( easy_svg_icon( 'arrow-left', array( 'class' => 'ico' ) ), 'class="ico"' ) );
 
 // ─── Every refusal is its own word ───────────────────────────────────────────
 
