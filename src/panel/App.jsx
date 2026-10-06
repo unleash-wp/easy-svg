@@ -56,7 +56,11 @@ export default function App({ config }) {
     ...FREE_TABS,
     ...PRO_TABS.map((t) => {
       const got = reg && reg.get(t.id)
-      const unlocked = got && config.proLicensed
+      // The licence tab is how a site activates, so a registered real one is
+      // always usable — otherwise you could never enter a key to unlock the
+      // rest. Every other pro tab stays locked until the licence is in (and the
+      // pro REST refuses it server-side regardless of what the client shows).
+      const unlocked = got && (t.id === 'licence' || config.proLicensed)
       return {
         ...t,
         locked: !unlocked,
