@@ -16,9 +16,9 @@ declare(strict_types=1);
 define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['filters'] = array();
-function apply_filters( string $hook, $value ) {
+function apply_filters( string $hook, $value, ...$args ) {
     foreach ( $GLOBALS['filters'][ $hook ] ?? array() as $cb ) {
-        $value = $cb( $value );
+        $value = $cb( $value, ...$args );
     }
     return $value;
 }
@@ -204,6 +204,17 @@ check( 'BELL: the template tag returns the stored icon markup', false !== strpos
 check( 'BELL: a collection-qualified name resolves the same icon', easy_svg_icon( 'easy-svg/arrow-left' ) === easy_svg_icon( 'arrow-left' ) );
 check( 'SILENCE: an unknown icon returns empty', '' === easy_svg_icon( 'no-such-icon' ) );
 check( 'BELL: a class argument is applied to the svg', false !== strpos( easy_svg_icon( 'arrow-left', array( 'class' => 'ico' ) ), 'class="ico"' ) );
+
+// A collection the CPT does not own can be supplied by a filter (this is how
+// Pro serves its own collections through the one template tag).
+add_filter( 'easy_svg_icon_markup', static function ( $markup, $slug, $collection ) {
+	if ( '' === $markup && 'acme' === $collection && 'logo' === $slug ) {
+		return '<svg xmlns="http://www.w3.org/2000/svg"><circle r="5"/></svg>';
+	}
+	return $markup;
+}, 10, 3 );
+check( 'BELL: a filtered collection resolves through easy_svg_icon', false !== strpos( easy_svg_icon( 'acme/logo' ), '<circle' ) );
+check( 'SILENCE: the free collection still resolves from the CPT', false !== strpos( easy_svg_icon( 'arrow-left' ), '<path' ) );
 
 // ─── Every refusal is its own word ───────────────────────────────────────────
 

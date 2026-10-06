@@ -126,13 +126,22 @@ function easy_svg_icons_supported() {
  * @param string $slug
  * @return string
  */
-function easy_svg_icon_markup( $slug ) {
-    $slug = (string) $slug;
-    $post = function_exists( 'get_page_by_path' ) ? get_page_by_path( $slug, OBJECT, EASY_SVG_ICON_POST_TYPE ) : null;
-    if ( ! is_object( $post ) || ! isset( $post->post_type ) || EASY_SVG_ICON_POST_TYPE !== $post->post_type ) {
-        return '';
+function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
+    $slug   = (string) $slug;
+    $markup = '';
+    if ( EASY_SVG_ICON_COLLECTION === $collection ) {
+        $post = function_exists( 'get_page_by_path' ) ? get_page_by_path( $slug, OBJECT, EASY_SVG_ICON_POST_TYPE ) : null;
+        if ( is_object( $post ) && isset( $post->post_type ) && EASY_SVG_ICON_POST_TYPE === $post->post_type ) {
+            $markup = (string) $post->post_content;
+        }
     }
-    return (string) $post->post_content;
+
+    /*
+     * Any collection the post type does not own can be supplied here, by an
+     * add-on that hooks this filter to serve its own icons through the same
+     * template tag. The post-type collection above always keeps its own name.
+     */
+    return (string) apply_filters( 'easy_svg_icon_markup', $markup, $slug, (string) $collection );
 }
 
 /**
@@ -147,13 +156,14 @@ function easy_svg_icon_markup( $slug ) {
  * @return string SVG markup ready to echo, or '' when the icon is unknown.
  */
 function easy_svg_icon( $name, $args = array() ) {
-    $name   = (string) $name;
-    $prefix = EASY_SVG_ICON_COLLECTION . '/';
-    if ( 0 === strpos( $name, $prefix ) ) {
-        $name = substr( $name, strlen( $prefix ) );
+    $name       = (string) $name;
+    $collection = EASY_SVG_ICON_COLLECTION;
+    $slug       = $name;
+    if ( false !== strpos( $name, '/' ) ) {
+        list( $collection, $slug ) = explode( '/', $name, 2 );
     }
 
-    $markup = easy_svg_icon_markup( $name );
+    $markup = easy_svg_icon_markup( $slug, $collection );
     if ( '' === $markup ) {
         return '';
     }
