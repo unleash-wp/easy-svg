@@ -460,7 +460,9 @@ function esw_svg_upload_filter_check_init( $file ) {
 
     return $file;
 }
-add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
+if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+    add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
+}
 
 /*
  * The same check for files that do not come from the media uploader.
@@ -482,7 +484,9 @@ add_filter( 'wp_handle_upload_prefilter', 'esw_svg_upload_filter_check_init' );
  * so `tmp_name` is always a temporary copy. Sanitising in place never touches
  * the file somebody passed in.
  */
-add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
+if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+    add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
+}
 
 /**
  * Whether SVG markup is already clean: the sanitiser would remove nothing.
@@ -598,7 +602,9 @@ function easy_svg_upload_bits_check( $upload ) {
 
     return __( 'This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it.', 'easy-svg' );
 }
-add_filter( 'wp_upload_bits', 'easy_svg_upload_bits_check' );
+if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+    add_filter( 'wp_upload_bits', 'easy_svg_upload_bits_check' );
+}
 
 /**
  * The last check: every new SVG attachment, however its file got there.
@@ -651,7 +657,9 @@ function easy_svg_check_new_attachment( $attachment_id ) {
         wp_delete_attachment( $attachment_id, true );
     }
 }
-add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
+if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+    add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
+}
 
 /*
  * The icon manager.
@@ -668,8 +676,10 @@ add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
  */
 require_once __DIR__ . '/includes/icon-manager.php';
 
-add_action( 'init', 'easy_svg_register_icon_store', 5 );
-add_action( 'init', 'easy_svg_boot_icons', 10 );
+if ( easy_svg_feature_enabled( 'icons' ) ) {
+    add_action( 'init', 'easy_svg_register_icon_store', 5 );
+    add_action( 'init', 'easy_svg_boot_icons', 10 );
+}
 
 /*
  * The icon list is cached between requests (see `easy_svg_stored_icons()`), and
@@ -677,8 +687,10 @@ add_action( 'init', 'easy_svg_boot_icons', 10 );
  * every request rather than in wp-admin only: WP-CLI, importers and REST
  * clients write icons too, and their icons must appear just the same.
  */
-add_action( 'save_post_' . EASY_SVG_ICON_POST_TYPE, 'easy_svg_forget_icons' );
-add_action( 'deleted_post', 'easy_svg_forget_deleted_icon', 10, 2 );
+if ( easy_svg_feature_enabled( 'icons' ) ) {
+    add_action( 'save_post_' . EASY_SVG_ICON_POST_TYPE, 'easy_svg_forget_icons' );
+    add_action( 'deleted_post', 'easy_svg_forget_deleted_icon', 10, 2 );
+}
 
 easy_svg_icons_admin();
 
@@ -715,7 +727,9 @@ if ( ! function_exists( 'esw_add_support' ) ) {
         $mimes['svg'] = 'image/svg+xml';
         return $mimes;
     }
-    add_filter( 'upload_mimes', 'esw_add_support' );
+    if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+        add_filter( 'upload_mimes', 'esw_add_support' );
+    }
 }
 
 /**
@@ -753,7 +767,9 @@ if ( ! function_exists( 'esw_upload_check' ) ) {
             'proper_filename' => isset( $checked['proper_filename'] ) ? $checked['proper_filename'] : false,
         );
     }
-    add_filter( 'wp_check_filetype_and_ext', 'esw_upload_check', 10, 4 );
+    if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+        add_filter( 'wp_check_filetype_and_ext', 'esw_upload_check', 10, 4 );
+    }
 }
 
 /**

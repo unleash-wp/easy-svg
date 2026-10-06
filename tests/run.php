@@ -1781,6 +1781,13 @@ check( 'BELL: the size cap follows the option (5 MB)', 5 * MB_IN_BYTES === easy_
 unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
 check( 'SILENCE: and it is back to default once the option is gone', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
 
+// ─── Each feature registers behind its toggle ────────────────────────────────
+// The hooks are module-level, so this reads the source: the upload and icon
+// registrations sit inside their feature gate. Gate LOGIC is proven above.
+$plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
+check( 'BELL: upload hooks are gated on the svg_upload toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'svg_upload'\\s*\\)/", $plugin_src ) );
+check( 'BELL: icon registration is gated on the icons toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'icons'\\s*\\)/", $plugin_src ) );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
