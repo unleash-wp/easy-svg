@@ -1788,6 +1788,10 @@ $plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
 check( 'BELL: upload hooks are gated on the svg_upload toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'svg_upload'\\s*\\)/", $plugin_src ) );
 check( 'BELL: icon registration is gated on the icons toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'icons'\\s*\\)/", $plugin_src ) );
 
+// ─── The settings page registers against WordPress ───────────────────────────
+check( 'BELL: a settings page callback is on admin_menu', in_array( 'easy_svg_settings_menu', $GLOBALS['hooks']['admin_menu'] ?? array(), true ) );
+check( 'BELL: the setting is registered on admin_init', in_array( 'easy_svg_settings_register', $GLOBALS['hooks']['admin_init'] ?? array(), true ) );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
