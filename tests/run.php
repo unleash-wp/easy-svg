@@ -1734,6 +1734,16 @@ check(
 	[] === array_intersect( $recommended, $dangerous )
 );
 
+// A security release that updates the sanitiser must say that it does not
+// reach files already stored. The Upgrade Notice is what an admin reads at
+// update time, so the caveat has to be there, not only in the FAQ.
+$notice = (string) substr( $readme, (int) stripos( $readme, '== Upgrade Notice ==' ) );
+$notice = (string) substr( $notice, 0, (int) stripos( $notice . '===', '=== ' ) ?: strlen( $notice ) );
+check(
+	'BELL: the upgrade notice says existing SVGs are not re-checked',
+	false !== stripos( $notice, 'already' ) && ( false !== stripos( $notice, 're-upload' ) || false !== stripos( $notice, 're-check' ) )
+);
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;

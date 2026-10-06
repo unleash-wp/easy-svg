@@ -79,7 +79,7 @@ The sanitizer refuses files it cannot read as a valid SVG, for example a file wi
 
 = What happens to SVGs already in my media library? =
 
-Nothing. Existing files stay as they are. Sanitizing happens when a file is added.
+Sanitizing happens when a file is added, so files already in your library are not changed or re-checked when you update the plugin. If some of them were uploaded before this version, or added outside the media uploader, re-upload anything you are unsure about so it passes through the current sanitizer.
 
 = How do I allow additional tags or attributes? =
 
@@ -119,6 +119,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 * Security: the bundled sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0. This fixes four published advisories: GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf and GHSA-qhmf-972w-m957. SVGs that rely on custom DTD entities, as some older Illustrator exports do, are now refused.
 * Security: SVGs added outside the media uploader, for example through WP-CLI `wp media import`, `media_sideload_image()`, importers or raw REST uploads, are now sanitized too, or refused.
 * Security hardening of the upload checks.
+* Note: updating does not re-check SVGs already in your media library; sanitizing happens when a file is added. Re-upload anything added before this version, or outside the media uploader, if you are unsure about it.
 * External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behaviour.
 * New: SVG icons for the Icon block under Media → SVG icons (WordPress 7.1 and newer). Each icon is sanitized with this site's allowed tags and attributes before it is stored.
 * New: `easy_svg_sanitizer()` and `EASY_SVG_API` for add-on authors.
@@ -151,4 +152,4 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 == Upgrade Notice ==
 
 = 4.3 =
-Security update: fixes four published security advisories in the bundled sanitizer. SVGs added via WP-CLI `wp media import`, importers or raw REST uploads are now sanitized or refused. SVGs with custom DTD entities (some older Illustrator exports) are refused. New: SVG icons on WordPress 7.1.
+Security: fixes four published security advisories in the bundled sanitizer, and sanitizes SVGs added via `wp media import`, importers or raw REST. SVGs with custom DTD entities are refused. Files already in your library are not re-checked — re-upload older ones. New: SVG icons on WP 7.1.
