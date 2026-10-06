@@ -1793,6 +1793,11 @@ check( 'BELL: switching a feature on reports enabled', true === easy_svg_feature
 unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
 check( 'an unknown feature is off', false === easy_svg_feature_enabled( 'no_such_feature' ) );
 check( 'the default size cap is 2 MB', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
+
+// ─── The 5.0 upgrade keeps an existing site's uploads on ──────────────────────
+check( 'BELL: an existing site with SVGs keeps uploads through the 5.0 migration', array( 'svg_upload' => true, 'icons' => false, 'max_mb' => 2 ) === easy_svg_migration_decision( false, true ) );
+check( 'BELL: a fresh install takes the opt-in defaults (no seed)', null === easy_svg_migration_decision( false, false ) );
+check( 'SILENCE: a configured site is never overwritten by the migration', null === easy_svg_migration_decision( true, true ) && null === easy_svg_migration_decision( true, false ) );
 $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] = array( 'svg_upload' => false, 'max_mb' => 5 );
 check( 'BELL: a feature switched off in the option reports disabled', false === easy_svg_feature_enabled( 'svg_upload' ) );
 check( 'BELL: the size cap follows the option (5 MB)', 5 * MB_IN_BYTES === easy_svg_max_bytes() );

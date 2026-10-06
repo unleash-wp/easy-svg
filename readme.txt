@@ -20,7 +20,7 @@ The plugin deliberately stays small and quiet: one settings page under Settings 
 
 = Features =
 
-* **Everything is opt-in.** Turn SVG uploads, the icon library and the parse-size limit on or off under Settings → Easy SVG. Sanitising is the one thing that is always on — it is the safety, not a feature.
+* **Everything is opt-in.** Turn SVG uploads and the icon library on or off, and set the parse-size limit, under Settings → Easy SVG. Sanitising and the size limit are always on — they are the safety, not features you switch off.
 * **SVG uploads** in the media library and the block editor.
 * **Automatic sanitizing** before an SVG is stored, on the usual ways a file arrives: the media uploader, the REST API, WP-CLI `wp media import` and `media_sideload_image()`.
 * **A safety net for everything else.** Every new SVG attachment is checked once more when it is created, for example by an importer. A file that cannot be cleaned is removed again.
@@ -62,11 +62,12 @@ Add-ons can call `easy_svg_sanitizer()` to clean markup exactly the way the site
 1. In your WordPress admin, go to Plugins → Add New Plugin.
 2. Search for "Easy SVG Support".
 3. Click Install Now, then Activate.
-4. Upload SVG files in the media library as usual.
+4. Go to Settings → Easy SVG and turn on SVG uploads (and the icon library, if you want it).
+5. Upload SVG files in the media library as usual.
 
 You can also download the plugin as a zip file and upload it under Plugins → Add New Plugin → Upload Plugin.
 
-No configuration is needed.
+Features are off until you switch them on under Settings → Easy SVG, so a fresh install adds nothing you did not ask for. A site that was already using SVG uploads keeps them when it updates.
 
 == Frequently Asked Questions ==
 
@@ -154,4 +155,4 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 == Upgrade Notice ==
 
 = 5.0.0 =
-Security: fixes four published security advisories in the bundled sanitizer, and sanitizes SVGs added via `wp media import`, importers or raw REST. SVGs with custom DTD entities are refused. Files already in your library are not re-checked — re-upload older ones. New: SVG icons on WP 7.1.
+Security: fixes four published security advisories in the bundled sanitizer, and cleans SVGs from `wp media import`, importers or REST. SVGs with custom DTD entities are refused. Features are now opt-in under Settings → Easy SVG; sites already using uploads keep them — re-upload older files.

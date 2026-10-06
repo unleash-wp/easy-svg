@@ -140,6 +140,12 @@ function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
      * Any collection the post type does not own can be supplied here, by an
      * add-on that hooks this filter to serve its own icons through the same
      * template tag. The post-type collection above always keeps its own name.
+     *
+     * The returned markup is PRINTED as-is. The post-type collection is the
+     * sanitiser's hardened output; an add-on that supplies markup for another
+     * collection is responsible for returning already-sanitised, print-safe
+     * SVG -- it should run every icon through easy_svg_sanitizer() and
+     * easy_svg_harden_icon_markup() before it reaches this filter.
      */
     return (string) apply_filters( 'easy_svg_icon_markup', $markup, $slug, (string) $collection );
 }

@@ -139,3 +139,86 @@ function easy_svg_sanitize_settings( $input ): array {
 		'max_mb'     => $max_mb,
 	);
 }
+
+/*
+ * The 5.0 upgrade. Features are off by default now, but a site that updated from
+ * 4.x was uploading SVGs all along, and turning that off under it on a security
+ * release would break the media library and read as the plugin failing. So an
+ * existing site keeps its uploads; a genuinely fresh install gets the opt-in
+ * defaults. The icon library is new in 5.0, so it stays opt-in for everyone.
+ */
+const EASY_SVG_SCHEMA_OPTION  = 'easy_svg_schema';
+const EASY_SVG_SCHEMA_VERSION = '5.0';
+
+/**
+ * What to seed on the first 5.0 run, or null to leave the defaults (off).
+ *
+ * Pure: the WordPress query and option writes are in easy_svg_run_migration().
+ *
+ * @return array|null
+ */
+function easy_svg_migration_decision( bool $option_exists, bool $has_svgs ): ?array {
+	if ( $option_exists ) {
+		return null; // Already configured: never overwrite a choice.
+	}
+	if ( $has_svgs ) {
+		return array(
+			'svg_upload' => true,
+			'icons'      => false,
+			'max_mb'     => 2,
+		);
+	}
+	return null; // Fresh: the opt-in defaults apply.
+}
+
+/** True when the media library already holds at least one SVG. */
+function easy_svg_site_has_svgs(): bool {
+	$ids = get_posts(
+		array(
+			'post_type'      => 'attachment',
+			'post_mime_type' => 'image/svg+xml',
+			'post_status'    => 'inherit',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		)
+	);
+	return ! empty( $ids );
+}
+
+/** Run the one-time 5.0 migration, and arm the notice. */
+function easy_svg_run_migration(): void {
+	if ( EASY_SVG_SCHEMA_VERSION === get_option( EASY_SVG_SCHEMA_OPTION ) ) {
+		return;
+	}
+	$option_exists = is_array( get_option( EASY_SVG_SETTINGS_OPTION, null ) );
+	$seed          = easy_svg_migration_decision( $option_exists, easy_svg_site_has_svgs() );
+	if ( null !== $seed ) {
+		update_option( EASY_SVG_SETTINGS_OPTION, easy_svg_sanitize_settings( $seed ) );
+		set_transient( 'easy_svg_5_notice', 'kept', WEEK_IN_SECONDS );
+	} elseif ( ! $option_exists ) {
+		set_transient( 'easy_svg_5_notice', 'fresh', WEEK_IN_SECONDS );
+	}
+	update_option( EASY_SVG_SCHEMA_OPTION, EASY_SVG_SCHEMA_VERSION );
+}
+
+/** One dismissible notice after the 5.0 update, pointing at the settings. */
+function easy_svg_migration_notice(): void {
+	$state = get_transient( 'easy_svg_5_notice' );
+	if ( ! $state || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	delete_transient( 'easy_svg_5_notice' );
+	$link = '<a href="' . esc_url( admin_url( 'options-general.php?page=easy-svg' ) ) . '">' . esc_html__( 'Settings → Easy SVG', 'easy-svg' ) . '</a>';
+	if ( 'kept' === $state ) {
+		/* translators: %s: link to the settings page. */
+		$msg = sprintf( __( 'Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings page. Manage both under %s.', 'easy-svg' ), $link );
+	} else {
+		/* translators: %s: link to the settings page. */
+		$msg = sprintf( __( 'Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s.', 'easy-svg' ), $link );
+	}
+	echo '<div class="notice notice-info is-dismissible"><p>' . wp_kses_post( $msg ) . '</p></div>';
+}
+
+add_action( 'admin_init', 'easy_svg_run_migration' );
+add_action( 'admin_notices', 'easy_svg_migration_notice' );

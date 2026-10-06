@@ -687,9 +687,12 @@ function easy_svg_check_new_attachment( $attachment_id ) {
         wp_delete_attachment( $attachment_id, true );
     }
 }
-if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
-    add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
-}
+// Ungated on purpose, unlike the upload prefilters above: this is the safety
+// net. If any plugin -- not only this one -- lets an SVG into the library, the
+// net cleans it or deletes the ones it cannot, and it is a no-op on everything
+// else. Tying it to our own upload toggle would leave a hole exactly when a
+// second plugin is the one allowing SVGs.
+add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
 
 /**
  * Give an SVG attachment width/height so the Image block can size the <img>.
