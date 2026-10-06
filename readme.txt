@@ -12,14 +12,15 @@ Upload SVG files safely. Every SVG is sanitized automatically, shown in your med
 
 == Description ==
 
-Easy SVG Support lets you upload SVG files to WordPress and use them like any other image: in the block editor, as a featured image, in galleries and in custom fields. Activate it and you are done.
+Easy SVG Support lets you upload SVG files to WordPress and use them like any other image: in the block editor, as a featured image, in galleries and in custom fields. You choose what runs: turn on SVG uploads and the icon library under Settings → Easy SVG, and the plugin adds exactly what you switch on and nothing else.
 
 SVG is not a picture format like PNG or JPEG. It is XML, and an SVG file can carry scripts, event handlers and references to other files or websites. That is why WordPress does not allow SVG uploads on its own. Easy SVG Support cleans every SVG with the maintained [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) library before the file is stored, and refuses files it cannot clean.
 
-The plugin deliberately stays small. There is no settings page, no tracking, no external requests and no ads.
+The plugin deliberately stays small and quiet: one settings page under Settings → Easy SVG, no tracking, no external requests and no ads. Features are off until you turn them on, so a fresh install changes nothing you did not ask for.
 
 = Features =
 
+* **Everything is opt-in.** Turn SVG uploads, the icon library and the parse-size limit on or off under Settings → Easy SVG. Sanitising is the one thing that is always on — it is the safety, not a feature.
 * **SVG uploads** in the media library and the block editor.
 * **Automatic sanitizing** before an SVG is stored, on the usual ways a file arrives: the media uploader, the REST API, WP-CLI `wp media import` and `media_sideload_image()`.
 * **A safety net for everything else.** Every new SVG attachment is checked once more when it is created, for example by an importer. A file that cannot be cleaned is removed again.
