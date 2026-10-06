@@ -123,6 +123,9 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
  */
 define( 'EASY_SVG_API', 3 );
 
+// Settings: one option behind every feature toggle and the parse-size ceiling.
+require_once __DIR__ . '/includes/settings.php';
+
 /**
  * The largest SVG this plugin will parse, in bytes.
  *

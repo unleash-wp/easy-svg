@@ -1765,6 +1765,12 @@ check(
 	false !== stripos( $notice, 'already' ) && ( false !== stripos( $notice, 're-upload' ) || false !== stripos( $notice, 're-check' ) )
 );
 
+// ─── Settings: defaults, and a sanitiser that clamps the size ────────────────
+check( 'defaults turn every feature on', easy_svg_settings_defaults() === array( 'svg_upload' => true, 'icons' => true, 'max_mb' => 2 ) );
+check( 'BELL: a wild max_mb is clamped into range', 20 === easy_svg_sanitize_settings( array( 'max_mb' => 9999 ) )['max_mb'] && 1 === easy_svg_sanitize_settings( array( 'max_mb' => 0 ) )['max_mb'] );
+check( 'a missing toggle falls back to its default (on)', true === easy_svg_sanitize_settings( array() )['icons'] );
+check( 'an explicit off is kept', false === easy_svg_sanitize_settings( array( 'icons' => false ) )['icons'] );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
