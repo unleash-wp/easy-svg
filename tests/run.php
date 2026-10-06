@@ -204,6 +204,17 @@ $GLOBALS['options'] = [];
 function get_option( string $key, $default = false ) {
 	return array_key_exists( $key, $GLOBALS['options'] ) ? $GLOBALS['options'][ $key ] : $default;
 }
+// Single site by default, so the upload checks below behave as on wordpress.org's
+// most common install; a later test flips $GLOBALS['is_multisite'] to exercise
+// the network branch.
+$GLOBALS['is_multisite'] = false;
+$GLOBALS['site_options'] = [];
+function is_multisite(): bool {
+	return ! empty( $GLOBALS['is_multisite'] );
+}
+function get_site_option( string $key, $default = false ) {
+	return array_key_exists( $key, $GLOBALS['site_options'] ) ? $GLOBALS['site_options'][ $key ] : $default;
+}
 function update_option( string $key, $value, $autoload = null ): bool {
 	$GLOBALS['options'][ $key ] = $value;
 	return true;
@@ -1625,9 +1636,7 @@ check( 'BELL: opened directly, uninstall.php does nothing', 0 === $un_status && 
 
 if ( is_file( $root . '/uninstall.php' ) ) {
 	$GLOBALS['blog_switches'] = [];
-	function is_multisite(): bool {
-		return true;
-	}
+	$GLOBALS['is_multisite']  = true;
 	function get_sites( array $args = [] ): array {
 		return [ 1, 2 ];
 	}
@@ -1661,6 +1670,25 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	check( 'BELL: and the cached list and its version', ! isset( $GLOBALS['transients']['easy_svg_icons'] ) && ! isset( $GLOBALS['options']['easy_svg_icons_version'] ) );
 	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
 }
+
+// ─── On multisite, the network's allowed file types are respected ────────────
+
+// A single site adds svg unconditionally (the default above), as before.
+$GLOBALS['is_multisite'] = false;
+$GLOBALS['site_options'] = [];
+check( 'SILENCE: on a single site svg is always offered', isset( esw_add_support( [] )['svg'] ) );
+
+// On multisite, the network admin's "Upload file types" list decides. svg is
+// added only when that list contains it; otherwise the plugin does not override
+// the network policy.
+$GLOBALS['is_multisite'] = true;
+$GLOBALS['site_options']['upload_filetypes'] = 'jpg png';
+check( 'BELL: on multisite svg is not forced in when the network excludes it', ! isset( esw_add_support( [ 'jpg' => 'image/jpeg' ] )['svg'] ) );
+$GLOBALS['site_options']['upload_filetypes'] = 'jpg png svg';
+check( 'SILENCE: and it is added when the network lists it', isset( esw_add_support( [] )['svg'] ) );
+// Back to single site so the remaining checks are unaffected.
+$GLOBALS['is_multisite'] = false;
+$GLOBALS['site_options'] = [];
 
 // ─── The media-library display filter reads dimensions, and tolerates junk ───
 

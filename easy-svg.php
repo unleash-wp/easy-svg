@@ -686,6 +686,28 @@ easy_svg_icons_admin();
  */
 if ( ! function_exists( 'esw_add_support' ) ) {
     function esw_add_support( $mimes ) {
+        /*
+         * On multisite the network admin's "Upload file types" (the
+         * `upload_filetypes` network option) is policy: core enforces it on
+         * `upload_mimes`. Adding svg unconditionally would override a network
+         * admin who left it out -- and it would make this plugin's own "does
+         * this site allow SVG" checks (esw_upload_check, the prefilter refusal)
+         * meaningless, because svg would always be in the list. So on a network
+         * that does not list svg, leave $mimes as it is. A site can opt out of
+         * this deference with the filter, in which case svg is always added.
+         */
+        if (
+            is_multisite() &&
+            apply_filters( 'easy_svg_respect_network_filetypes', true ) &&
+            ! in_array(
+                'svg',
+                preg_split( '/\s+/', strtolower( (string) get_site_option( 'upload_filetypes' ) ), -1, PREG_SPLIT_NO_EMPTY ),
+                true
+            )
+        ) {
+            return $mimes;
+        }
+
         $mimes['svg'] = 'image/svg+xml';
         return $mimes;
     }
