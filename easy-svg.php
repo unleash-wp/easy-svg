@@ -3,7 +3,7 @@
 Plugin Name:  Easy SVG Support
 Plugin URI:   https://wordpress.org/plugins/easy-svg/
 Description:  Add SVG support for WordPress.
-Version:      4.3
+Version:      5.0.0
 Author:       UnleashWP
 Author URI:   https://www.unleash-wp.com
 Requires PHP: 8.0

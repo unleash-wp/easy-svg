@@ -1439,7 +1439,7 @@ foreach ( array( 'GHSA-9rjx-3jch-6vjf', 'GHSA-m9xh-6747-9r6f', 'GHSA-v383-3rw5-q
 }
 check( 'BELL: the upgrade notice names the advisories in words a site owner reads', false !== strpos( $upgrade_notice, 'four published security advisories in the bundled sanitizer' ) );
 check( 'BELL: and warns that SVGs with custom DTD entities are now refused', false !== strpos( $upgrade_notice, 'DTD entities' ) );
-check( 'SILENCE: the upgrade notice fits the 300 characters wordpress.org shows', mb_strlen( trim( (string) substr( $upgrade_notice, (int) strpos( $upgrade_notice, '= 4.3 =' ) + 7 ) ) ) <= 300 );
+check( 'SILENCE: the upgrade notice fits the 300 characters wordpress.org shows', mb_strlen( trim( (string) substr( $upgrade_notice, (int) strpos( $upgrade_notice, '= 5.0.0 =' ) + 9 ) ) ) <= 300 );
 check( 'SILENCE: one changelog entry for this release, with the unreleased 4.2 folded in', false === strpos( $readme, '= 4.2 =' ) );
 preg_match( '/^Tags:\s*(.+)$/mi', $readme, $tags_line );
 check( 'SILENCE: at most five tags, as wordpress.org reads them', isset( $tags_line[1] ) && count( array_filter( array_map( 'trim', explode( ',', $tags_line[1] ) ) ) ) <= 5 );
