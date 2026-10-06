@@ -175,6 +175,16 @@ $withExtHref = '<svg xmlns="http://www.w3.org/2000/svg"><a href="https://evil.ex
 $out = easy_svg_accept_icon( 'Linked', $withExtHref, $strip, $sanitize );
 check( 'BELL: a stored icon keeps no off-drawing href', 'ok' === $out['state'] && false === stripos( $out['content'], 'evil.example' ) );
 
+// The same for an xlink:-prefixed href, which a sanitiser may still emit.
+$withXlink = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="https://evil.example/x"><path d="M0 0"/></a></svg>';
+$out = easy_svg_accept_icon( 'Xlinked', $withXlink, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no off-drawing xlink:href', 'ok' === $out['state'] && false === stripos( $out['content'], 'evil.example' ) );
+
+// An icon that is nothing but active markup hardens to an empty drawing, so it
+// is refused rather than stored as a blank icon with a success message.
+$allActive = '<svg xmlns="http://www.w3.org/2000/svg"><style>body{color:red}</style></svg>';
+check( 'BELL: an icon that is only active markup is refused', 'not_svg' === easy_svg_accept_icon( 'Empty', $allActive, $strip, $sanitize )['state'] );
+
 // ─── Every refusal is its own word ───────────────────────────────────────────
 
 /*

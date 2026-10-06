@@ -117,20 +117,6 @@ function easy_svg_icons_supported() {
 }
 
 /**
- * Whether a submitted icon may be stored, and in what shape.
- *
- * Every decision about accepting an icon lives here, injected and testable:
- * the name, and what the sanitiser does to the markup. The WordPress side
- * below only carries the answer out.
- *
- * There is deliberately no count among the inputs. A site keeps as many icons
- * as it likes; nothing here may refuse an icon for being one too many.
- *
- * The states are separate words because they need separate sentences. "That
- * name makes no icon name" and "that file is not an SVG" send a person to two
- * different places, and one message covering both sends half of them wrong.
- *
-/**
  * Elements an icon may never carry, whatever a site's SVG allow-list permits.
  *
  * An icon is inlined into the page by the core Icon block, so it runs in the
@@ -165,10 +151,12 @@ const EASY_SVG_ICON_UNSAFE_ELEMENTS = array(
  * Runs on the sanitiser's already-cleaned output as a second, fixed layer that
  * does not depend on how a site configured its allow-list. Parsed as XML --
  * stored icons are the sanitiser's XML output -- with no network and no entity
- * substitution. Unparseable markup returns '' so the caller refuses it.
+ * substitution. Returns '' -- so the caller refuses it -- for markup that
+ * cannot be parsed, or that is nothing but the stripped elements and so would
+ * leave an empty drawing.
  *
  * @param string $markup Cleaned SVG markup.
- * @return string Hardened markup, or '' when it cannot be parsed.
+ * @return string Hardened markup, or '' when there is no drawing left to store.
  */
 function easy_svg_harden_icon_markup( $markup ) {
     $doc      = new DOMDocument();
@@ -208,10 +196,37 @@ function easy_svg_harden_icon_markup( $markup ) {
         }
     }
 
+    // Nothing but the stripped elements leaves a root with no drawing in it.
+    // Refuse that rather than store a blank icon: a real icon keeps at least
+    // one element under the root.
+    $has_drawing = false;
+    foreach ( $doc->documentElement->childNodes as $node ) {
+        if ( XML_ELEMENT_NODE === $node->nodeType ) {
+            $has_drawing = true;
+            break;
+        }
+    }
+    if ( ! $has_drawing ) {
+        return '';
+    }
+
     return (string) $doc->saveXML( $doc->documentElement );
 }
 
 /**
+ * Whether a submitted icon may be stored, and in what shape.
+ *
+ * Every decision about accepting an icon lives here, injected and testable:
+ * the name, and what the sanitiser does to the markup. The WordPress side
+ * below only carries the answer out.
+ *
+ * There is deliberately no count among the inputs. A site keeps as many icons
+ * as it likes; nothing here may refuse an icon for being one too many.
+ *
+ * The states are separate words because they need separate sentences. "That
+ * name makes no icon name" and "that file is not an SVG" send a person to two
+ * different places, and one message covering both sends half of them wrong.
+ *
  * @param string        $label    What the person typed.
  * @param string        $markup   The bytes they uploaded.
  * @param callable      $sanitize Cleans SVG markup, or returns false.

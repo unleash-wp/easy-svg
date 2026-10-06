@@ -121,6 +121,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 * Security hardening of the upload checks.
 * Note: updating does not re-check SVGs already in your media library; sanitizing happens when a file is added. Re-upload anything added before this version, or outside the media uploader, if you are unsure about it.
 * External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behaviour.
+* On multisite, SVG is offered only where the network's "Upload file types" includes it; filter `easy_svg_respect_network_filetypes` turns this off.
 * New: SVG icons for the Icon block under Media → SVG icons (WordPress 7.1 and newer). Each icon is sanitized with this site's allowed tags and attributes before it is stored.
 * New: `easy_svg_sanitizer()` and `EASY_SVG_API` for add-on authors.
 * Fix: a file the sanitizer cannot read now gets a clear upload error.
