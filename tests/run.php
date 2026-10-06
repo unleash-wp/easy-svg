@@ -1385,6 +1385,15 @@ check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<
 // "alert(document.cookie)" next to the drawing is a bug report waiting.
 check( 'SILENCE: and the removed script leaves no text behind', false === strpos( $preview, 'alert(' ) );
 
+// ─── The stored hardener strips what the preview strips (defence in depth) ────
+// easy_svg_harden_icon_markup() produces the markup the Icon block inlines for
+// visitors. On a widened allow-list the sanitiser can pass an on* handler
+// through to it, so the hardener drops event handlers itself -- the stored
+// markup must be no less defended than the admin preview above.
+$hardened = easy_svg_harden_icon_markup( '<svg xmlns="http://www.w3.org/2000/svg"><rect onload="alert(1)" onclick="x()" width="24" height="24"/><path d="M0 0h9"/></svg>' );
+check( 'BELL: the hardener drops an on* event handler', false === stripos( $hardened, 'onload' ) && false === stripos( $hardened, 'onclick' ) );
+check( 'SILENCE: and keeps the drawing', false !== strpos( $hardened, '<rect' ) && false !== strpos( $hardened, '<path' ) );
+
 // A link in a thumbnail has nowhere legitimate to go except a part of the same
 // drawing; a stylesheet in it styles the whole admin page.
 $linked = easy_svg_icon_preview(
@@ -1803,6 +1812,39 @@ check( 'BELL: a feature switched off in the option reports disabled', false === 
 check( 'BELL: the size cap follows the option (5 MB)', 5 * MB_IN_BYTES === easy_svg_max_bytes() );
 unset( $GLOBALS['options'][ EASY_SVG_SETTINGS_OPTION ] );
 check( 'SILENCE: and it is back to default once the option is gone', 2 * MB_IN_BYTES === easy_svg_max_bytes() );
+
+// ─── A size-capped file can still be too complex to sanitise cheaply (F1) ─────
+// The byte cap bounds input SIZE, not the sanitiser's WORK: the bundled library
+// has quadratic paths (one pass per nested PHP-processing-instruction layer; a
+// per-<use> scan of every id'd element). easy_svg_svg_too_complex() rejects the
+// pathological shapes with linear token counts, before parsing. No real drawing
+// comes near either bound.
+// Built from parts so the test SOURCE carries no literal processing-instruction tokens.
+$pi_open     = '<' . '?';
+$pi_close    = '?' . '>';
+$legit_svg   = $pi_open . 'xml version="1.0"' . $pi_close . '<svg xmlns="http://www.w3.org/2000/svg"><use href="#a"/><rect id="a"/></svg>';
+$phptag_bomb = str_repeat( $pi_open . 'p', 2000 ) . $pi_open . 'php A ' . $pi_close . str_repeat( 'hp A ' . $pi_close, 2000 );
+$use_bomb    = '<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat( '<use href="#a"/>', 1001 ) . '<rect id="a"/></svg>';
+check( 'SILENCE: a normal SVG is not flagged too complex', false === easy_svg_svg_too_complex( $legit_svg ) );
+check( 'BELL: a nest of PHP tags is flagged too complex', true === easy_svg_svg_too_complex( $phptag_bomb ) );
+check( 'BELL: a flood of <use> is flagged too complex', true === easy_svg_svg_too_complex( $use_bomb ) );
+
+// The guard runs before the sanitiser in the upload sink, so a sub-cap but
+// too-complex file is refused without the quadratic work. Removing the guard
+// flips this: the file sanitises to a valid SVG and the checker accepts it.
+$bomb_path = tempnam( sys_get_temp_dir(), 'eswbomb' ) . '.svg';
+file_put_contents( $bomb_path, '<svg xmlns="http://www.w3.org/2000/svg">' . str_repeat( '<use href="#a"/>', 5000 ) . '<rect id="a"/></svg>' );
+check( 'BELL: the upload checker refuses a sub-cap but too-complex file', false === esw_svg_file_checker( $bomb_path ) );
+@unlink( $bomb_path );
+$ok_path = tempnam( sys_get_temp_dir(), 'eswok' ) . '.svg';
+file_put_contents( $ok_path, '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>' );
+check( 'SILENCE: and still accepts an ordinary SVG', true === esw_svg_file_checker( $ok_path ) );
+@unlink( $ok_path );
+
+// The bounds are filterable for the rare site that needs more.
+add_filter( 'easy_svg_max_use_tags', static fn( $n ) => 100000 );
+check( 'SILENCE: raising the <use> bound lets a bigger file through the guard', false === easy_svg_svg_too_complex( $use_bomb ) );
+$GLOBALS['hooks']['easy_svg_max_use_tags'] = array();
 
 // ─── Each feature registers behind its toggle ────────────────────────────────
 // The hooks are module-level, so this reads the source: the upload and icon

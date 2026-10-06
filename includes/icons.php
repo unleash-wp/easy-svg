@@ -260,7 +260,16 @@ function easy_svg_harden_icon_markup( $markup ) {
     foreach ( $xpath->query( '//*' ) as $element ) {
         $drop = array();
         foreach ( $element->attributes as $attribute ) {
-            if ( 'href' === strtolower( $attribute->localName ) && 0 !== strpos( ltrim( (string) $attribute->nodeValue ), '#' ) ) {
+            $name = strtolower( $attribute->localName );
+
+            // Event handlers, the whole `on` namespace -- the same rule the
+            // preview applies. The sanitiser removes these first unless the site
+            // widened its allow-list to one; the hardener must not rely on that.
+            if ( 0 === strpos( $name, 'on' ) ) {
+                $drop[] = $attribute;
+                continue;
+            }
+            if ( 'href' === $name && 0 !== strpos( ltrim( (string) $attribute->nodeValue ), '#' ) ) {
                 $drop[] = $attribute;
             }
         }

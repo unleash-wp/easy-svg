@@ -130,15 +130,39 @@ require_once __DIR__ . '/includes/settings.php';
  * The largest SVG this plugin will parse, in bytes.
  *
  * SVG is XML, and the work of parsing and cleaning it scales with its size.
- * A ceiling in front of every sanitise keeps one upload from tying up a
- * request, whatever the parser does with it. Two megabytes is far above any
- * icon or ordinary drawing; a site that needs more can raise it.
+ * A ceiling in front of every sanitise bounds how much a single upload can be.
+ * Size alone does not bound the WORK, though -- see easy_svg_svg_too_complex()
+ * for that. Two megabytes is far above any icon or ordinary drawing; a site
+ * that needs more can raise it.
  *
  * @return int
  */
 function easy_svg_max_bytes() {
     $mb = easy_svg_settings()['max_mb'];
     return (int) apply_filters( 'easy_svg_max_bytes', $mb * MB_IN_BYTES );
+}
+
+/**
+ * Whether an SVG is too structurally complex to sanitise within a bounded cost.
+ *
+ * The byte cap bounds input size, not the work the sanitiser does with it. The
+ * bundled library has quadratic paths: it strips PHP processing instructions in
+ * a loop that rescans the whole string once per nested layer, and it checks the
+ * <use> threshold by scanning every id'd element once per <use>. A file far
+ * under the size cap can therefore tie up a worker for minutes. These two token
+ * counts stay linear to compute and reject the pathological shapes before the
+ * parser ever sees them; no icon or ordinary drawing comes near either bound.
+ *
+ * @param string $markup
+ * @return bool
+ */
+function easy_svg_svg_too_complex( $markup ) {
+    $markup   = (string) $markup;
+    $php_tags = substr_count( $markup, '<' . '?' );
+    $use_tags = substr_count( strtolower( $markup ), '<use' );
+    $max_php  = (int) apply_filters( 'easy_svg_max_php_tags', 10 );
+    $max_use  = (int) apply_filters( 'easy_svg_max_use_tags', 1000 );
+    return $php_tags > $max_php || $use_tags > $max_use;
 }
 
 /**
@@ -382,6 +406,12 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
+    // Size is not cost: a sub-cap file with a pathological structure can still
+    // drive the sanitiser's quadratic paths for minutes. Refused before parsing.
+    if ( easy_svg_svg_too_complex( $unclean ) ) {
+        return false;
+    }
+
     /*
      * Caught, and answered like any other file the sanitiser refuses. The
      * library throws a LogicException for well-formed XML without exactly one
@@ -559,6 +589,12 @@ function easy_svg_markup_is_clean( $markup ) {
 
     $sanitizer = easy_svg_sanitizer();
     if ( null === $sanitizer ) {
+        return false;
+    }
+
+    // Same cost guard as the upload path: reject a too-complex document before
+    // handing it to the sanitiser (this path is reached from XML-RPC uploads).
+    if ( easy_svg_svg_too_complex( $markup ) ) {
         return false;
     }
 
