@@ -1,0 +1,31 @@
+# What must NOT reach wordpress.org.
+#
+# Read by the deploy workflow (10up/action-wordpress-plugin-deploy runs
+# `rsync --exclude-from=.distignore` into SVN trunk). .gitattributes carries
+# the same list as export-ignore, so `git archive` builds the same tree, and
+# tests/run.php checks the two lists against each other.
+#
+# Anchored with a leading slash: only this repository's top level.
+
+# The repository itself, and how it is built and checked.
+/.git
+/.github
+/.wordpress-org
+/.distignore
+/.gitattributes
+/.gitignore
+/composer.json
+/composer.lock
+/RELEASING.md
+/docs
+/tests
+
+# Non-runtime files inside the bundled library. Its LICENSE stays.
+# svg-scanner.php is a command-line tool, not part of the sanitiser.
+/vendor/enshrined/svg-sanitize/src/svg-scanner.php
+/vendor/enshrined/svg-sanitize/README.md
+/vendor/enshrined/svg-sanitize/CHANGELOG.md
+/vendor/enshrined/svg-sanitize/composer.json
+
+# A mac writes these without being asked.
+.DS_Store

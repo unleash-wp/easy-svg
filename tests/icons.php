@@ -1,6 +1,6 @@
 <?php
 /**
- * Names, limits, and the shapes core refuses in silence.
+ * Names, and the shapes core refuses in silence.
  *
  * `WP_Icons_Registry::register()` rejects a bad name through
  * `_doing_it_wrong`, which on a production site means the icon never appears
@@ -16,9 +16,9 @@ declare(strict_types=1);
 define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['filters'] = array();
-function apply_filters( string $hook, $value ) {
+function apply_filters( string $hook, $value, ...$args ) {
     foreach ( $GLOBALS['filters'][ $hook ] ?? array() as $cb ) {
-        $value = $cb( $value );
+        $value = $cb( $value, ...$args );
     }
     return $value;
 }
@@ -28,6 +28,9 @@ function add_filter( string $hook, $cb, int $p = 10, int $n = 1 ): bool {
 }
 function __( string $text, string $domain = '' ): string {
     return $text;
+}
+function esc_attr( $text ): string {
+    return htmlspecialchars( (string) $text, ENT_QUOTES );
 }
 
 require dirname( __DIR__ ) . '/includes/icons.php';
@@ -109,25 +112,6 @@ check( 'BELL: the collection is not core, which is reserved', 0 !== strpos( easy
 check( 'a slug core would refuse yields no name at all', '' === easy_svg_icon_name( 'Arrow' ) );
 check( 'and neither does an already-namespaced one', '' === easy_svg_icon_name( 'easy-svg/arrow' ) );
 
-// ─── The limit ───────────────────────────────────────────────────────────────
-
-check( 'the default limit is five', 5 === easy_svg_icon_limit() );
-
-// The whole unlock a paid add-on performs.
-add_filter( 'easy_svg_icon_limit', static function ( $n ) { return 500; } );
-check( 'BELL: the filter is what raises it', 500 === easy_svg_icon_limit() );
-
-add_filter( 'easy_svg_icon_limit', static function ( $n ) { return -3; } );
-// Negative would read as "none allowed" in one comparison and "no limit" in
-// another, depending on who compared what.
-check( 'SILENCE: a negative limit becomes zero, not infinity', 0 === easy_svg_icon_limit() );
-
-check( 'under the limit, one more may be added', easy_svg_icon_may_add( 4, 5 ) );
-check( 'BELL: at the limit, it may not', ! easy_svg_icon_may_add( 5, 5 ) );
-// The property the product depends on: a site that drops below its paid limit
-// keeps every icon it has. Only the next one is refused.
-check( 'BELL: over the limit, still only ADDING is refused', ! easy_svg_icon_may_add( 40, 5 ) );
-
 // ─── The argument array ──────────────────────────────────────────────────────
 
 $args = easy_svg_icon_args( 'Arrow left', '<svg/>' );
@@ -158,31 +142,89 @@ $refuse = static function ( string $svg ) {
 
 $SVG = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';
 
-$out = easy_svg_accept_icon( 'Arrow Left', $SVG, $strip, 0, 5, $sanitize );
+$out = easy_svg_accept_icon( 'Arrow Left', $SVG, $strip, $sanitize );
 check( 'BELL: a good icon is accepted', 'ok' === $out['state'] );
 check( 'with a name core will take', 'arrow-left' === $out['slug'] );
 check( 'and the markup', false !== strpos( $out['content'], '<path' ) );
 
 // The reason this plugin is the right home for an icon manager.
 $dirty = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script><path d="M0 0"/></svg>';
-$out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, 0, 5, $sanitize );
+$out   = easy_svg_accept_icon( 'Bad', $dirty, $strip, $sanitize );
 check( 'BELL: what gets stored is the CLEANED markup', 'ok' === $out['state'] && false === strpos( $out['content'], '<script' ) );
 check( 'SILENCE: and the drawing survives it', false !== strpos( $out['content'], '<path' ) );
+
+// ─── Stored icon markup carries nothing active ───────────────────────────────
+
+/*
+ * An icon is inlined into the page by the core Icon block, so whatever is
+ * stored runs in the document's own context. A site's SVG allow-list may keep
+ * a `<style>` element (its rules would then apply to the whole page) or an
+ * animation element (which can rewrite an href to javascript: after the
+ * sanitiser has checked it). The stored markup must carry none of it, whatever
+ * the sanitiser left -- the admin preview already strips these; so must what is
+ * registered. The fake sanitiser here does not remove them, so this measures
+ * the icon hardening, not the sanitiser.
+ */
+$withStyle = '<svg xmlns="http://www.w3.org/2000/svg"><style>body{outline:5px solid red}</style><path d="M0 0"/></svg>';
+$out = easy_svg_accept_icon( 'Styled', $withStyle, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no style element', 'ok' === $out['state'] && false === stripos( $out['content'], '<style' ) );
+check( 'SILENCE: and the drawing survives the stripping', false !== strpos( $out['content'], '<path' ) );
+
+$withAnim = '<svg xmlns="http://www.w3.org/2000/svg"><a href="#x"><path d="M0 0"/></a><animate attributeName="href" values="javascript:alert(1)"/></svg>';
+$out = easy_svg_accept_icon( 'Animated', $withAnim, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no animation element', 'ok' === $out['state'] && false === stripos( $out['content'], '<animate' ) );
+
+$withExtHref = '<svg xmlns="http://www.w3.org/2000/svg"><a href="https://evil.example/x"><path d="M0 0"/></a></svg>';
+$out = easy_svg_accept_icon( 'Linked', $withExtHref, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no off-drawing href', 'ok' === $out['state'] && false === stripos( $out['content'], 'evil.example' ) );
+
+// The same for an xlink:-prefixed href, which a sanitiser may still emit.
+$withXlink = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><a xlink:href="https://evil.example/x"><path d="M0 0"/></a></svg>';
+$out = easy_svg_accept_icon( 'Xlinked', $withXlink, $strip, $sanitize );
+check( 'BELL: a stored icon keeps no off-drawing xlink:href', 'ok' === $out['state'] && false === stripos( $out['content'], 'evil.example' ) );
+
+// An icon that is nothing but active markup hardens to an empty drawing, so it
+// is refused rather than stored as a blank icon with a success message.
+$allActive = '<svg xmlns="http://www.w3.org/2000/svg"><style>body{color:red}</style></svg>';
+check( 'BELL: an icon that is only active markup is refused', 'not_svg' === easy_svg_accept_icon( 'Empty', $allActive, $strip, $sanitize )['state'] );
+
+// ─── The template tag renders a stored icon, with or without the 7.1 API ─────
+if ( ! defined( 'OBJECT' ) ) {
+	define( 'OBJECT', 'OBJECT' );
+}
+$GLOBALS['esw_pages'] = array(
+	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+);
+if ( ! function_exists( 'get_page_by_path' ) ) {
+	function get_page_by_path( $slug, $output = OBJECT, $post_type = 'page' ) {
+		return $GLOBALS['esw_pages'][ $slug ] ?? null;
+	}
+}
+check( 'BELL: the template tag returns the stored icon markup', false !== strpos( easy_svg_icon( 'arrow-left' ), '<path' ) );
+check( 'BELL: a collection-qualified name resolves the same icon', easy_svg_icon( 'easy-svg/arrow-left' ) === easy_svg_icon( 'arrow-left' ) );
+check( 'SILENCE: an unknown icon returns empty', '' === easy_svg_icon( 'no-such-icon' ) );
+check( 'BELL: a class argument is applied to the svg', false !== strpos( easy_svg_icon( 'arrow-left', array( 'class' => 'ico' ) ), 'class="ico"' ) );
+
+// A collection the CPT does not own can be supplied by a filter (this is how
+// Pro serves its own collections through the one template tag).
+add_filter( 'easy_svg_icon_markup', static function ( $markup, $slug, $collection ) {
+	if ( '' === $markup && 'acme' === $collection && 'logo' === $slug ) {
+		return '<svg xmlns="http://www.w3.org/2000/svg"><circle r="5"/></svg>';
+	}
+	return $markup;
+}, 10, 3 );
+check( 'BELL: a filtered collection resolves through easy_svg_icon', false !== strpos( easy_svg_icon( 'acme/logo' ), '<circle' ) );
+check( 'SILENCE: the free collection still resolves from the CPT', false !== strpos( easy_svg_icon( 'arrow-left' ), '<path' ) );
 
 // ─── Every refusal is its own word ───────────────────────────────────────────
 
 /*
- * "You have five already" and "that is not an SVG" send a person to two
+ * "That name makes no icon name" and "that is not an SVG" send a person to two
  * different places. One message covering both sends half of them wrong.
  */
-check( 'BELL: at the limit, that is what it says', 'limit_reached' === easy_svg_accept_icon( 'X', $SVG, $strip, 5, 5, $sanitize )['state'] );
-// Asked FIRST, so a full site is not walked through a validation it was never
-// going to pass.
-check( 'SILENCE: and it says so even for markup that is also bad', 'limit_reached' === easy_svg_accept_icon( 'X', 'nonsense', $strip, 5, 5, $sanitize )['state'] );
-
-check( 'BELL: a label that makes no name says so', 'bad_name' === easy_svg_accept_icon( '###', $SVG, $strip, 0, 5, $sanitize )['state'] );
-check( 'BELL: empty markup says so', 'empty' === easy_svg_accept_icon( 'X', '   ', $strip, 0, 5, $sanitize )['state'] );
-check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg_accept_icon( 'X', $SVG, $refuse, 0, 5, $sanitize )['state'] );
+check( 'BELL: a label that makes no name says so', 'bad_name' === easy_svg_accept_icon( '###', $SVG, $strip, $sanitize )['state'] );
+check( 'BELL: empty markup says so', 'empty' === easy_svg_accept_icon( 'X', '   ', $strip, $sanitize )['state'] );
+check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg_accept_icon( 'X', $SVG, $refuse, $sanitize )['state'] );
 
 /*
  * A whole HTML document survives a sanitiser as a string and contains no
@@ -190,7 +232,25 @@ check( 'BELL: a sanitiser that refuses means not an SVG', 'not_svg' === easy_svg
  * explain it, so the `<svg` root is required of the CLEANED markup.
  */
 $html = '<html><body><script>alert(1)</script><p>hello</p></body></html>';
-check( 'BELL: markup with no svg root is refused', 'not_svg' === easy_svg_accept_icon( 'X', $html, $strip, 0, 5, $sanitize )['state'] );
+check( 'BELL: markup with no svg root is refused', 'not_svg' === easy_svg_accept_icon( 'X', $html, $strip, $sanitize )['state'] );
+
+// ─── There is no cap ─────────────────────────────────────────────────────────
+
+/*
+ * WordPress.org guideline 5: no functionality in a hosted plugin may be locked
+ * until somebody pays. 4.3 was going to ship five icons and a filter a paid
+ * add-on raised -- the whole feature present, with its sixth use for sale. The
+ * free plugin is unlimited instead, and these checks keep it that way.
+ */
+check( 'BELL: there is no icon limit left to filter', ! function_exists( 'easy_svg_icon_limit' ) );
+check( 'BELL: and no number it would have read', ! defined( 'EASY_SVG_ICON_LIMIT' ) );
+check( 'BELL: and nothing that decides whether one more is allowed', ! function_exists( 'easy_svg_icon_may_add' ) );
+
+// A site that still carries a filter from an older add-on must not be capped
+// by it. Registered on the real hook registry this file stubs, so a plugin
+// that went on reading the filter would be caught here.
+add_filter( 'easy_svg_icon_limit', static function () { return 0; } );
+check( 'BELL: a leftover limit filter cannot refuse an icon', 'ok' === easy_svg_accept_icon( 'Sixth', $SVG, $strip, $sanitize )['state'] );
 
 // ─── Handing them to core ────────────────────────────────────────────────────
 
@@ -240,6 +300,56 @@ $half = static function ( $name, $args ) {
     return 'easy-svg/arrow-left' === $name;
 };
 check( 'BELL: only what core took is counted', 1 === easy_svg_register_icons( $icons, $ok_collection, $half ) );
+
+// ─── Reading every icon, a page at a time ────────────────────────────────────
+
+/*
+ * The screen and the registration once read a list capped at 200 while the
+ * add handler counted every post, so the 201st icon was stored, counted -- and
+ * never appeared anywhere. With no product limit the list has no natural end,
+ * so it is read in pages until a page comes back short.
+ */
+$store = static function ( int $n ): callable {
+    return static function ( int $page, int $per_page ) use ( $n ): array {
+        $out   = array();
+        $first = ( $page - 1 ) * $per_page + 1;
+        for ( $id = $first; $id <= min( $n, $first + $per_page - 1 ); $id++ ) {
+            $out[] = array( 'id' => $id, 'slug' => "i{$id}", 'label' => "I{$id}", 'content' => '<svg/>' );
+        }
+        return $out;
+    };
+};
+
+$all = easy_svg_collect_icons( $store( 250 ), 100 );
+check( 'BELL: 250 icons are all read, not the first 200', 250 === count( $all ) );
+check( 'SILENCE: in the order they were stored', 1 === $all[0]['id'] && 250 === $all[249]['id'] );
+check( 'SILENCE: and none twice', 250 === count( array_unique( array_column( $all, 'id' ) ) ) );
+
+$calls   = 0;
+$counted = static function ( int $page, int $per_page ) use ( $store, &$calls ): array {
+    $calls++;
+    return $store( 200 )( $page, $per_page );
+};
+check( 'BELL: exactly two full pages are both read', 200 === count( easy_svg_collect_icons( $counted, 100 ) ) );
+check( 'SILENCE: and the empty third page ends it', 3 === $calls );
+
+$calls = 0;
+$none  = static function ( int $page, int $per_page ) use ( &$calls ): array {
+    $calls++;
+    return array();
+};
+check( 'SILENCE: no icons is an empty list', array() === easy_svg_collect_icons( $none, 100 ) );
+check( 'SILENCE: after one question', 1 === $calls );
+
+/*
+ * A query that ignores `paged` -- a filter on the query, a caching plugin --
+ * hands back the same full page for ever. That must end the loop rather than
+ * the request.
+ */
+$stuck = static function ( int $page, int $per_page ) use ( $store ): array {
+    return $store( 500 )( 1, $per_page );
+};
+check( 'BELL: a page that repeats itself ends the read instead of looping', 100 === count( easy_svg_collect_icons( $stuck, 100 ) ) );
 
 echo 0 === $failed
     ? "all {$passed} checks passed\n"

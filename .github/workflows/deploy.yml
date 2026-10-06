@@ -1,0 +1,86 @@
+name: Deploy to WordPress.org
+# A pushed tag is a release. Tags in this repository are bare version numbers
+# -- 4.1, 4.3 -- with no v prefix, so the pattern starts with a digit. A tag
+# that matches but names the wrong version is stopped by the first step.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+*']
+
+# The token can only read. Nothing here writes to the repository: the SVN
+# credentials are secrets of their own, and the zip is kept as a workflow
+# artifact rather than attached to a release.
+permissions:
+  contents: read
+
+# Two tags pushed together must not commit to SVN at the same time.
+concurrency:
+  group: deploy-wordpress-org
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # A hosted runner. tests/runner.php enforces that for every workflow here:
+    # this repository is public, and a self-hosted runner would hand our
+    # machine to whoever opens a pull request.
+    runs-on: ubuntu-latest
+    steps:
+      # Every action here is pinned to a commit: this job has the SVN password
+      # in its environment, and a moving tag is code nobody reviewed.
+      # Full history, so the next step can see where the tag sits.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      # A tag can be pushed on any commit, including one on a branch nobody
+      # merged. Only what is on master may reach 40,000 sites.
+      - name: The tagged commit is on master
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/master:refs/remotes/origin/master
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
+            echo "::error::${GITHUB_REF_NAME} (${GITHUB_SHA}) is not on master; merge first, then tag"
+            exit 1
+          fi
+
+      # wordpress.org serves whatever `Stable tag` names, a site compares the
+      # plugin header against it, and the action names the SVN tag after the
+      # git tag. If the three disagree the directory ships one version while
+      # every install believes it has another -- so nothing is deployed.
+      - name: Tag, plugin header and Stable tag name the same version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          header="$(sed -n 's/^[[:space:]]*Version:[[:space:]]*\([^[:space:]]*\).*/\1/p' easy-svg.php | head -n 1)"
+          stable="$(sed -n 's/^Stable tag:[[:space:]]*\([^[:space:]]*\).*/\1/p' readme.txt | head -n 1)"
+          echo "tag=${tag} header=${header} stable=${stable}"
+          if [ -z "${header}" ] || [ -z "${stable}" ] || [ "${tag}" != "${header}" ] || [ "${header}" != "${stable}" ]; then
+            echo "::error::tag (${tag}), plugin header Version (${header}) and readme Stable tag (${stable}) must be the same"
+            exit 1
+          fi
+
+      # A release is never less checked than a pull request.
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with: { php-version: '8.0' }
+      - name: Tests
+        run: php tests/run.php
+
+      # Pinned to the commit of 2.3.0. The action publishes no major tag (only
+      # 1.x/2.x.y tags and a moving `stable` branch), and whatever runs here
+      # has the SVN password in its environment. Raise it deliberately.
+      # It copies the checkout into SVN trunk minus .distignore, tags it, and
+      # leaves the SVN assets alone because there is no .wordpress-org folder.
+      - name: Deploy to WordPress.org SVN
+        id: deploy
+        uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: easy-svg
+
+      - name: Keep the zip that was deployed
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: easy-svg-${{ github.ref_name }}
+          path: ${{ steps.deploy.outputs.zip-path }}
