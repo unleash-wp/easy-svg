@@ -1030,9 +1030,20 @@ check( 'SILENCE: the shipped source was read', false !== strpos( $shipped, 'easy
 foreach ( array( 'easy_svg_icon_limit', 'EASY_SVG_ICON_LIMIT', 'limit_reached', 'PHP_INT_MAX', 'icon_may_add' ) as $needle ) {
 	check( "BELL: the shipped code carries no '{$needle}'", false === strpos( $shipped, $needle ) );
 }
+// The Icons panel (includes/panel.php) is the one intended Pro touchpoint: it
+// detects Pro, draws the locked Pro tabs and the upsell. That is allowed and is
+// the product's design. Everything ELSE free ships must stay free of paid cruft
+// -- no "lifts the limit" teasing in the upload or icon code.
+$shipped_functional = '';
+foreach ( array_merge( array( $root . '/easy-svg.php' ), glob( $root . '/includes/*.php' ) ?: array() ) as $f ) {
+	if ( 'panel.php' === basename( $f ) ) {
+		continue;
+	}
+	$shipped_functional .= (string) file_get_contents( $f );
+}
 check(
-	'BELL: and no comment pointing at a paid product',
-	1 !== preg_match( '/easy svg pro|\bpro\b|\bpaid\b|\bpaying\b|premium|lifts? the (cap|limit)/i', $shipped )
+	'BELL: and no comment pointing at a paid product (outside the Icons panel)',
+	1 !== preg_match( '/easy svg pro|\bpro\b|\bpaid\b|\bpaying\b|premium|lifts? the (cap|limit)/i', $shipped_functional )
 );
 
 // ─── The contract an add-on may rely on ──────────────────────────────────────

@@ -1,0 +1,102 @@
+<?php
+/**
+ * REST /easy-svg/v1/settings — the panel's read/write of the free settings.
+ *
+ * The write must be held to the same bar as the Settings-API form it replaces:
+ * the server re-runs easy_svg_sanitize_settings(), so max_mb is clamped and the
+ * booleans coerced whatever the client sent.
+ *
+ * Usage: php tests/panel-rest.php
+ */
+
+declare(strict_types=1);
+
+define( 'ABSPATH', dirname( __DIR__ ) . '/' );
+define( 'MB_IN_BYTES', 1048576 );
+
+$GLOBALS['opt']          = array();
+$GLOBALS['is_admin_cap'] = true;
+
+function get_option( $k, $d = false ) {
+	return $GLOBALS['opt'][ $k ] ?? $d;
+}
+function update_option( $k, $v, $a = true ): bool {
+	$GLOBALS['opt'][ $k ] = $v;
+	return true;
+}
+function current_user_can( $c ): bool {
+	return (bool) ( $GLOBALS['is_admin_cap'] ?? true );
+}
+function add_action( ...$a ): bool {
+	return true;
+}
+function add_filter( ...$a ): bool {
+	return true;
+}
+function apply_filters( $h, $v, ...$a ) {
+	return $v;
+}
+function __( $s, $d = '' ): string {
+	return (string) $s;
+}
+function register_setting( ...$a ): void {}
+function add_settings_section( ...$a ): void {}
+function add_settings_field( ...$a ): void {}
+
+class WP_REST_Request {
+	public function __construct( private array $json = array() ) {}
+	public function get_json_params(): array {
+		return $this->json;
+	}
+}
+class WP_REST_Response {
+	public function __construct( public $data = null ) {}
+	public function get_data() {
+		return $this->data;
+	}
+}
+
+require dirname( __DIR__ ) . '/includes/settings.php';
+require dirname( __DIR__ ) . '/includes/panel.php';
+
+$passed = 0;
+$failed = 0;
+function check( string $what, bool $ok ): void {
+	global $passed, $failed;
+	if ( $ok ) {
+		$passed++;
+		return;
+	}
+	$failed++;
+	echo "FAIL  {$what}\n";
+}
+
+// ─── permission ───────────────────────────────────────────────────────────────
+$GLOBALS['is_admin_cap'] = false;
+check( 'BELL: a non-admin is refused', false === easy_svg_panel_rest_permission() );
+$GLOBALS['is_admin_cap'] = true;
+check( 'BELL: an admin is allowed', true === easy_svg_panel_rest_permission() );
+
+// ─── POST re-sanitises server-side ────────────────────────────────────────────
+$out = easy_svg_panel_settings_post(
+	new WP_REST_Request(
+		array(
+			'svg_upload' => 1,
+			'icons'      => true,
+			'max_mb'     => 999,
+		)
+	)
+)->get_data();
+check( 'BELL: a truthy toggle becomes a real boolean', true === $out['svg_upload'] && true === $out['icons'] );
+check( 'BELL: max_mb is clamped to the ceiling (20)', 20 === $out['max_mb'] );
+check( 'BELL: the STORED option is the sanitised one', 20 === ( $GLOBALS['opt']['easy_svg_settings']['max_mb'] ?? 0 ) );
+
+// ─── GET returns the sanitised settings ───────────────────────────────────────
+$g = easy_svg_panel_settings_get( new WP_REST_Request() )->get_data();
+check( 'BELL: GET returns the stored settings', array_key_exists( 'svg_upload', $g ) && array_key_exists( 'max_mb', $g ) );
+
+echo 0 === $failed
+	? "all {$passed} checks passed\n"
+	: "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";
+
+exit( 0 === $failed ? 0 : 1 );

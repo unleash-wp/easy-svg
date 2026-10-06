@@ -45,6 +45,9 @@ jobs:
       - name: The icon core, in its own process
         run: php tests/icons.php
 
+      - name: The Icons panel REST
+        run: php tests/panel-rest.php
+
       # `if grep; then exit 1; fi`, not `! grep`. POSIX ignores -e when a
       # command's status is inverted with `!`, so the guard would set the step
       # to failure and the shell would carry straight on.

@@ -29,3 +29,10 @@
 
 # A mac writes these without being asked.
 .DS_Store
+
+# The panel build toolchain. The compiled build/ ships; the toolchain does not.
+/src
+/node_modules
+/package.json
+/package-lock.json
+/vite.config.js

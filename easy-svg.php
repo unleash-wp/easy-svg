@@ -777,6 +777,10 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
  */
 require_once __DIR__ . '/includes/icon-manager.php';
 
+// The "Icons" admin panel (React/Chakra), which an add-on can extend through
+// window.EasySvgPanel. Loaded last so the functions it wraps are defined.
+require_once __DIR__ . '/includes/panel.php';
+
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );
