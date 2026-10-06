@@ -37,6 +37,7 @@ export default function App({ config }) {
     nonce: config.nonce,
     proActive: !!config.proActive,
     proLicensed: !!config.proLicensed,
+    iconsEnabled: !!config.iconsEnabled,
   }
 
   const tabs = [

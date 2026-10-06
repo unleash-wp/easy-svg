@@ -85,11 +85,12 @@ function easy_svg_panel_assets( $hook ): void {
 		'easy-svg-panel',
 		'EasySvgPanelData',
 		array(
-			'restRoot'    => esc_url_raw( trailingslashit( rest_url() ) ),
-			'nonce'       => wp_create_nonce( 'wp_rest' ),
-			'icon'        => easy_svg_panel_icon_uri( '#203159' ),
-			'proActive'   => $pro_active,
-			'proLicensed' => $pro_licensed,
+			'restRoot'     => esc_url_raw( trailingslashit( rest_url() ) ),
+			'nonce'        => wp_create_nonce( 'wp_rest' ),
+			'icon'         => easy_svg_panel_icon_uri( '#203159' ),
+			'proActive'    => $pro_active,
+			'proLicensed'  => $pro_licensed,
+			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
 		)
 	);
 
@@ -114,6 +115,86 @@ function easy_svg_panel_rest(): void {
 			),
 		)
 	);
+	register_rest_route(
+		'easy-svg/v1',
+		'/library',
+		array(
+			'methods'             => 'GET',
+			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'callback'            => 'easy_svg_panel_library_get',
+		)
+	);
+	register_rest_route(
+		'easy-svg/v1',
+		'/library/add',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'callback'            => 'easy_svg_panel_library_add',
+		)
+	);
+	register_rest_route(
+		'easy-svg/v1',
+		'/library/delete',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'callback'            => 'easy_svg_panel_library_delete',
+		)
+	);
+}
+
+/** GET /library -> the stored icons (id, slug, label, hardened markup). */
+function easy_svg_panel_library_get( $request ) {
+	if ( ! function_exists( 'easy_svg_icon_page' ) ) {
+		return new WP_REST_Response( array() );
+	}
+	return new WP_REST_Response( easy_svg_icon_page( 1, 500 ) );
+}
+
+/** A user-readable reason for an add that the store refused. */
+function easy_svg_panel_add_message( string $state ): string {
+	switch ( $state ) {
+		case 'no_sanitizer':
+			return __( 'The sanitiser is unavailable, so nothing was stored.', 'easy-svg' );
+		case 'not_saved':
+		case 'empty':
+			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
+		case 'not_svg':
+			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
+		default:
+			return __( 'The icon could not be added.', 'easy-svg' );
+	}
+}
+
+/**
+ * POST /library/add -> add one icon. The markup is sanitised AND hardened by
+ * easy_svg_add_icon() before storage -- exactly the bar an upload meets.
+ */
+function easy_svg_panel_library_add( $request ) {
+	if ( ! function_exists( 'easy_svg_add_icon' ) ) {
+		return new WP_Error( 'easy_svg_no_store', __( 'The icon library is off. Switch it on under Einstellungen.', 'easy-svg' ), array( 'status' => 409 ) );
+	}
+	$body   = (array) $request->get_json_params();
+	$label  = isset( $body['label'] ) ? (string) $body['label'] : '';
+	$markup = isset( $body['markup'] ) ? (string) $body['markup'] : '';
+	$result = easy_svg_add_icon( $label, $markup );
+	if ( 'added' !== $result ) {
+		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result ), array( 'status' => 422 ) );
+	}
+	return new WP_REST_Response( easy_svg_icon_page( 1, 500 ) );
+}
+
+/** POST /library/delete -> remove one icon by id (only an esw_icon post). */
+function easy_svg_panel_library_delete( $request ) {
+	$body = (array) $request->get_json_params();
+	$id   = isset( $body['id'] ) ? max( 0, (int) $body['id'] ) : 0;
+	$post = $id > 0 ? get_post( $id ) : null;
+	if ( ! $post || ! defined( 'EASY_SVG_ICON_POST_TYPE' ) || EASY_SVG_ICON_POST_TYPE !== $post->post_type ) {
+		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
+	}
+	wp_delete_post( $id, true );
+	return new WP_REST_Response( function_exists( 'easy_svg_icon_page' ) ? easy_svg_icon_page( 1, 500 ) : array() );
 }
 
 function easy_svg_panel_rest_permission(): bool {

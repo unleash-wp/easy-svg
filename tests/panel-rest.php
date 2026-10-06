@@ -55,6 +55,23 @@ class WP_REST_Response {
 		return $this->data;
 	}
 }
+class WP_Error {
+	public function __construct( public string $code = '', public string $message = '', public array $data = array() ) {}
+}
+
+define( 'EASY_SVG_ICON_POST_TYPE', 'esw_icon' );
+$GLOBALS['posts']   = array();
+$GLOBALS['deleted'] = array();
+function get_post( $id ) {
+	return $GLOBALS['posts'][ $id ] ?? null;
+}
+function wp_delete_post( $id, $force = false ): bool {
+	$GLOBALS['deleted'][] = (int) $id;
+	return true;
+}
+function easy_svg_icon_page( $page, $per_page ): array {
+	return array();
+}
 
 require dirname( __DIR__ ) . '/includes/settings.php';
 require dirname( __DIR__ ) . '/includes/panel.php';
@@ -94,6 +111,21 @@ check( 'BELL: the STORED option is the sanitised one', 20 === ( $GLOBALS['opt'][
 // ─── GET returns the sanitised settings ───────────────────────────────────────
 $g = easy_svg_panel_settings_get( new WP_REST_Request() )->get_data();
 check( 'BELL: GET returns the stored settings', array_key_exists( 'svg_upload', $g ) && array_key_exists( 'max_mb', $g ) );
+
+// ─── library/delete only ever removes an esw_icon post ────────────────────────
+$GLOBALS['posts'][5] = (object) array( 'ID' => 5, 'post_type' => 'page' );
+$r = easy_svg_panel_library_delete( new WP_REST_Request( array( 'id' => 5 ) ) );
+check( 'BELL: delete refuses a post that is not an icon', $r instanceof WP_Error );
+check( 'SILENCE: and it deleted nothing', array() === $GLOBALS['deleted'] );
+$GLOBALS['posts'][6] = (object) array( 'ID' => 6, 'post_type' => 'esw_icon' );
+easy_svg_panel_library_delete( new WP_REST_Request( array( 'id' => 6 ) ) );
+check( 'BELL: delete removes an esw_icon post by id', in_array( 6, $GLOBALS['deleted'], true ) );
+check( 'BELL: a missing id is refused', easy_svg_panel_library_delete( new WP_REST_Request( array() ) ) instanceof WP_Error );
+
+// ─── library/add refuses when the store (icons feature) is off ────────────────
+// easy_svg_add_icon() is defined only when the icons feature registered the CPT;
+// here it is not, so add must say so rather than fatal.
+check( 'BELL: add is refused when the icon store is off', easy_svg_panel_library_add( new WP_REST_Request( array( 'markup' => '<svg/>' ) ) ) instanceof WP_Error );
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"
