@@ -478,6 +478,28 @@ $after = $callback( $file );
 unlink( $file['tmp_name'] );
 check( 'BELL: an SVG that sanitises to nothing is refused', isset( $after['error'] ) );
 
+// ─── An animation element may not rewrite an href to a script URL ────────────
+
+// The default allow-list already drops <animate>; a site that widens it keeps
+// the element, and the sanitiser does not check what attributeName/values make
+// it do. This fixed pass removes only an animation element that targets href
+// or an on* handler, and leaves a benign one (opacity, transform) alone.
+$anim = '<svg xmlns="http://www.w3.org/2000/svg"><a href="#x"><rect/></a>'
+      . '<animate attributeName="href" values="javascript:alert(1)"/>'
+      . '<animate attributeName="opacity" values="0;1"/></svg>';
+$n = easy_svg_neutralize_href_animation( $anim );
+check( 'BELL: an animate that targets href is removed', false === strpos( $n, 'javascript:' ) );
+check( 'SILENCE: a benign animate is kept', false !== stripos( $n, 'opacity' ) );
+
+// And the upload path applies it: with the allow-list widened to 'animate',
+// an uploaded SVG is stored without the href-targeting animation.
+add_filter( 'esw_svg_allowed_tags', static function ( $tags ) { $tags[] = 'animate'; return $tags; } );
+$file  = file_array( $anim, 'anim.svg' );
+$after = $callback( $file );
+$stored = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: a widened-in animate href does not survive the upload', ! isset( $after['error'] ) && false === strpos( $stored, 'javascript:' ) );
+
 // ─── Files that are not what they claim ──────────────────────────────────────
 
 $file  = file_array( '<html><script>alert(1)</script></html>', 'evil.svg' );

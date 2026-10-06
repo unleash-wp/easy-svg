@@ -138,6 +138,60 @@ function easy_svg_max_bytes() {
 }
 
 /**
+ * Remove any animation element that drives an `href` or an `on*` handler.
+ *
+ * The default allow-list has no animation elements, so this is a no-op on an
+ * ordinary site. A site that widens `esw_svg_allowed_tags` to `animate`/`set`
+ * keeps them -- and the sanitiser's value checks look only at attributes whose
+ * NAME contains href, never at `attributeName`/`values`. So `<animate
+ * attributeName="href" values="javascript:...">` would set an href the
+ * sanitiser already approved as a fragment. This strips exactly those: an
+ * animation element whose target (attributeName, trimmed, lower-cased, with an
+ * optional `xlink:` prefix) is `href` or begins `on`. Animation of a benign
+ * property (opacity, transform) is left alone.
+ *
+ * Parsed as XML (sanitiser output is XML), no network, no entities.
+ *
+ * @param string $markup Cleaned SVG markup.
+ * @return string Markup without href-driving animation, or '' when unparseable.
+ */
+function easy_svg_neutralize_href_animation( $markup ) {
+    static $animation = array( 'animate', 'set', 'animatecolor', 'animatemotion', 'animatetransform' );
+
+    $doc      = new DOMDocument();
+    $internal = libxml_use_internal_errors( true );
+    $loaded   = $doc->loadXML( (string) $markup, LIBXML_NONET );
+    libxml_clear_errors();
+    libxml_use_internal_errors( $internal );
+
+    if ( ! $loaded || null === $doc->documentElement ) {
+        return '';
+    }
+
+    $xpath  = new DOMXPath( $doc );
+    $doomed = array();
+    foreach ( $xpath->query( '//*' ) as $element ) {
+        if ( ! in_array( strtolower( $element->localName ), $animation, true ) ) {
+            continue;
+        }
+        $target = strtolower( trim( (string) $element->getAttribute( 'attributeName' ) ) );
+        if ( 0 === strpos( $target, 'xlink:' ) ) {
+            $target = substr( $target, 6 );
+        }
+        if ( 'href' === $target || 0 === strpos( $target, 'on' ) ) {
+            $doomed[] = $element;
+        }
+    }
+    foreach ( $doomed as $element ) {
+        if ( $element->parentNode ) {
+            $element->parentNode->removeChild( $element );
+        }
+    }
+
+    return (string) $doc->saveXML( $doc->documentElement );
+}
+
+/**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
  *
  * ─── Why an add-on gets a function and not the classes ──────────────────────
@@ -313,6 +367,17 @@ function esw_svg_file_checker( $file ) {
     // The other two sanitise paths already refuse a trim()-empty result.
     if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
         return false;
+    }
+
+    // Only when a site has widened the allow-list to animation elements is
+    // there anything to do; the quick check keeps the ordinary upload off the
+    // DOM round-trip. A href-driving animation is taken out; a parse failure
+    // leaves the cleaned bytes as they are.
+    if ( false !== stripos( $clean, '<animate' ) || preg_match( '/<set[\s\/>]/i', $clean ) ) {
+        $neutralized = easy_svg_neutralize_href_animation( $clean );
+        if ( '' !== trim( $neutralized ) ) {
+            $clean = $neutralized;
+        }
     }
 
     // The cleaned bytes ARE the check. If they cannot be written back, the
