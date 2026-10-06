@@ -691,6 +691,38 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
     add_action( 'add_attachment', 'easy_svg_check_new_attachment' );
 }
 
+/**
+ * Give an SVG attachment width/height so the Image block can size the <img>.
+ *
+ * Core computes no dimensions for an SVG (getimagesize does not read them), so
+ * the Image block renders without width/height and jumps on load. We read them
+ * once, at upload, from the already-sanitised file.
+ *
+ * @param array $metadata      The generated metadata.
+ * @param int   $attachment_id The attachment.
+ * @return array
+ */
+function easy_svg_svg_attachment_metadata( $metadata, $attachment_id ) {
+    $mime = strtolower( (string) get_post_mime_type( $attachment_id ) );
+    $path = get_attached_file( $attachment_id );
+
+    if ( 'image/svg+xml' !== $mime && ! easy_svg_is_svg_name( (string) $path ) ) {
+        return $metadata;
+    }
+
+    $dim = easy_svg_read_svg_dimensions( $path );
+    if ( array() !== $dim ) {
+        $metadata           = is_array( $metadata ) ? $metadata : array();
+        $metadata['width']  = $dim['width'];
+        $metadata['height'] = $dim['height'];
+    }
+
+    return $metadata;
+}
+if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
+    add_filter( 'wp_generate_attachment_metadata', 'easy_svg_svg_attachment_metadata', 10, 2 );
+}
+
 /*
  * The icon manager.
  *

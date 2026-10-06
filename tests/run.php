@@ -1801,6 +1801,20 @@ check( 'BELL: an oversized file yields no dimensions, no crash', array() === eas
 @unlink( $dim_path );
 check( 'SILENCE: a missing file yields no dimensions', array() === easy_svg_read_svg_dimensions( $dim_path ) );
 
+// ─── The Image block gets real dimensions for an SVG attachment ──────────────
+$meta_cb = $GLOBALS['hooks']['wp_generate_attachment_metadata'][0] ?? null;
+check( 'BELL: attachment metadata is filtered', is_callable( $meta_cb ) );
+if ( is_callable( $meta_cb ) ) {
+	$svgp = tempnam( sys_get_temp_dir(), 'eswmeta' ) . '.svg';
+	file_put_contents( $svgp, '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24"><rect/></svg>' );
+	$GLOBALS['attachments'][77] = array( 'file' => $svgp, 'mime' => 'image/svg+xml' );
+	$meta = $meta_cb( array(), 77 );
+	@unlink( $svgp );
+	check( 'BELL: SVG metadata carries width and height', 48 === ( $meta['width'] ?? 0 ) && 24 === ( $meta['height'] ?? 0 ) );
+	$GLOBALS['attachments'][78] = array( 'file' => '/tmp/none.png', 'mime' => 'image/png' );
+	check( 'SILENCE: a non-SVG attachment metadata is unchanged', array( 'x' => 1 ) === $meta_cb( array( 'x' => 1 ), 78 ) );
+}
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
