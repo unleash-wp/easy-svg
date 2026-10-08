@@ -1546,7 +1546,7 @@ $read_list = static function ( string $file, bool $attributes ): array {
 $distignore = $read_list( $root . '/.distignore', false );
 $exportign  = $read_list( $root . '/.gitattributes', true );
 
-foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
+foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', 'README.md', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
 	check( "BELL: .distignore keeps {$kept_out} out of the release", in_array( $kept_out, $distignore, true ) );
 }
 check(
