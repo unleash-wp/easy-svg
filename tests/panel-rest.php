@@ -63,8 +63,13 @@ class WP_Error {
 }
 
 define( 'EASY_SVG_ICON_POST_TYPE', 'esw_icon' );
-$GLOBALS['posts']   = array();
-$GLOBALS['deleted'] = array();
+$GLOBALS['posts']      = array();
+$GLOBALS['deleted']    = array();
+$GLOBALS['updated']    = array();
+$GLOBALS['routes']     = array();
+$GLOBALS['kses_calls'] = array();
+$GLOBALS['kses_on']    = true;
+$GLOBALS['forgot']     = 0;
 function get_post( $id ) {
 	return $GLOBALS['posts'][ $id ] ?? null;
 }
@@ -74,6 +79,57 @@ function wp_delete_post( $id, $force = false ): bool {
 }
 function easy_svg_icon_page( $page, $per_page ): array {
 	return array();
+}
+function is_wp_error( $thing ): bool {
+	return $thing instanceof WP_Error;
+}
+function wp_slash( $value ) {
+	return is_array( $value ) ? array_map( 'wp_slash', $value ) : addslashes( (string) $value );
+}
+function register_rest_route( $namespace, $route, $args = array(), $override = false ): bool {
+	$GLOBALS['routes'][ $namespace . $route ] = $args;
+	return true;
+}
+
+/*
+ * kses, modelled only as far as the question goes: whether the handler switched
+ * it off for its write and switched it back on afterwards. It does not strip
+ * anything here -- what the real filter would do to SVG markup is not this
+ * file's subject, only that it is not given the chance.
+ */
+function has_filter( $tag, $callback = false ) {
+	return $GLOBALS['kses_on'] ? 10 : false;
+}
+function kses_remove_filters(): void {
+	$GLOBALS['kses_on']      = false;
+	$GLOBALS['kses_calls'][] = 'off';
+}
+function kses_init_filters(): void {
+	$GLOBALS['kses_on']      = true;
+	$GLOBALS['kses_calls'][] = 'on';
+}
+
+/*
+ * wp_update_post(), as far as it matters here: it merges the fields it is handed
+ * onto the stored row. That is what makes the slug bell below a real one -- a
+ * `post_name` in the payload MOVES the slug through this stub exactly as it
+ * would through WordPress.
+ */
+function wp_update_post( $postarr, $wp_error = false ) {
+	$GLOBALS['updated'][] = $postarr;
+	$id                   = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
+	if ( ! isset( $GLOBALS['posts'][ $id ] ) ) {
+		return 0;
+	}
+	foreach ( $postarr as $field => $value ) {
+		if ( 'ID' !== $field ) {
+			$GLOBALS['posts'][ $id ]->$field = stripslashes( (string) $value );
+		}
+	}
+	return $id;
+}
+function easy_svg_forget_icons(): void {
+	++$GLOBALS['forgot'];
 }
 
 require dirname( __DIR__ ) . '/includes/settings.php';
@@ -145,6 +201,53 @@ if ( ! function_exists( 'easy_svg_add_icon' ) ) {
 easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => "<script>alert(1)</script>Heart", 'markup' => '<svg/>' ) ) );
 check( 'BELL: the label is sanitised before storage (no markup reaches the title)', ! str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), '<' ) );
 check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), 'Heart' ) );
+
+// ─── every route is behind the same capability ────────────────────────────────
+// A new route added without a permission callback -- or with a laxer one -- is a
+// hole nothing else in this file would notice, because each handler is called
+// here directly. So the registration itself is read.
+easy_svg_panel_rest();
+check( 'SILENCE: the rename route is registered', isset( $GLOBALS['routes']['easy-svg/v1/library/rename'] ) );
+$perm_ok = array() !== $GLOBALS['routes'];
+foreach ( $GLOBALS['routes'] as $registered ) {
+	// /settings registers a list of definitions; the others register one.
+	foreach ( isset( $registered['methods'] ) ? array( $registered ) : $registered as $definition ) {
+		if ( 'easy_svg_panel_rest_permission' !== ( $definition['permission_callback'] ?? '' ) ) {
+			$perm_ok = false;
+		}
+	}
+}
+check( 'BELL: every panel REST route is behind the same capability check', $perm_ok );
+
+// ─── library/rename renames, and ONLY renames ─────────────────────────────────
+/*
+ * The slug is the icon's identity: a theme calls easy_svg_icon( 'slug' ) and a
+ * saved Icon block carries the slug it was inserted with. A rename that moved it
+ * would break every page already using that icon, and silently -- core renders
+ * an icon it cannot resolve as nothing at all.
+ */
+check( 'BELL: rename refuses a post that is not an icon', easy_svg_panel_library_rename( new WP_REST_Request( array( 'id' => 5, 'label' => 'Nope' ) ) ) instanceof WP_Error );
+check( 'SILENCE: and it wrote nothing', array() === $GLOBALS['updated'] );
+check( 'BELL: a missing id is refused', easy_svg_panel_library_rename( new WP_REST_Request( array( 'label' => 'Nope' ) ) ) instanceof WP_Error );
+
+$GLOBALS['posts'][7] = (object) array(
+	'ID'           => 7,
+	'post_type'    => 'esw_icon',
+	'post_title'   => 'Heart',
+	'post_name'    => 'heart',
+	'post_content' => '<svg viewBox="0 0 24 24"><path d="M1 1"/></svg>',
+);
+check( 'BELL: an empty name is refused', easy_svg_panel_library_rename( new WP_REST_Request( array( 'id' => 7, 'label' => '   ' ) ) ) instanceof WP_Error );
+check( 'BELL: and so is a name that is nothing but markup, which only sanitising reveals', easy_svg_panel_library_rename( new WP_REST_Request( array( 'id' => 7, 'label' => '<br>' ) ) ) instanceof WP_Error );
+check( 'SILENCE: neither refusal wrote anything', array() === $GLOBALS['updated'] );
+
+$renamed = easy_svg_panel_library_rename( new WP_REST_Request( array( 'id' => 7, 'label' => '<b>Herz</b> voll' ) ) );
+check( 'BELL: a rename leaves the slug untouched', 'heart' === $GLOBALS['posts'][7]->post_name );
+check( 'SILENCE: the write names only the id and the title, so nothing can derive a new slug', array( 'ID', 'post_title' ) === array_keys( (array) end( $GLOBALS['updated'] ) ) );
+check( 'BELL: the new name is sanitised before storage', 'Herz voll' === $GLOBALS['posts'][7]->post_title );
+check( 'SILENCE: kses was off for the write and on again afterwards', array( 'off', 'on' ) === $GLOBALS['kses_calls'] && true === $GLOBALS['kses_on'] );
+check( 'BELL: a rename drops the cached icon list', 1 === $GLOBALS['forgot'] );
+check( 'SILENCE: and it answers with the fresh page', $renamed instanceof WP_REST_Response );
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"

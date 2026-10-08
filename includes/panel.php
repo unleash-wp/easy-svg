@@ -191,6 +191,15 @@ function easy_svg_panel_rest(): void {
 	);
 	register_rest_route(
 		'easy-svg/v1',
+		'/library/rename',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'callback'            => 'easy_svg_panel_library_rename',
+		)
+	);
+	register_rest_route(
+		'easy-svg/v1',
 		'/library/delete',
 		array(
 			'methods'             => 'POST',
@@ -248,6 +257,87 @@ function easy_svg_panel_library_add( $request ) {
 		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result ), array( 'status' => 422 ) );
 	}
 	return new WP_REST_Response( easy_svg_icon_page( 1, 500 ) );
+}
+
+/**
+ * POST /library/rename -> change one icon's visible name, and ONLY that.
+ *
+ * `post_name` is the icon's identity, not a detail of its presentation: a theme
+ * calls `easy_svg_icon( 'slug' )` and a saved Icon block carries the slug it was
+ * given when it was inserted. Moving the slug would leave every page that
+ * already uses the icon pointing at a name nothing answers to -- and silently,
+ * because an icon core cannot resolve renders as nothing at all rather than as
+ * an error. So the title is the only field written here, `post_name` is never
+ * passed, and a test in tests/panel-rest.php holds that shut.
+ */
+function easy_svg_panel_library_rename( $request ) {
+	$body = (array) $request->get_json_params();
+	$id   = isset( $body['id'] ) ? max( 0, (int) $body['id'] ) : 0;
+	$post = $id > 0 ? get_post( $id ) : null;
+	if ( ! $post || ! defined( 'EASY_SVG_ICON_POST_TYPE' ) || EASY_SVG_ICON_POST_TYPE !== $post->post_type ) {
+		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
+	}
+
+	// Same bar as the add route: the title is stored text, so it is sanitised as
+	// text. What is left of it decides whether there is a rename at all -- a
+	// blank title would leave the tile with nothing to read but its slug.
+	$label = isset( $body['label'] ) ? sanitize_text_field( (string) $body['label'] ) : '';
+	if ( '' === $label ) {
+		return new WP_Error( 'easy_svg_bad_label', __( 'An icon needs a name.', 'easy-svg' ), array( 'status' => 422 ) );
+	}
+
+	/*
+	 * kses off for this one write, and only if it was on -- the same hazard
+	 * easy_svg_add_icon() documents, reached from the other side. wp_update_post()
+	 * merges the stored row and re-saves it whole, so the markup passes through
+	 * `content_save_pre` again: for every administrator without unfiltered_html
+	 * (any multisite sub-site, any site with DISALLOW_UNFILTERED_HTML) kses would
+	 * strip the SVG it knows nothing about, and renaming an icon would quietly
+	 * empty it. What is being re-saved is what this site's own sanitiser produced.
+	 *
+	 * Restored in `finally`, so neither an error nor an exception leaves kses off
+	 * for the rest of the request.
+	 *
+	 * The title is slashed because wp_insert_post() unslashes what it is given;
+	 * core slashes the fields it pulls out of the database itself, so only the new
+	 * title is ours to slash.
+	 */
+	$kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
+	if ( $kses_was_on ) {
+		kses_remove_filters();
+	}
+
+	try {
+		$updated = wp_update_post(
+			array(
+				'ID'         => $id,
+				'post_title' => wp_slash( $label ),
+			),
+			true
+		);
+	} finally {
+		if ( $kses_was_on ) {
+			kses_init_filters();
+		}
+	}
+
+	if ( is_wp_error( $updated ) || ! $updated ) {
+		return new WP_Error( 'easy_svg_rename_failed', __( 'The icon could not be renamed.', 'easy-svg' ), array( 'status' => 500 ) );
+	}
+
+	/*
+	 * Drop the cached icon list, or the editor keeps offering the old name for up
+	 * to a day. `easy_svg_forget_icons()` is hooked on `save_post_esw_icon`, which
+	 * the update above fires -- but that hook is registered only while the icons
+	 * feature is on (easy-svg.php), and an icon post outlives the switch. Called
+	 * here as well so this route does not depend on a condition it cannot see;
+	 * the second call costs one option write and is otherwise a no-op.
+	 */
+	if ( function_exists( 'easy_svg_forget_icons' ) ) {
+		easy_svg_forget_icons();
+	}
+
+	return new WP_REST_Response( function_exists( 'easy_svg_icon_page' ) ? easy_svg_icon_page( 1, 500 ) : array() );
 }
 
 /** POST /library/delete -> remove one icon by id (only an esw_icon post). */
