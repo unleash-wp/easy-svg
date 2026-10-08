@@ -210,8 +210,7 @@ function easy_svg_icon( $name, $args = array() ) {
  * style the whole page; `script`, `foreignObject`, `iframe`, `embed`, `object`,
  * the SVG Tiny `handler`/`listener`, and the animation elements (which can
  * rewrite an href to javascript: after the sanitiser has checked it) can run
- * code or pull in a document. None of it belongs in a drawing. The admin
- * preview strips the same set (see EASY_SVG_PREVIEW_NEVER, which points here).
+ * code or pull in a document. None of it belongs in a drawing.
  */
 const EASY_SVG_ICON_UNSAFE_ELEMENTS = array(
     'script',

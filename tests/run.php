@@ -783,17 +783,32 @@ check(
 	1 !== preg_match( '/is_admin\(\).{0,200}easy_svg_boot_icons/s', $main_source )
 );
 
-check( 'the screen is hooked', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
-
 /*
- * On a WordPress without the icon API there is nothing to manage, and a menu
- * entry that opens onto "this needs 7.1" is clutter on every older site. This
- * suite is such a WordPress until its last section.
+ * ONE page may answer to the panel's slug.
+ *
+ * There were two. The classic icons screen registered `easy-svg-icons` as a
+ * Media submenu and the panel registers that same slug as a top-level menu, so
+ * on WordPress 7.1 BOTH render callbacks ran on the one screen and the old
+ * table drew itself underneath the React panel. Nothing errored; it just looked
+ * broken -- which is the kind of defect a suite has to hold down, because the
+ * two registrations sat in different files and neither looked wrong alone.
+ *
+ * Asserted against the shipped source rather than by registering menus:
+ * WordPress only collides at `admin_menu` time, on a version this suite is not,
+ * and the fact worth pinning is which FILES claim the slug at all.
  */
-easy_svg_icons_menu();
-check( 'BELL: before 7.1 there is no SVG icons submenu', [] === $GLOBALS['media_pages'] );
-check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
-check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
+$slug_owners = array();
+foreach ( array_merge( array( $root . '/easy-svg.php' ), glob( $root . '/includes/*.php' ) ?: array() ) as $slug_file ) {
+	$claims = substr_count( (string) file_get_contents( $slug_file ), 'easy-svg-icons' );
+	if ( $claims > 0 ) {
+		$slug_owners[ basename( $slug_file ) ] = $claims;
+	}
+}
+check( 'BELL: the icon manager registers no screen of its own', ! isset( $slug_owners['icon-manager.php'] ) );
+check(
+	'BELL: and the panel slug is claimed exactly once across the shipped source (' . ( json_encode( $slug_owners ) ?: '?' ) . ')',
+	array( 'panel.php' => 1 ) === $slug_owners
+);
 
 // ─── Only who may manage icons can write them ────────────────────────────────
 
@@ -983,33 +998,32 @@ try {
 unlink( $file['tmp_name'] );
 check( 'BELL: and the same file through the media uploader is an upload error, not a fatal', isset( $after['error'] ) && ! isset( $after['threw'] ) );
 
-// ─── Every refusal has a sentence ────────────────────────────────────────────
+// ─── Every refusal has a sentence of its own ──────────────────────────────────
 
 /*
- * A state with no message shows an empty notice box, which reads as a bug. The
- * states come from `easy_svg_accept_icon()`, so the two lists are checked
- * against each other rather than a hand-written copy of one of them.
+ * A refused add reaches the person as the REST error the Library tab prints, so
+ * `easy_svg_panel_add_message()` is now the only place a refusal gets words.
+ * The states come from `easy_svg_accept_icon()` and `easy_svg_add_icon()`, so
+ * the two lists are checked against each other rather than a hand-written copy
+ * of one of them.
+ *
+ * Compared against the GENERIC sentence, not against "". The function has a
+ * `default` branch, so "says something" would pass for a state that silently
+ * falls through to it -- a person told only that it did not work, which is true,
+ * useless, and indistinguishable from a bug. A new state with no case of its own
+ * has to fail here rather than ship as a shrug.
+ *
+ * No 'limit_reached' in this list, because there is no limit: that one is
+ * asserted as a shape against the shipped source below, not as a missing string.
  */
-foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved', 'too_large', 'too_complex' ) as $state ) {
+$generic_refusal = function_exists( 'easy_svg_panel_add_message' ) ? easy_svg_panel_add_message( 'nonsense' ) : '';
+check( 'the panel has a sentence for a state it does not know', '' !== $generic_refusal );
+foreach ( array( 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved', 'too_large', 'too_complex' ) as $state ) {
 	check(
-		"the '{$state}' state has something to say",
-		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )
+		"BELL: the '{$state}' refusal says what went wrong, not merely that something did",
+		'' !== $generic_refusal && $generic_refusal !== easy_svg_panel_add_message( $state )
 	);
 }
-check(
-	'SILENCE: and an unknown state says nothing rather than something wrong',
-	function_exists( 'easy_svg_icon_message' ) && '' === easy_svg_icon_message( 'nonsense' )
-);
-
-// ─── The count is a count, not a quota ───────────────────────────────────────
-
-/*
- * With no cap there is nothing to count against, and the line above the table
- * says only what is there. "N of 5" would advertise a limit that is gone.
- */
-check( 'BELL: the counter names how many there are, and nothing to be measured against', '7 icons. They appear in the Icon block.' === easy_svg_icon_count_message( 7 ) );
-check( 'SILENCE: and one icon reads as one', '1 icon. They appear in the Icon block.' === easy_svg_icon_count_message( 1 ) );
-check( 'SILENCE: there is no refusal for being full', '' === easy_svg_icon_message( 'limit_reached' ) );
 
 // ─── Nothing in this plugin is for sale ──────────────────────────────────────
 
@@ -1380,71 +1394,35 @@ check(
 	false !== strpos( (string) easy_svg_sanitizer()->sanitize( $handler ), 'onload' )
 );
 
-// ─── The preview cannot run what the store let through ───────────────────────
+// ─── The stored hardener strips what no icon may carry (defence in depth) ─────
 
 /*
- * The icons screen printed stored markup raw. That was safe only as long as
- * the site's allow-list was: a site that widens it -- as the filters above now
- * have, to `script` and `onload` -- stores icons that would run in an
+ * There used to be a block here about the admin PREVIEW: the classic icons
+ * screen printed stored markup into the page, so it ran every icon through
+ * wp_kses with the site's own SVG allow-list minus everything executable. A
+ * site that widens that allow-list -- as the filters just above do, to `script`
+ * and `onload` -- stores icons that would otherwise have run in an
  * administrator's browser the moment the screen opened.
  *
- * So the preview goes through wp_kses with the site's own SVG allow-list, minus
- * everything that can execute, whatever a filter added.
+ * That screen and those helpers are gone with the slug collision. The DEFENCE
+ * did not go with them; it sits on both sides of the removed code:
+ *
+ *   - on the way out, the panel's Library tab runs every preview through
+ *     DOMPurify's SVG profile before it reaches innerHTML, in the browser
+ *     (src/panel/tabs/Library.jsx -- the only place stored markup is drawn now);
+ *   - on the way in, the markup is hardened before it is ever stored, which is
+ *     the layer checked below -- and the one that also protects visitors,
+ *     because the Icon block inlines it into their pages too.
+ *
+ * So the check that matters is the hardener, not a preview.
  */
-$hostile = '<?xml version="1.0"?>'
-	. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-	. '<script>alert(document.cookie)</script>'
-	. '<rect onload="alert(1)" width="24" height="24"/>'
-	. '<foreignObject><body xmlns="http://www.w3.org/1999/xhtml"><iframe src="javascript:alert(1)"/></body></foreignObject>'
-	. '<path d="M0 0L24 24"/></svg>';
-
-$GLOBALS['kses_calls'] = 0;
-$preview = easy_svg_icon_preview( $hostile );
-
-check( 'BELL: the preview goes through wp_kses', 1 === $GLOBALS['kses_calls'] );
-check( 'BELL: a script element is not emitted, even where the site allows it', false === stripos( $preview, '<script' ) );
-check( 'BELL: nor an event handler the site allowed', false === stripos( $preview, 'onload' ) );
-check( 'BELL: nor foreignObject, which can carry HTML', false === stripos( $preview, 'foreignobject' ) && false === stripos( $preview, 'iframe' ) );
-check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<path' ) && false !== strpos( $preview, '<rect' ) );
-// wp_kses removes a tag and keeps its text. Inert, but a preview reading
-// "alert(document.cookie)" next to the drawing is a bug report waiting.
-check( 'SILENCE: and the removed script leaves no text behind', false === strpos( $preview, 'alert(' ) );
-
-// ─── The stored hardener strips what the preview strips (defence in depth) ────
 // easy_svg_harden_icon_markup() produces the markup the Icon block inlines for
 // visitors. On a widened allow-list the sanitiser can pass an on* handler
-// through to it, so the hardener drops event handlers itself -- the stored
-// markup must be no less defended than the admin preview above.
+// through to it, so the hardener drops event handlers itself -- the one layer
+// every reader of an icon, administrator or visitor, sits behind.
 $hardened = easy_svg_harden_icon_markup( '<svg xmlns="http://www.w3.org/2000/svg"><rect onload="alert(1)" onclick="x()" width="24" height="24"/><path d="M0 0h9"/></svg>' );
 check( 'BELL: the hardener drops an on* event handler', false === stripos( $hardened, 'onload' ) && false === stripos( $hardened, 'onclick' ) );
 check( 'SILENCE: and keeps the drawing', false !== strpos( $hardened, '<rect' ) && false !== strpos( $hardened, '<path' ) );
-
-// A link in a thumbnail has nowhere legitimate to go except a part of the same
-// drawing; a stylesheet in it styles the whole admin page.
-$linked = easy_svg_icon_preview(
-	'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-	. '<defs><path id="p" d="M0 0h9"/></defs>'
-	. '<a xlink:href="javascript:alert(1)"><rect width="9" height="9"/></a>'
-	. '<a href=" https://example.invalid/"><circle r="1"/></a>'
-	. '<use xlink:href="#p"/><use href="#p"/>'
-	. '<style>body{display:none}</style></svg>'
-);
-check( 'BELL: a preview keeps no href that leaves the drawing', false === stripos( $linked, 'javascript' ) && false === strpos( $linked, 'example.invalid' ) );
-check( 'SILENCE: references to its own parts stay', 2 === substr_count( $linked, '"#p"' ) );
-check( 'BELL: a preview carries no style element', false === stripos( $linked, '<style' ) && false === strpos( $linked, 'display:none' ) );
-check( 'SILENCE: markup that is not XML previews as nothing', '' === easy_svg_icon_preview( '<svg><scr<script>ipt>alert(1)</script></svg>' ) );
-
-$preview_html = easy_svg_icon_preview_allowed_html();
-check( 'SILENCE: the preview allow-list is lower case, the way wp_kses looks names up', isset( $preview_html['lineargradient'] ) || isset( $preview_html['path'] ) );
-foreach ( array( 'script', 'foreignobject', 'iframe', 'set', 'animate', 'handler', 'listener', 'style' ) as $never ) {
-	check( "BELL: '{$never}' is never in the preview allow-list", ! isset( $preview_html[ $never ] ) );
-}
-
-$manager_source = (string) file_get_contents( $root . '/includes/icon-manager.php' );
-check(
-	'BELL: the screen no longer prints stored markup raw',
-	1 !== preg_match( '/echo\s+\$icon\[\s*\'content\'\s*\]/', $manager_source )
-);
 
 // ─── The two places a version is written ─────────────────────────────────────
 
@@ -1683,9 +1661,10 @@ if ( ! function_exists( 'wp_register_icon' ) ) {
 
 check( 'the icon API now counts as present', easy_svg_icons_supported() );
 
-easy_svg_icons_menu();
-check( 'BELL: on 7.1 the SVG icons submenu is there', [ 'easy-svg-icons' ] === $GLOBALS['media_pages'] );
-
+// No menu assertion here any more: the Icons panel's menu entry does not depend
+// on the icon API at all (it hosts the Settings and licence tabs too, which work
+// on any supported WordPress), so there is nothing version-dependent left to
+// check. What 7.1 gates is the STORE and the handover to core, below.
 easy_svg_register_icon_store();
 $store_args = $GLOBALS['post_types']['esw_icon'] ?? [];
 $caps       = (array) ( $store_args['capabilities'] ?? [] );

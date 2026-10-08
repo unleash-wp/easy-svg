@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-08T19:50:09+00:00\n"
+"POT-Creation-Date: 2026-10-08T20:03:07+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -57,86 +57,11 @@ msgstr ""
 msgid "This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it."
 msgstr ""
 
-#: includes/icon-manager.php:66
-#: includes/icon-manager.php:268
-#: includes/icon-manager.php:269
-#: includes/icon-manager.php:595
+#: includes/icon-manager.php:75
 msgid "SVG icons"
 msgstr ""
 
-#: includes/icon-manager.php:290
-#: includes/icon-manager.php:413
-msgid "You are not allowed to do this."
-msgstr ""
-
-#. translators: %d: how many icons this site has
-#: includes/icon-manager.php:445
-#, php-format
-msgid "%d icon. They appear in the Icon block."
-msgid_plural "%d icons. They appear in the Icon block."
-msgstr[0] ""
-msgstr[1] ""
-
-#: includes/icon-manager.php:453
-#: src/panel/tabs/Library.jsx:50
-msgid "Icon added."
-msgstr ""
-
-#: includes/icon-manager.php:454
-msgid "Icon removed. Pages already using it will show nothing where it was."
-msgstr ""
-
-#: includes/icon-manager.php:455
-msgid "That name cannot be turned into an icon name. Use letters and numbers."
-msgstr ""
-
-#: includes/icon-manager.php:456
-msgid "No file was uploaded."
-msgstr ""
-
-#: includes/icon-manager.php:457
-msgid "That file could not be read as an SVG, so nothing was stored."
-msgstr ""
-
-#: includes/icon-manager.php:458
-msgid "That SVG is larger than the size allowed in Settings, so nothing was stored."
-msgstr ""
-
-#: includes/icon-manager.php:459
-msgid "That SVG has too many parts to be read safely, so nothing was stored."
-msgstr ""
-
-#: includes/icon-manager.php:460
-msgid "The SVG sanitiser did not load, so nothing was checked and nothing was stored."
-msgstr ""
-
-#: includes/icon-manager.php:461
-msgid "WordPress could not save the icon, so nothing was stored. Please try again."
-msgstr ""
-
-#: includes/icon-manager.php:619
-#: includes/icon-manager.php:650
-#: src/panel/tabs/Library.jsx:90
-msgid "Name"
-msgstr ""
-
-#: includes/icon-manager.php:621
-msgid "Add icon"
-msgstr ""
-
-#: includes/icon-manager.php:649
-msgid "Icon"
-msgstr ""
-
-#: includes/icon-manager.php:651
-msgid "Used as"
-msgstr ""
-
-#: includes/icon-manager.php:666
-msgid "Remove"
-msgstr ""
-
-#: includes/icons.php:491
+#: includes/icons.php:490
 #: includes/settings.php:58
 #: includes/settings.php:59
 #: includes/settings.php:113
@@ -162,23 +87,27 @@ msgid "That is not an SVG the sanitiser accepts."
 msgstr ""
 
 #: includes/panel.php:179
-msgid "That SVG is larger than the size allowed in Settings."
+msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 
 #: includes/panel.php:181
-msgid "That SVG has too many parts to be read safely."
+msgid "That SVG is larger than the size allowed in Settings."
 msgstr ""
 
 #: includes/panel.php:183
+msgid "That SVG has too many parts to be read safely."
+msgstr ""
+
+#: includes/panel.php:185
 msgid "The icon could not be added."
 msgstr ""
 
-#: includes/panel.php:196
+#: includes/panel.php:198
 #: src/panel/tabs/Library.jsx:38
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr ""
 
-#: includes/panel.php:214
+#: includes/panel.php:216
 msgid "Icon not found."
 msgstr ""
 
@@ -294,6 +223,10 @@ msgstr ""
 msgid "Get Easy SVG Pro"
 msgstr ""
 
+#: src/panel/tabs/Library.jsx:50
+msgid "Icon added."
+msgstr ""
+
 #: src/panel/tabs/Library.jsx:63
 msgid "Icon removed."
 msgstr ""
@@ -308,6 +241,10 @@ msgstr ""
 
 #: src/panel/tabs/Library.jsx:87
 msgid "Upload an .svg file or paste its markup. It is sanitised and hardened before it is stored — the same bar as a media upload."
+msgstr ""
+
+#: src/panel/tabs/Library.jsx:90
+msgid "Name"
 msgstr ""
 
 #: src/panel/tabs/Library.jsx:91

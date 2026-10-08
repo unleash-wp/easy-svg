@@ -797,8 +797,6 @@ if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'deleted_post', 'easy_svg_forget_deleted_icon', 10, 2 );
 }
 
-easy_svg_icons_admin();
-
 /**
  * Add support for SVG file uploads by modifying MIME types.
  *

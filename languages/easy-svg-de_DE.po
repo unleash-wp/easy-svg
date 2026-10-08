@@ -57,78 +57,23 @@ msgstr "Bitte überprüfe deine SVG-Datei."
 msgid "This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it."
 msgstr "Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte lade sie über die Mediathek hoch, die sie bereinigt."
 
-#: includes/icon-manager.php:66
-#: includes/icon-manager.php:268
-#: includes/icon-manager.php:269
-#: includes/icon-manager.php:595
+#: includes/icon-manager.php:75
 msgid "SVG icons"
 msgstr "SVG-Icons"
 
-#: includes/icon-manager.php:290
-#: includes/icon-manager.php:413
-msgid "You are not allowed to do this."
-msgstr "Dazu bist du nicht berechtigt."
-
-#. translators: %d: how many icons this site has
-#: includes/icon-manager.php:445
-#, php-format
-msgid "%d icon. They appear in the Icon block."
-msgid_plural "%d icons. They appear in the Icon block."
-msgstr[0] "%d Icon. Es erscheint im Icon-Block."
-msgstr[1] "%d Icons. Sie erscheinen im Icon-Block."
-
-#: includes/icon-manager.php:453
 #: src/panel/tabs/Library.jsx:50
 msgid "Icon added."
 msgstr "Icon hinzugefügt."
 
-#: includes/icon-manager.php:454
-msgid "Icon removed. Pages already using it will show nothing where it was."
-msgstr "Icon entfernt. Seiten, die es bereits verwenden, zeigen an der Stelle nichts mehr an."
-
-#: includes/icon-manager.php:455
+#: includes/panel.php:179
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr "Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende Buchstaben und Zahlen."
 
-#: includes/icon-manager.php:456
-msgid "No file was uploaded."
-msgstr "Es wurde keine Datei hochgeladen."
-
-#: includes/icon-manager.php:457
-msgid "That file could not be read as an SVG, so nothing was stored."
-msgstr "Diese Datei konnte nicht als SVG gelesen werden, daher wurde nichts gespeichert."
-
-#: includes/icon-manager.php:460
-msgid "The SVG sanitiser did not load, so nothing was checked and nothing was stored."
-msgstr "Der SVG-Sanitizer wurde nicht geladen, daher wurde nichts geprüft und nichts gespeichert."
-
-#: includes/icon-manager.php:461
-msgid "WordPress could not save the icon, so nothing was stored. Please try again."
-msgstr "WordPress konnte das Icon nicht speichern, daher wurde nichts gespeichert. Bitte versuche es erneut."
-
-#: includes/icon-manager.php:619
-#: includes/icon-manager.php:650
 #: src/panel/tabs/Library.jsx:90
 msgid "Name"
 msgstr "Name"
 
-#: includes/icon-manager.php:621
-msgid "Add icon"
-msgstr "Icon hinzufügen"
-
-#: includes/icon-manager.php:649
-msgid "Icon"
-msgstr "Icon"
-
-#: includes/icon-manager.php:651
-msgid "Used as"
-msgstr "Verwendet als"
-
-#: includes/icon-manager.php:666
-msgid "Remove"
-msgstr "Entfernen"
-
-#: includes/icons.php:491
+#: includes/icons.php:490
 #: includes/settings.php:58
 #: includes/settings.php:59
 #: includes/settings.php:113
@@ -153,11 +98,11 @@ msgstr "Diese SVG hat keine Zeichnung oder konnte nicht gespeichert werden."
 msgid "That is not an SVG the sanitiser accepts."
 msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
 
-#: includes/panel.php:183
+#: includes/panel.php:185
 msgid "The icon could not be added."
 msgstr "Das Icon konnte nicht hinzugefügt werden."
 
-#: includes/panel.php:214
+#: includes/panel.php:216
 msgid "Icon not found."
 msgstr "Icon nicht gefunden."
 
@@ -273,7 +218,7 @@ msgstr "Lizenz aktivieren"
 msgid "Get Easy SVG Pro"
 msgstr "Easy SVG Pro holen"
 
-#: includes/panel.php:196
+#: includes/panel.php:198
 #: src/panel/tabs/Library.jsx:38
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr "Die Icon-Library ist aus. Schalte sie im Tab „Einstellungen“ ein."
@@ -418,22 +363,10 @@ msgstr "Easy SVG Pro"
 msgid "The agency layer for SVG icons — all right here in the panel, once Pro is active and licensed."
 msgstr "Die Agentur-Schicht für SVG-Icons — alles direkt hier im Panel, sobald Pro aktiv und lizenziert ist."
 
-#: includes/icon-manager.php:458
-msgid "That SVG is larger than the size allowed in Settings, so nothing was stored."
-msgstr ""
-"Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe, es wurde "
-"nichts gespeichert."
-
-#: includes/icon-manager.php:459
-msgid "That SVG has too many parts to be read safely, so nothing was stored."
-msgstr ""
-"Dieses SVG hat zu viele Teile, um sicher gelesen zu werden, es wurde nichts "
-"gespeichert."
-
-#: includes/panel.php:179
+#: includes/panel.php:181
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr "Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe."
 
-#: includes/panel.php:181
+#: includes/panel.php:183
 msgid "That SVG has too many parts to be read safely."
 msgstr "Dieses SVG hat zu viele Teile, um sicher gelesen zu werden."

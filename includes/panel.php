@@ -175,6 +175,8 @@ function easy_svg_panel_add_message( string $state ): string {
 			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
 		case 'not_svg':
 			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
+		case 'bad_name':
+			return __( 'That name cannot be turned into an icon name. Use letters and numbers.', 'easy-svg' );
 		case 'too_large':
 			return __( 'That SVG is larger than the size allowed in Settings.', 'easy-svg' );
 		case 'too_complex':
