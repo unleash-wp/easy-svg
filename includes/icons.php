@@ -482,8 +482,41 @@ function easy_svg_collect_icons( $fetch_page, $per_page ) {
  * @return int How many icons core accepted.
  */
 function easy_svg_register_icons( $icons, $register_collection, $register_icon ) {
-    // The collection first. `WP_Icons_Registry` refuses an icon whose
-    // collection is not registered, so the order is not a style choice.
+    /*
+     * What is registrable is worked out BEFORE a collection is announced.
+     *
+     * The collection still has to go in first -- `WP_Icons_Registry` refuses an
+     * icon whose collection it does not know -- but doing that unconditionally
+     * put an "Easy SVG" entry in the editor's icon picker on every site with
+     * the feature on and nothing in it yet, and clicking it showed a blank
+     * panel. An empty collection reads as a broken plugin rather than an empty
+     * one, so nothing is offered until there is something to put in it.
+     */
+    $ready_icons = array();
+
+    foreach ( (array) $icons as $icon ) {
+        $name = easy_svg_icon_name( isset( $icon['slug'] ) ? $icon['slug'] : '' );
+
+        // Checked here rather than left to core, which refuses through
+        // _doing_it_wrong: on a production site that means the icon quietly
+        // does not exist.
+        if ( '' === $name ) {
+            continue;
+        }
+
+        $ready_icons[] = array(
+            'name' => $name,
+            'args' => easy_svg_icon_args(
+                isset( $icon['label'] ) ? $icon['label'] : '',
+                isset( $icon['content'] ) ? $icon['content'] : ''
+            ),
+        );
+    }
+
+    if ( array() === $ready_icons ) {
+        return 0;
+    }
+
     $ready = call_user_func(
         $register_collection,
         EASY_SVG_ICON_COLLECTION,
@@ -496,24 +529,10 @@ function easy_svg_register_icons( $icons, $register_collection, $register_icon )
 
     $taken = 0;
 
-    foreach ( (array) $icons as $icon ) {
-        $name = easy_svg_icon_name( isset( $icon['slug'] ) ? $icon['slug'] : '' );
-
-        // Checked here rather than left to core, which refuses through
-        // _doing_it_wrong: on a production site that means the icon quietly
-        // does not exist.
-        if ( '' === $name ) {
-            continue;
-        }
-
-        $args = easy_svg_icon_args(
-            isset( $icon['label'] ) ? $icon['label'] : '',
-            isset( $icon['content'] ) ? $icon['content'] : ''
-        );
-
+    foreach ( $ready_icons as $icon ) {
         // Counted from what core ANSWERED, not from what we sent. A screen that
         // says "5 icons" about icons core refused is worse than no screen.
-        if ( call_user_func( $register_icon, $name, $args ) ) {
+        if ( call_user_func( $register_icon, $icon['name'], $icon['args'] ) ) {
             $taken++;
         }
     }

@@ -397,7 +397,31 @@ $refused    = static function ( $slug, $args ) { return false; };
 check( 'BELL: no collection means no icons are offered', 0 === easy_svg_register_icons( $icons, $refused, $ok_icon ) );
 check( 'SILENCE: and none were attempted', array() === $icon_calls );
 
+/*
+ * An empty library registers NOTHING, not an empty collection.
+ *
+ * The collection has to go in before the icons, because core refuses an icon
+ * whose collection is unknown -- but doing that unconditionally put "Easy SVG"
+ * in the editor's icon picker on every site with the feature switched on and
+ * nothing in it yet. Clicking it showed a blank panel, which reads as a broken
+ * plugin rather than an empty one. Seen in the picker before this was fixed.
+ */
+$collection_calls = array();
+$icon_calls       = array();
+check( 'BELL: an empty library registers no collection at all', 0 === easy_svg_register_icons( array(), $ok_collection, $ok_icon ) );
+check( 'BELL: so the picker is not offered an empty collection', array() === $collection_calls );
+check( 'SILENCE: and no icon was attempted either', array() === $icon_calls );
+
+// Icons that all fail their name check leave nothing behind either: the
+// collection is only worth registering if something lands in it.
+$collection_calls = array();
+$icon_calls       = array();
+$all_bad          = array( array( 'slug' => 'Arrow', 'label' => 'Bad', 'content' => $SVG ) );
+check( 'BELL: a library of unusable names registers no collection either', 0 === easy_svg_register_icons( $all_bad, $ok_collection, $ok_icon ) );
+check( 'SILENCE: nothing was offered to the picker', array() === $collection_calls );
+
 // One bad name must not cost the others.
+$collection_calls = array();
 $icon_calls = array();
 $mixed      = array(
     array( 'slug' => 'Arrow',  'label' => 'Bad name', 'content' => $SVG ),
