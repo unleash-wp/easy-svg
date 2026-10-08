@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-08T20:11:03+00:00\n"
+"POT-Creation-Date: 2026-10-08T20:28:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -70,7 +70,7 @@ msgstr ""
 
 #: includes/panel.php:44
 #: includes/panel.php:45
-#: build/panel.js:12
+#: build/panel.js
 msgid "Icons"
 msgstr ""
 
@@ -103,7 +103,7 @@ msgid "The icon could not be added."
 msgstr ""
 
 #: includes/panel.php:207
-#: build/panel.js:12
+#: build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr ""
 
@@ -120,7 +120,7 @@ msgid "Icon manager"
 msgstr ""
 
 #: includes/settings.php:80
-#: build/panel.js:10
+#: build/panel.js
 msgid "Maximum SVG size (MB)"
 msgstr ""
 
@@ -148,218 +148,225 @@ msgstr ""
 msgid "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s."
 msgstr ""
 
-#: build/panel.js:10
-#: build/panel.js:12
-msgid "Pro"
-msgstr ""
-
-#: build/panel.js:10
-msgid "Activate licence"
-msgstr ""
-
-#: build/panel.js:10
-#: build/panel.js:12
-msgid "Get Easy SVG Pro"
-msgstr ""
-
-#: build/panel.js:10
+#. translators: %d: HTTP status code.
+#: build/panel.js
 #, js-format
 msgid "Load failed (%d)"
 msgstr ""
 
-#: build/panel.js:10
+#. translators: %d: HTTP status code.
+#: build/panel.js
 #, js-format
 msgid "Save failed (%d)"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Features"
+#: build/panel.js
+msgid "Settings"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Both are off by default. The security layer (every SVG is sanitised, plus the size cap) is always on — there is no switch for it."
+#: build/panel.js
+msgid "Icon library"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Allow SVG uploads in the media library"
+#: build/panel.js
+msgid "Icon Sets"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Editors can upload .svg files; each one is sanitised on the way in."
+#: build/panel.js
+msgid "Bundle SVGs into collections and render them with the Icon block or easy_svg_icon()."
 msgstr ""
 
-#: build/panel.js:10
-msgid "Enable the icon library"
+#: build/panel.js
+msgid "Configurator"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Adds the Icon library tab and the Icon block."
+#: build/panel.js
+msgid "Extend the sanitiser allow-list for special icon libraries — with guard-rails."
 msgstr ""
 
-#: build/panel.js:10
-msgid "Security"
+#: build/panel.js
+msgid "Audit"
 msgstr ""
 
-#: build/panel.js:10
-msgid "The cap limits what the sanitiser will parse — always on, regardless of the features above."
+#: build/panel.js
+msgid "Find and clean up SVGs that did not come through the uploader."
 msgstr ""
 
-#: build/panel.js:10
-msgid "Files larger than this are rejected before the sanitiser runs."
+#: build/panel.js
+msgid "Licence"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Unsaved changes"
+#: build/panel.js
+msgid "Enter your licence key and unlock the Pro features."
 msgstr ""
 
-#: build/panel.js:10
-msgid "All changes saved"
+#: build/panel.js
+#: build/panel.js
+#: build/panel.js
+msgid "Pro"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Save"
+#: build/panel.js
+msgid "General"
 msgstr ""
 
-#: build/panel.js:10
-msgid "Saving…"
+#: build/panel.js
+msgid "SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place."
 msgstr ""
 
-#: build/panel.js:10
-msgid "Reset"
+#: build/panel.js
+msgid "Activate licence"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
+#: build/panel.js
+msgid "Get Easy SVG Pro"
+msgstr ""
+
+#: build/panel.js
 msgid "Icon added."
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Icon removed."
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "SVG file"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Add an icon"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Upload an .svg file or paste its markup. It is sanitised and hardened before it is stored — the same bar as a media upload."
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Name"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Optional — a slug is derived from it."
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "e.g. arrow-right"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "SVG markup"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Paste the <svg>…</svg>, or pick a file above."
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Preview"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Adding…"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Add"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
+#: build/panel.js
+#: build/panel.js
 msgid "Your icons"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "No icons yet"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Add your first icon with the form above."
 msgstr ""
 
-#: build/panel.js:12
+#. translators: %d: number of icons in the library.
+#: build/panel.js
 #, js-format
 msgid "%d icon in the library."
 msgid_plural "%d icons in the library."
 msgstr[0] ""
 msgstr[1] ""
 
-#: build/panel.js:12
+#. translators: %s: icon name.
+#: build/panel.js
 #, js-format
 msgid "Delete %s"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "Delete"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
+msgid "Features"
+msgstr ""
+
+#: build/panel.js
+msgid "Both are off by default. The security layer (every SVG is sanitised, plus the size cap) is always on — there is no switch for it."
+msgstr ""
+
+#: build/panel.js
+msgid "Allow SVG uploads in the media library"
+msgstr ""
+
+#: build/panel.js
+msgid "Editors can upload .svg files; each one is sanitised on the way in."
+msgstr ""
+
+#: build/panel.js
+msgid "Enable the icon library"
+msgstr ""
+
+#: build/panel.js
+msgid "Adds the Icon library tab and the Icon block."
+msgstr ""
+
+#: build/panel.js
+msgid "Security"
+msgstr ""
+
+#: build/panel.js
+msgid "The cap limits what the sanitiser will parse — always on, regardless of the features above."
+msgstr ""
+
+#: build/panel.js
+msgid "Files larger than this are rejected before the sanitiser runs."
+msgstr ""
+
+#: build/panel.js
+msgid "Unsaved changes"
+msgstr ""
+
+#: build/panel.js
+msgid "All changes saved"
+msgstr ""
+
+#: build/panel.js
+msgid "Save"
+msgstr ""
+
+#: build/panel.js
+msgid "Saving…"
+msgstr ""
+
+#: build/panel.js
+msgid "Reset"
+msgstr ""
+
+#: build/panel.js
 msgid "Easy SVG Pro"
 msgstr ""
 
-#: build/panel.js:12
+#: build/panel.js
 msgid "The agency layer for SVG icons — all right here in the panel, once Pro is active and licensed."
-msgstr ""
-
-#: build/panel.js:12
-msgid "Settings"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Icon library"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Icon Sets"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Bundle SVGs into collections and render them with the Icon block or easy_svg_icon()."
-msgstr ""
-
-#: build/panel.js:12
-msgid "Configurator"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Extend the sanitiser allow-list for special icon libraries — with guard-rails."
-msgstr ""
-
-#: build/panel.js:12
-msgid "Audit"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Find and clean up SVGs that did not come through the uploader."
-msgstr ""
-
-#: build/panel.js:12
-msgid "Licence"
-msgstr ""
-
-#: build/panel.js:12
-msgid "Enter your licence key and unlock the Pro features."
-msgstr ""
-
-#: build/panel.js:12
-msgid "General"
-msgstr ""
-
-#: build/panel.js:12
-msgid "SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place."
 msgstr ""

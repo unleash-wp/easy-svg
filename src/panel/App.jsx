@@ -168,7 +168,16 @@ export default function App({ config }) {
         lazyMount
         unmountOnExit
       >
-        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }}>
+        {/*
+          flex="1" is load-bearing: with orientation="vertical" the Tabs.Root is
+          itself a flex container, so this row is a flex ITEM and would default
+          to flex:0 1 auto — shrink-wrapping to its content instead of filling
+          the panel. Every tab was already content-sized; it only showed on a tab
+          whose content is intrinsically narrow (Pro's Icon Sets table collapsed
+          the content column to 244px beside a 240px rail). minW="0" so a wide
+          table scrolls inside the column rather than pushing the rail away.
+        */}
+        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }} flex="1" minW="0">
           <Tabs.List
             borderColor="ui.border"
             flexWrap="nowrap"

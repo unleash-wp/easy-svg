@@ -1607,6 +1607,18 @@ check(
 	'BELL: and the POT points its JS strings at the built bundle, which is what ships',
 	false !== strpos( $pot, '#: ' . $panel_src ) && false === strpos( $pot, '#: src/' )
 );
+/*
+ * Both at once, which is the part that is easy to lose. Extracting straight
+ * from the built bundle gets the reference right and throws the translators:
+ * notes away with every other comment the minifier strips -- so a placeholder
+ * reaches translate.wordpress.org as a bare %d with nothing saying what it
+ * counts. The POT is therefore extracted from source, for the comments, and
+ * its JS references are rewritten to the shipped bundle afterwards.
+ */
+check(
+	'BELL: and a JS placeholder still carries the note that says what it stands for',
+	1 === preg_match( '/^#\. translators:[^\n]*\n#: ' . preg_quote( $panel_src, '/' ) . '$/m', $pot )
+);
 
 // ─── How a release leaves this repository ────────────────────────────────────
 
