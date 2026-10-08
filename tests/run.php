@@ -344,10 +344,27 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 	return null === $doc->documentElement ? '' : (string) $doc->saveXML( $doc->documentElement );
 }
 
-$GLOBALS['media_pages'] = [];
-function add_media_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
-	$GLOBALS['media_pages'][] = $slug;
-	return 'media_page_' . $slug;
+// Admin menu registration, recorded in the order it happens -- which is the
+// property that matters here, not just that a page exists. WordPress points a
+// top-level link at whichever submenu entry was registered FIRST.
+$GLOBALS['menu_pages']    = [];   // slug => callback
+$GLOBALS['submenu_pages'] = [];   // [ parent, slug, callback ], in order
+$GLOBALS['options_pages'] = [];   // slug
+function add_menu_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '', string $icon = '', $position = null ) {
+	$GLOBALS['menu_pages'][ $slug ] = $callback;
+	return 'toplevel_page_' . $slug;
+}
+function add_submenu_page( string $parent, string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
+	$GLOBALS['submenu_pages'][] = array(
+		'parent'   => $parent,
+		'slug'     => $slug,
+		'callback' => $callback,
+	);
+	return $parent . '_page_' . $slug;
+}
+function add_options_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
+	$GLOBALS['options_pages'][] = $slug;
+	return 'settings_page_' . $slug;
 }
 
 // ─── Attachments, as far as the safety net sees them ─────────────────────────
@@ -1913,9 +1930,50 @@ $plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
 check( 'BELL: upload hooks are gated on the svg_upload toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'svg_upload'\\s*\\)/", $plugin_src ) );
 check( 'BELL: icon registration is gated on the icons toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'icons'\\s*\\)/", $plugin_src ) );
 
-// ─── The settings page registers against WordPress ───────────────────────────
-check( 'BELL: a settings page callback is on admin_menu', in_array( 'easy_svg_settings_menu', $GLOBALS['hooks']['admin_menu'] ?? array(), true ) );
-check( 'BELL: the setting is registered on admin_init', in_array( 'easy_svg_settings_register', $GLOBALS['hooks']['admin_init'] ?? array(), true ) );
+// ─── One screen for these settings, and it can be reached ────────────────────
+
+/*
+ * These three settings are edited in the Icons panel and nowhere else. A second
+ * form under Settings -> Easy SVG used to offer the same three options over the
+ * same option, so a person had two places to look for one switch and every new
+ * setting had to be built twice.
+ */
+/*
+ * Fired, not merely inspected. Asking what is in $GLOBALS['options_pages']
+ * without running `admin_menu` passes whether or not anybody registers a page,
+ * because nothing has called the callbacks yet -- a green that means nothing.
+ * Everything below reads what actually happened when WordPress asked.
+ */
+$GLOBALS['menu_pages']    = array();
+$GLOBALS['submenu_pages'] = array();
+$GLOBALS['options_pages'] = array();
+fire( 'admin_menu' );
+
+check( 'BELL: nothing registers a second settings screen under Settings', array() === $GLOBALS['options_pages'] );
+check( 'SILENCE: and the sanitiser the panel REST writes through is still here', function_exists( 'easy_svg_sanitize_settings' ) );
+
+/*
+ * Reaching it is a separate claim from having it, and this is where it broke:
+ * add_menu_page() registers NO submenu entry of its own. While nothing else
+ * nests under the slug that is invisible, because WordPress just shows the
+ * top-level link. The paid plugin nests its icon-set post type here, and then
+ * WordPress renders a submenu and points the PARENT link at its first entry --
+ * so without an explicit self-entry, registered BEFORE core adds post-type
+ * submenus on `admin_menu` at the default 10, clicking "Icons" opens a post
+ * list and the panel cannot be reached from the menu at all.
+ */
+check( 'BELL: the panel registers its top-level menu', isset( $GLOBALS['menu_pages'][ EASY_SVG_PANEL_SLUG ] ) );
+check(
+	'BELL: and its own submenu entry, which is what keeps the parent link on the panel',
+	isset( $GLOBALS['submenu_pages'][0] )
+		&& EASY_SVG_PANEL_SLUG === $GLOBALS['submenu_pages'][0]['parent']
+		&& EASY_SVG_PANEL_SLUG === $GLOBALS['submenu_pages'][0]['slug']
+		&& 'easy_svg_panel_render' === $GLOBALS['submenu_pages'][0]['callback']
+);
+check(
+	'BELL: registered before WordPress appends post-type submenus at priority 10',
+	( $GLOBALS['priorities']['admin_menu']['easy_svg_panel_menu'] ?? 10 ) < 10
+);
 
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';

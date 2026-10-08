@@ -65,7 +65,7 @@ msgstr "SVG-Icons"
 msgid "Icon added."
 msgstr "Icon hinzugefügt."
 
-#: includes/panel.php:188
+#: includes/panel.php:222
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr "Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende Buchstaben und Zahlen."
 
@@ -74,71 +74,44 @@ msgid "Name"
 msgstr "Name"
 
 #: includes/icons.php:490
-#: includes/settings.php:58
-#: includes/settings.php:59
-#: includes/settings.php:113
 msgid "Easy SVG"
 msgstr "Easy SVG"
 
-#: includes/panel.php:44
-#: includes/panel.php:45
+#: includes/panel.php:55
+#: includes/panel.php:56
+#: includes/panel.php:80
+#: includes/panel.php:81
+#: includes/settings.php:162
 #: build/panel.js
 msgid "Icons"
 msgstr "Icons"
 
-#: includes/panel.php:181
+#: includes/panel.php:215
 msgid "The sanitiser is unavailable, so nothing was stored."
 msgstr "Der Sanitizer ist nicht verfügbar, daher wurde nichts gespeichert."
 
-#: includes/panel.php:184
+#: includes/panel.php:218
 msgid "That SVG has no drawing, or could not be stored."
 msgstr "Diese SVG hat keine Zeichnung oder konnte nicht gespeichert werden."
 
-#: includes/panel.php:186
+#: includes/panel.php:220
 msgid "That is not an SVG the sanitiser accepts."
 msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
 
-#: includes/panel.php:194
+#: includes/panel.php:228
 msgid "The icon could not be added."
 msgstr "Das Icon konnte nicht hinzugefügt werden."
 
-#: includes/panel.php:225
+#: includes/panel.php:259
 msgid "Icon not found."
 msgstr "Icon nicht gefunden."
 
-#: includes/settings.php:78
-msgid "Allow SVG uploads"
-msgstr "SVG-Uploads erlauben"
-
-#: includes/settings.php:79
-msgid "Icon manager"
-msgstr "Icon-Verwaltung"
-
-#: includes/settings.php:80
 #: build/panel.js
 msgid "Maximum SVG size (MB)"
 msgstr "Maximale SVG-Größe (MB)"
 
-#: includes/settings.php:93
-msgid "Enabled"
-msgstr "Aktiviert"
-
-#: includes/settings.php:104
-msgid "MB"
-msgstr "MB"
-
-#: includes/settings.php:212
-msgid "Settings → Easy SVG"
-msgstr "Einstellungen → Easy SVG"
-
-#. translators: %s: link to the settings page.
-#: includes/settings.php:215
-#, php-format
-msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings page. Manage both under %s."
-msgstr "Easy SVG 5.0: Deine SVG-Uploads bleiben aktiv. Neu in 5.0 — eine Icon-Library und eine Einstellungsseite. Verwalte beide unter %s."
-
-#. translators: %s: link to the settings page.
-#: includes/settings.php:218
+#. translators: %s: link to the Icons panel.
+#: includes/settings.php:168
 #, php-format
 msgid "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s."
 msgstr "Easy SVG 5.0: Features sind opt-in. Aktiviere SVG-Uploads und die Icon-Library unter %s."
@@ -215,7 +188,7 @@ msgstr "Lizenz aktivieren"
 msgid "Get Easy SVG Pro"
 msgstr "Easy SVG Pro holen"
 
-#: includes/panel.php:207
+#: includes/panel.php:241
 #: build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr "Die Icon-Library ist aus. Schalte sie im Tab „Einstellungen“ ein."
@@ -358,10 +331,18 @@ msgstr "Easy SVG Pro"
 msgid "The agency layer for SVG icons — all right here in the panel, once Pro is active and licensed."
 msgstr "Die Agentur-Schicht für SVG-Icons — alles direkt hier im Panel, sobald Pro aktiv und lizenziert ist."
 
-#: includes/panel.php:190
+#: includes/panel.php:224
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr "Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe."
 
-#: includes/panel.php:192
+#: includes/panel.php:226
 msgid "That SVG has too many parts to be read safely."
 msgstr "Dieses SVG hat zu viele Teile, um sicher gelesen zu werden."
+
+#. translators: %s: link to the Icons panel.
+#: includes/settings.php:165
+#, php-format
+msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings panel. Manage both under %s."
+msgstr ""
+"Easy SVG 5.0: Deine SVG-Uploads bleiben an. Neu in 5.0 — eine Icon-Library "
+"und ein Einstellungs-Panel. Beides findest du unter %s."

@@ -35,7 +35,18 @@ function easy_svg_panel_icon_uri( string $fill ): string {
 	return 'data:image/svg+xml;base64,' . base64_encode( easy_svg_panel_icon_svg( $fill ) );
 }
 
-add_action( 'admin_menu', 'easy_svg_panel_menu' );
+/*
+ * Priority 9, before WordPress appends post-type submenus.
+ *
+ * Core hooks `_add_post_type_submenus` on `admin_menu` at the default 10
+ * (wp-includes/default-filters.php). The paid plugin nests its icon-set post
+ * type under this menu, and WordPress points a top-level link at whichever
+ * submenu entry was registered FIRST -- so at the default priority the panel's
+ * own entry lands behind the post type and clicking "Icons" opens a post list
+ * instead of the panel. Plugin load order decides it otherwise, which is not
+ * something this plugin controls.
+ */
+add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
 
@@ -48,6 +59,29 @@ function easy_svg_panel_menu(): void {
 		'easy_svg_panel_render',
 		easy_svg_panel_icon_uri( '#a7aaad' ),
 		58
+	);
+
+	/*
+	 * The panel's own entry inside its submenu, and it is not decoration.
+	 *
+	 * add_menu_page() alone registers no submenu item. While nothing else hangs
+	 * under this slug WordPress simply shows the top-level link, so the panel
+	 * opens and the omission is invisible. The moment something does nest here
+	 * -- the paid plugin puts its icon sets under this slug -- WordPress renders
+	 * the submenu and points the PARENT link at its first entry. Without this
+	 * call that first entry is the icon-set list, so clicking "Icons" lands on a
+	 * post list and the panel cannot be reached from the menu at all.
+	 *
+	 * Same slug and same callback as the parent, which is what makes it the
+	 * self-entry rather than a second page.
+	 */
+	add_submenu_page(
+		EASY_SVG_PANEL_SLUG,
+		__( 'Icons', 'easy-svg' ),
+		__( 'Icons', 'easy-svg' ),
+		'manage_options',
+		EASY_SVG_PANEL_SLUG,
+		'easy_svg_panel_render'
 	);
 }
 

@@ -49,73 +49,20 @@ function easy_svg_feature_enabled( string $key ): bool {
 	return ! empty( $settings[ $key ] );
 }
 
-add_action( 'admin_menu', 'easy_svg_settings_menu' );
-add_action( 'admin_init', 'easy_svg_settings_register' );
-
-/** Settings -> Easy SVG. */
-function easy_svg_settings_menu(): void {
-	add_options_page(
-		__( 'Easy SVG', 'easy-svg' ),
-		__( 'Easy SVG', 'easy-svg' ),
-		'manage_options',
-		'easy-svg',
-		'easy_svg_settings_render'
-	);
-}
-
-/** Register the option, its sanitiser, and the fields. */
-function easy_svg_settings_register(): void {
-	register_setting(
-		'easy_svg',
-		EASY_SVG_SETTINGS_OPTION,
-		array(
-			'type'              => 'array',
-			'sanitize_callback' => 'easy_svg_sanitize_settings',
-			'default'           => easy_svg_settings_defaults(),
-		)
-	);
-	add_settings_section( 'easy_svg_main', '', '__return_null', 'easy-svg' );
-	add_settings_field( 'svg_upload', __( 'Allow SVG uploads', 'easy-svg' ), 'easy_svg_field_toggle', 'easy-svg', 'easy_svg_main', array( 'key' => 'svg_upload' ) );
-	add_settings_field( 'icons', __( 'Icon manager', 'easy-svg' ), 'easy_svg_field_toggle', 'easy-svg', 'easy_svg_main', array( 'key' => 'icons' ) );
-	add_settings_field( 'max_mb', __( 'Maximum SVG size (MB)', 'easy-svg' ), 'easy_svg_field_max_mb', 'easy-svg', 'easy_svg_main' );
-}
-
-/** A single on/off checkbox bound to one settings key. */
-function easy_svg_field_toggle( array $args ): void {
-	$key      = (string) ( $args['key'] ?? '' );
-	$settings = easy_svg_settings();
-	$on       = ! empty( $settings[ $key ] );
-	printf(
-		'<label><input type="checkbox" name="%1$s[%2$s]" value="1"%3$s> %4$s</label>',
-		esc_attr( EASY_SVG_SETTINGS_OPTION ),
-		esc_attr( $key ),
-		checked( $on, true, false ),
-		esc_html__( 'Enabled', 'easy-svg' )
-	);
-}
-
-/** The megabyte ceiling, 1..20. */
-function easy_svg_field_max_mb(): void {
-	$settings = easy_svg_settings();
-	printf(
-		'<input type="number" min="1" max="20" step="1" name="%1$s[max_mb]" value="%2$d"> %3$s',
-		esc_attr( EASY_SVG_SETTINGS_OPTION ),
-		(int) $settings['max_mb'],
-		esc_html__( 'MB', 'easy-svg' )
-	);
-}
-
-/** The page shell. */
-function easy_svg_settings_render(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		return;
-	}
-	echo '<div class="wrap"><h1>' . esc_html__( 'Easy SVG', 'easy-svg' ) . '</h1><form action="options.php" method="post">';
-	settings_fields( 'easy_svg' );
-	do_settings_sections( 'easy-svg' );
-	submit_button();
-	echo '</form></div>';
-}
+/*
+ * There is no screen in this file any more.
+ *
+ * These three settings are edited in one place, the Icons panel's own Settings
+ * tab, which writes them through the panel's REST route. A second form under
+ * Settings -> Easy SVG offered the same three options over the same option, so
+ * every future setting would have had to be built twice and kept in step -- and
+ * a person had two places to look for one switch.
+ *
+ * What stays here is the data: the defaults, the reader, the feature test, and
+ * the sanitiser the REST route calls on every write. `register_setting()` went
+ * with the form it belonged to; nothing posts to `options.php` for this option
+ * now.
+ */
 
 /**
  * Booleans are booleans; the size is an integer megabyte in 1..20.
@@ -209,12 +156,16 @@ function easy_svg_migration_notice(): void {
 		return;
 	}
 	delete_transient( 'easy_svg_5_notice' );
-	$link = '<a href="' . esc_url( admin_url( 'options-general.php?page=easy-svg' ) ) . '">' . esc_html__( 'Settings → Easy SVG', 'easy-svg' ) . '</a>';
+	// Points at the panel. This used to link to Settings -> Easy SVG, which no
+	// longer exists -- a welcome notice whose one link 404s is worse than none.
+	// Built from the constant, never from a copy of the slug: one file registers
+	// that page, and a test asserts the string appears in that file alone.
+	$link = '<a href="' . esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ) . '">' . esc_html__( 'Icons', 'easy-svg' ) . '</a>';
 	if ( 'kept' === $state ) {
-		/* translators: %s: link to the settings page. */
-		$msg = sprintf( __( 'Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings page. Manage both under %s.', 'easy-svg' ), $link );
+		/* translators: %s: link to the Icons panel. */
+		$msg = sprintf( __( 'Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings panel. Manage both under %s.', 'easy-svg' ), $link );
 	} else {
-		/* translators: %s: link to the settings page. */
+		/* translators: %s: link to the Icons panel. */
 		$msg = sprintf( __( 'Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s.', 'easy-svg' ), $link );
 	}
 	echo '<div class="notice notice-info is-dismissible"><p>' . wp_kses_post( $msg ) . '</p></div>';
