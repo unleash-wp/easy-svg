@@ -203,8 +203,18 @@ export default function App({ config }) {
             py={{ base: '5', md: '6' }}
             mt={{ base: '5', md: '0' }}
           >
+            {/*
+              _closed hides a panel that is in the DOM but not current.
+              lazyMount/unmountOnExit on the Root are a render strategy, not a
+              guarantee: a panel already mounted stayed mounted AND visible after
+              the tab changed, so clicking a second tab left the first tab's
+              content on screen and pushed the new one a full 1212px below it.
+              Measured in the panel: 2610px of page with two panels stacked,
+              982px once closed ones are hidden. One declaration, and it does
+              not depend on ark's internals.
+            */}
             {tabs.map((t) => (
-              <Tabs.Content key={t.id} value={t.id} p="0">
+              <Tabs.Content key={t.id} value={t.id} p="0" _closed={{ display: 'none' }}>
                 {t.render(ctx)}
               </Tabs.Content>
             ))}

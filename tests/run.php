@@ -1975,6 +1975,24 @@ check(
 	( $GLOBALS['priorities']['admin_menu']['easy_svg_panel_menu'] ?? 10 ) < 10
 );
 
+/*
+ * A tab that is not current must not be on screen.
+ *
+ * `lazyMount` / `unmountOnExit` are a render STRATEGY, not a guarantee: a panel
+ * that had already been mounted stayed mounted and visible after the tab
+ * changed, so clicking a second tab left the first tab's content in place and
+ * pushed the new one a full screen below it. Measured in the running panel:
+ * 2610 px of page with two panels stacked, 982 px once closed ones are hidden.
+ * The hide is one declaration on the content and does not depend on the tab
+ * library's internals; this asserts it is still there, because the symptom is
+ * "the panel looks broken" rather than any error.
+ */
+$app_jsx = (string) @file_get_contents( $root . '/src/panel/App.jsx' );
+check(
+	'BELL: a tab panel that is not current is hidden, not merely unmounted-in-theory',
+	1 === preg_match( '/_closed=\{\{\s*display:\s*[\'"]none[\'"]/', $app_jsx )
+);
+
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
 file_put_contents( $dim_path, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect/></svg>' );
