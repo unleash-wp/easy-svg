@@ -15,11 +15,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 const EASY_SVG_PANEL_SLUG = 'easy-svg-icons';
 
-/** A placeholder 2x2 icon-grid mark until the real square UnleashWP icon lands. */
+/**
+ * The "Icons" mark: a small set of tiles, one a circle, so it reads as a
+ * collection of icons rather than a generic app grid. Monochrome on purpose --
+ * WordPress tints the menu icon by state, and the panel header passes the brand
+ * navy, so the shape takes a single $fill and is coloured by its context. The
+ * forge radius matches the UnleashWP design system. Drop-in replaceable if the
+ * official UnleashWP glyph is supplied: same signature, same square viewBox.
+ */
 function easy_svg_panel_icon_svg( string $fill ): string {
-	return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><g fill="' . $fill . '">'
-		. '<rect x="2" y="2" width="7" height="7" rx="1.6"/><rect x="11" y="2" width="7" height="7" rx="1.6"/>'
-		. '<rect x="2" y="11" width="7" height="7" rx="1.6"/><rect x="11" y="11" width="7" height="7" rx="1.6"/>'
+	return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="' . $fill . '">'
+		. '<rect x="3" y="3" width="8" height="8" rx="2.4"/>'
+		. '<circle cx="17" cy="7" r="4"/>'
+		. '<rect x="3" y="13" width="8" height="8" rx="2.4"/>'
+		. '<rect x="13" y="13" width="8" height="8" rx="2.4"/>'
 		. '</g></svg>';
 }
 function easy_svg_panel_icon_uri( string $fill ): string {
