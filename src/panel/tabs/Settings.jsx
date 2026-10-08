@@ -1,9 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Stack, Box, Switch } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
+
+// The ceiling the server clamps to (includes/settings.php). Named once here so
+// the field's own `max` and the value sent on save cannot drift apart: typing 999
+// used to pass the field's max silently and come back as 20 from the server.
+const MAX_MB = 20
 
 // Coerce the server payload to a stable shape. max_mb MUST be a Number: useDirty
 // compares with Object.is, and a string '2' never equals the number 2, so a raw
@@ -82,7 +87,7 @@ export default function Settings({ ctx }) {
       const resp = await api.post('/settings', {
         svg_upload: !!form.svg_upload,
         icons: !!form.icons,
-        max_mb: Math.max(1, Number(form.max_mb) || 2),
+        max_mb: Math.min(MAX_MB, Math.max(1, Number(form.max_mb) || 2)),
       })
       const n = normalize(resp)
       setForm(n)
@@ -135,7 +140,7 @@ export default function Settings({ ctx }) {
                 id="esw-setting-max-mb"
                 type="number"
                 min="1"
-                max="20"
+                max={String(MAX_MB)}
                 value={form.max_mb}
                 onChange={(e) => set('max_mb', e.target.value === '' ? '' : Number(e.target.value))}
               />

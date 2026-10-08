@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Stack, HStack, SimpleGrid, Box, Text, Textarea } from '@chakra-ui/react'
 import DOMPurify from 'dompurify'
 import { __, _n, sprintf } from '@wordpress/i18n'

@@ -1,4 +1,3 @@
-import React from 'react'
 import { Stack, HStack, Text, Box } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { Section, Button } from '../../ui.jsx'

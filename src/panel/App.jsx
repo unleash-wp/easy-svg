@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Flex, HStack, Heading, Text, Tabs, Image, useBreakpointValue } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { getRegistry } from './registry.js'

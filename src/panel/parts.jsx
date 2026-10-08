@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box, HStack, Stack, Text, Heading } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { Button, Card, ProBadge } from '../ui.jsx'
