@@ -1,38 +1,92 @@
-import React, { useEffect, useState } from 'react'
-import { Stack, HStack, Text, Switch, Box } from '@chakra-ui/react'
-import { Button, Card, TextInput } from '../../ui.jsx'
-import { Notice, Loading } from '../parts.jsx'
+import React, { useEffect, useRef, useState } from 'react'
+import { Stack, Box, Switch } from '@chakra-ui/react'
+import { __ } from '@wordpress/i18n'
+import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
+import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
+
+// Coerce the server payload to a stable shape. max_mb MUST be a Number: useDirty
+// compares with Object.is, and a string '2' never equals the number 2, so a raw
+// input value would read dirty forever.
+const normalize = (s) => {
+  const mb = Number(s?.max_mb)
+  return {
+    svg_upload: !!s?.svg_upload,
+    icons: !!s?.icons,
+    max_mb: Number.isFinite(mb) ? mb : 2,
+  }
+}
+
+// A switch presented as a FieldRow: the row's <label htmlFor> drives the switch's
+// hidden input, so the accessible name is just the label (the description stays
+// out of it) and clicking the label toggles the switch.
+function ToggleRow({ id, checked, onChange, label, description }) {
+  return (
+    <FieldRow
+      label={label}
+      description={description}
+      htmlFor={id}
+      control={
+        <Switch.Root
+          ids={{ hiddenInput: id }}
+          checked={checked}
+          onCheckedChange={(e) => onChange(e.checked)}
+          colorPalette="brand"
+        >
+          <Switch.HiddenInput />
+          <Switch.Control><Switch.Thumb /></Switch.Control>
+        </Switch.Root>
+      }
+    />
+  )
+}
 
 export default function Settings({ ctx }) {
   const api = makeApi(ctx)
-  const [s, setS] = useState(null)
+  const [form, setForm] = useState(null)
+  const snap = useRef(null)
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    api.get('/settings').then(setS).catch((e) => setErr(e.message))
+    api
+      .get('/settings')
+      .then((data) => {
+        const n = normalize(data)
+        snap.current = n
+        setForm(n)
+      })
+      .catch((e) => setErr(e.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (err && !s) return <Notice bad>{err}</Notice>
-  if (!s) return <Loading />
+  const { dirty, markSaved } = useDirty(form, snap)
 
-  const set = (k, v) => {
-    setS({ ...s, [k]: v })
-    setSaved(false)
+  if (err && !form) {
+    return <Notice bad role="alert">{err}</Notice>
   }
+  if (!form) {
+    return (
+      <Stack gap="5" maxW="760px">
+        <SkeletonRows rows={3} />
+      </Stack>
+    )
+  }
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   async function save() {
     setSaving(true)
     setErr('')
     try {
-      setS(await api.post('/settings', {
-        svg_upload: !!s.svg_upload,
-        icons: !!s.icons,
-        max_mb: Math.max(1, Number(s.max_mb) || 2),
-      }))
-      setSaved(true)
+      const resp = await api.post('/settings', {
+        svg_upload: !!form.svg_upload,
+        icons: !!form.icons,
+        max_mb: Math.max(1, Number(form.max_mb) || 2),
+      })
+      const n = normalize(resp)
+      setForm(n)
+      markSaved(n)
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -40,47 +94,69 @@ export default function Settings({ ctx }) {
     }
   }
 
+  function reset() {
+    setForm(snap.current)
+    setErr('')
+  }
+
   return (
-    <Stack gap="5" maxW="640px">
-      <Card>
-        <Stack gap="4">
-          <Text fontWeight="600" color="ui.text">Features</Text>
-          <Text fontSize="sm" color="ui.muted">
-            Beide standardmäßig aus. Die Sicherheit (Bereinigung jeder SVG + Größen-Cap) ist immer aktiv — kein Schalter.
-          </Text>
-          <Switch.Root checked={!!s.svg_upload} onCheckedChange={(e) => set('svg_upload', e.checked)} colorPalette="brand">
-            <Switch.HiddenInput />
-            <Switch.Control><Switch.Thumb /></Switch.Control>
-            <Switch.Label fontSize="sm">SVG-Uploads in der Mediathek erlauben</Switch.Label>
-          </Switch.Root>
-          <Switch.Root checked={!!s.icons} onCheckedChange={(e) => set('icons', e.checked)} colorPalette="brand">
-            <Switch.HiddenInput />
-            <Switch.Control><Switch.Thumb /></Switch.Control>
-            <Switch.Label fontSize="sm">Icon-Library aktivieren</Switch.Label>
-          </Switch.Root>
-        </Stack>
-      </Card>
+    <Stack gap="5" maxW="760px">
+      <Section
+        title={__('Features', 'easy-svg')}
+        description={__('Both are off by default. The security layer (every SVG is sanitised, plus the size cap) is always on — there is no switch for it.', 'easy-svg')}
+      >
+        <ToggleRow
+          id="esw-setting-svg-upload"
+          checked={!!form.svg_upload}
+          onChange={(v) => set('svg_upload', v)}
+          label={__('Allow SVG uploads in the media library', 'easy-svg')}
+          description={__('Editors can upload .svg files; each one is sanitised on the way in.', 'easy-svg')}
+        />
+        <ToggleRow
+          id="esw-setting-icons"
+          checked={!!form.icons}
+          onChange={(v) => set('icons', v)}
+          label={__('Enable the icon library', 'easy-svg')}
+          description={__('Adds the Icon library tab and the Icon block.', 'easy-svg')}
+        />
+      </Section>
 
-      <Card>
-        <Stack gap="3">
-          <Text fontWeight="600" color="ui.text">Sicherheit</Text>
-          <HStack gap="3">
-            <Text fontSize="sm" color="ui.muted" minW="160px">Maximale SVG-Größe (MB)</Text>
+      <Section
+        title={__('Security', 'easy-svg')}
+        description={__('The cap limits what the sanitiser will parse — always on, regardless of the features above.', 'easy-svg')}
+      >
+        <FieldRow
+          label={__('Maximum SVG size (MB)', 'easy-svg')}
+          description={__('Files larger than this are rejected before the sanitiser runs.', 'easy-svg')}
+          htmlFor="esw-setting-max-mb"
+          control={
             <Box maxW="120px">
-              <TextInput type="number" min="1" max="20" value={s.max_mb} onChange={(e) => set('max_mb', e.target.value)} />
+              <TextInput
+                id="esw-setting-max-mb"
+                type="number"
+                min="1"
+                max="20"
+                value={form.max_mb}
+                onChange={(e) => set('max_mb', e.target.value === '' ? '' : Number(e.target.value))}
+              />
             </Box>
-          </HStack>
-          <Text fontSize="xs" color="ui.muted">
-            Der Cap begrenzt, was der Sanitizer parst — immer aktiv, unabhängig von den Features oben.
-          </Text>
-        </Stack>
-      </Card>
+          }
+        />
+      </Section>
 
-      {err ? <Notice bad>{err}</Notice> : null}
-      <HStack gap="3">
-        <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Speichert…' : 'Speichern'}</Button>
-        {saved ? <Text color="ui.good" fontSize="sm">Gespeichert</Text> : null}
-      </HStack>
+      {err ? <Notice bad role="alert">{err}</Notice> : null}
+
+      <SaveBar
+        dirty={dirty}
+        saving={saving}
+        onSave={save}
+        onReset={reset}
+        dirtyLabel={__('Unsaved changes', 'easy-svg')}
+        savedLabel={__('All changes saved', 'easy-svg')}
+        saveLabel={__('Save', 'easy-svg')}
+        savingLabel={__('Saving…', 'easy-svg')}
+        resetLabel={__('Reset', 'easy-svg')}
+      />
     </Stack>
   )
 }

@@ -1,3 +1,5 @@
+import { __, sprintf } from '@wordpress/i18n'
+
 // Thin REST client for the panel. Nonce rides X-WP-Nonce; credentials stay
 // same-origin so the logged-in admin cookie authenticates. Free routes live
 // under easy-svg/v1; a ctx from the panel carries { restRoot, nonce }.
@@ -15,7 +17,10 @@ export function makeApi({ restRoot, nonce }, namespace = 'easy-svg/v1') {
   }
   async function get(path) {
     const r = await fetch(`${base}${path}`, { headers, credentials: 'same-origin' })
-    if (!r.ok) throw new Error(await readError(r, `Load failed (${r.status})`))
+    if (!r.ok) {
+      // translators: %d: HTTP status code.
+      throw new Error(await readError(r, sprintf(__('Load failed (%d)', 'easy-svg'), r.status)))
+    }
     return r.json()
   }
   async function post(path, body) {
@@ -25,7 +30,10 @@ export function makeApi({ restRoot, nonce }, namespace = 'easy-svg/v1') {
       credentials: 'same-origin',
       body: JSON.stringify(body || {}),
     })
-    if (!r.ok) throw new Error(await readError(r, `Save failed (${r.status})`))
+    if (!r.ok) {
+      // translators: %d: HTTP status code.
+      throw new Error(await readError(r, sprintf(__('Save failed (%d)', 'easy-svg'), r.status)))
+    }
     return r.json()
   }
   return { get, post }

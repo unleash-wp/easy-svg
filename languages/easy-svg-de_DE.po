@@ -1,40 +1,424 @@
+# Copyright (C) 2026 UnleashWP
+# This file is distributed under the GPL-3.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Easy SVG Support\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-05-29 17:45+0000\n"
-"PO-Revision-Date: 2022-05-29 17:48+0000\n"
-"Last-Translator: \n"
-"Language-Team: Deutsch\n"
-"Language: de_DE\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"Project-Id-Version: Easy SVG Support 5.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
+"Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
+"Language-Team: Deutsch <de_DE@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Loco https://localise.biz/\n"
-"X-Loco-Version: 2.6.2; wp-6.0\n"
-"X-Domain: easy-svg"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"POT-Creation-Date: 2026-10-08T19:15:01+00:00\n"
+"PO-Revision-Date: 2026-10-08 20:00+0000\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: easy-svg\n"
+
+#. Plugin Name of the plugin
+#: easy-svg.php
+msgid "Easy SVG Support"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: easy-svg.php
+msgid "https://wordpress.org/plugins/easy-svg/"
+msgstr ""
 
 #. Description of the plugin
-msgid "Add SVG Support for WordPress."
-msgstr "Fügt SVG-Unterstützung für WordPress hinzu."
+#: easy-svg.php
+msgid "Add SVG support for WordPress."
+msgstr "Fügt WordPress SVG-Unterstützung hinzu."
 
 #. Author of the plugin
-msgid "Benjamin Zekavica"
-msgstr "Benjamin Zekavica"
-
-#. Name of the plugin
-msgid "Easy SVG Support"
-msgstr "Easy SVG Support"
-
-#. URI of the plugin
-msgid "https://wordpress.org/plugins/easy-svg/"
-msgstr "https://wordpress.org/plugins/easy-svg/"
+#: easy-svg.php
+msgid "UnleashWP"
+msgstr ""
 
 #. Author URI of the plugin
-msgid "https://www.benjamin-zekavica.de"
-msgstr "https://www.benjamin-zekavica.de"
+#: easy-svg.php
+msgid "https://www.unleash-wp.com"
+msgstr ""
 
-#: easy-svg.php:102
-msgid "Sorry, please check your file"
-msgstr "Entschuldigung, bitte überprüfe deine Datei und lade Sie erneut hoch."
+#. translators: %s: path of the file the older sanitizer was loaded from
+#: easy-svg.php:358
+#, php-format
+msgid "Easy SVG Support: another plugin has loaded an older version of the SVG sanitizer (%s) before this plugin could load its own, so SVG uploads are being sanitized with that older version. Please update or deactivate the plugin it belongs to."
+msgstr "Easy SVG Support: Ein anderes Plugin hat eine ältere Version des SVG-Sanitizers (%s) geladen, bevor dieses Plugin seine eigene laden konnte, daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte aktualisiere oder deaktiviere das zugehörige Plugin."
+
+#: easy-svg.php:510
+msgid "Sorry, this SVG file is not allowed for security reasons."
+msgstr "Diese SVG-Datei ist aus Sicherheitsgründen leider nicht erlaubt."
+
+#: easy-svg.php:518
+msgid "Sorry, please check your SVG file."
+msgstr "Bitte überprüfe deine SVG-Datei."
+
+#: easy-svg.php:669
+msgid "This SVG file contains content this site does not allow. Please upload it through the media library, which cleans it."
+msgstr "Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte lade sie über die Mediathek hoch, die sie bereinigt."
+
+#: includes/icon-manager.php:66
+#: includes/icon-manager.php:268
+#: includes/icon-manager.php:269
+#: includes/icon-manager.php:583
+msgid "SVG icons"
+msgstr "SVG-Icons"
+
+#: includes/icon-manager.php:290
+#: includes/icon-manager.php:403
+msgid "You are not allowed to do this."
+msgstr "Dazu bist du nicht berechtigt."
+
+#. translators: %d: how many icons this site has
+#: includes/icon-manager.php:435
+#, php-format
+msgid "%d icon. They appear in the Icon block."
+msgid_plural "%d icons. They appear in the Icon block."
+msgstr[0] "%d Icon. Es erscheint im Icon-Block."
+msgstr[1] "%d Icons. Sie erscheinen im Icon-Block."
+
+#: includes/icon-manager.php:443
+#: src/panel/tabs/Library.jsx:50
+msgid "Icon added."
+msgstr "Icon hinzugefügt."
+
+#: includes/icon-manager.php:444
+msgid "Icon removed. Pages already using it will show nothing where it was."
+msgstr "Icon entfernt. Seiten, die es bereits verwenden, zeigen an der Stelle nichts mehr an."
+
+#: includes/icon-manager.php:445
+msgid "That name cannot be turned into an icon name. Use letters and numbers."
+msgstr "Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende Buchstaben und Zahlen."
+
+#: includes/icon-manager.php:446
+msgid "No file was uploaded."
+msgstr "Es wurde keine Datei hochgeladen."
+
+#: includes/icon-manager.php:447
+msgid "That file could not be read as an SVG, so nothing was stored."
+msgstr "Diese Datei konnte nicht als SVG gelesen werden, daher wurde nichts gespeichert."
+
+#: includes/icon-manager.php:448
+msgid "The SVG sanitiser did not load, so nothing was checked and nothing was stored."
+msgstr "Der SVG-Sanitizer wurde nicht geladen, daher wurde nichts geprüft und nichts gespeichert."
+
+#: includes/icon-manager.php:449
+msgid "WordPress could not save the icon, so nothing was stored. Please try again."
+msgstr "WordPress konnte das Icon nicht speichern, daher wurde nichts gespeichert. Bitte versuche es erneut."
+
+#: includes/icon-manager.php:607
+#: includes/icon-manager.php:638
+#: src/panel/tabs/Library.jsx:90
+msgid "Name"
+msgstr "Name"
+
+#: includes/icon-manager.php:609
+msgid "Add icon"
+msgstr "Icon hinzufügen"
+
+#: includes/icon-manager.php:637
+msgid "Icon"
+msgstr "Icon"
+
+#: includes/icon-manager.php:639
+msgid "Used as"
+msgstr "Verwendet als"
+
+#: includes/icon-manager.php:654
+msgid "Remove"
+msgstr "Entfernen"
+
+#: includes/icons.php:467
+#: includes/settings.php:58
+#: includes/settings.php:59
+#: includes/settings.php:113
+msgid "Easy SVG"
+msgstr "Easy SVG"
+
+#: includes/panel.php:44
+#: includes/panel.php:45
+#: src/panel/App.jsx:130
+msgid "Icons"
+msgstr "Icons"
+
+#: includes/panel.php:172
+msgid "The sanitiser is unavailable, so nothing was stored."
+msgstr "Der Sanitizer ist nicht verfügbar, daher wurde nichts gespeichert."
+
+#: includes/panel.php:175
+msgid "That SVG has no drawing, or could not be stored."
+msgstr "Diese SVG hat keine Zeichnung oder konnte nicht gespeichert werden."
+
+#: includes/panel.php:177
+msgid "That is not an SVG the sanitiser accepts."
+msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
+
+#: includes/panel.php:179
+msgid "The icon could not be added."
+msgstr "Das Icon konnte nicht hinzugefügt werden."
+
+#: includes/panel.php:189
+msgid "The icon library is off. Switch it on under Einstellungen."
+msgstr "Die Icon-Library ist aus. Schalte sie unter Einstellungen ein."
+
+#: includes/panel.php:207
+msgid "Icon not found."
+msgstr "Icon nicht gefunden."
+
+#: includes/settings.php:78
+msgid "Allow SVG uploads"
+msgstr "SVG-Uploads erlauben"
+
+#: includes/settings.php:79
+msgid "Icon manager"
+msgstr "Icon-Verwaltung"
+
+#: includes/settings.php:80
+#: src/panel/tabs/Settings.jsx:129
+msgid "Maximum SVG size (MB)"
+msgstr "Maximale SVG-Größe (MB)"
+
+#: includes/settings.php:93
+msgid "Enabled"
+msgstr "Aktiviert"
+
+#: includes/settings.php:104
+msgid "MB"
+msgstr "MB"
+
+#: includes/settings.php:212
+msgid "Settings → Easy SVG"
+msgstr "Einstellungen → Easy SVG"
+
+#. translators: %s: link to the settings page.
+#: includes/settings.php:215
+#, php-format
+msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a settings page. Manage both under %s."
+msgstr "Easy SVG 5.0: Deine SVG-Uploads bleiben aktiv. Neu in 5.0 — eine Icon-Library und eine Einstellungsseite. Verwalte beide unter %s."
+
+#. translators: %s: link to the settings page.
+#: includes/settings.php:218
+#, php-format
+msgid "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s."
+msgstr "Easy SVG 5.0: Features sind opt-in. Aktiviere SVG-Uploads und die Icon-Library unter %s."
+
+#. translators: %d: HTTP status code.
+#: src/panel/api.js:22
+#, js-format
+msgid "Load failed (%d)"
+msgstr "Laden fehlgeschlagen (%d)"
+
+#. translators: %d: HTTP status code.
+#: src/panel/api.js:35
+#, js-format
+msgid "Save failed (%d)"
+msgstr "Speichern fehlgeschlagen (%d)"
+
+#: src/panel/App.jsx:14
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: src/panel/App.jsx:15
+msgid "Icon library"
+msgstr "Icon-Library"
+
+#: src/panel/App.jsx:21
+msgid "Icon Sets"
+msgstr "Icon Sets"
+
+#: src/panel/App.jsx:21
+msgid "Bundle SVGs into collections and render them with the Icon block or easy_svg_icon()."
+msgstr "Bündele SVGs zu Collections und rendere sie per Icon-Block oder easy_svg_icon()."
+
+#: src/panel/App.jsx:22
+msgid "Configurator"
+msgstr "Configurator"
+
+#: src/panel/App.jsx:22
+msgid "Extend the sanitiser allow-list for special icon libraries — with guard-rails."
+msgstr "Erweitere die Sanitizer-Allow-Liste für spezielle Icon-Bibliotheken — mit Guard-Rails."
+
+#: src/panel/App.jsx:23
+msgid "Audit"
+msgstr "Audit"
+
+#: src/panel/App.jsx:23
+msgid "Find and clean up SVGs that did not come through the uploader."
+msgstr "Finde und säubere SVGs, die nicht über den Uploader kamen."
+
+#: src/panel/App.jsx:24
+msgid "Licence"
+msgstr "Lizenz"
+
+#: src/panel/App.jsx:24
+msgid "Enter your licence key and unlock the Pro features."
+msgstr "Lizenzschlüssel eingeben und Pro-Features freischalten."
+
+#: src/panel/App.jsx:27
+#: src/panel/App.jsx:82
+#: src/panel/parts.jsx:42
+msgid "Pro"
+msgstr "Pro"
+
+#: src/panel/App.jsx:82
+msgid "General"
+msgstr "Allgemein"
+
+#: src/panel/App.jsx:133
+msgid "SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place."
+msgstr "SVG-Uploads, Icon-Library und — mit Pro — Collections, Configurator, Audit und Lizenz, alles an einem Ort."
+
+#: src/panel/parts.jsx:50
+msgid "Activate licence"
+msgstr "Lizenz aktivieren"
+
+#: src/panel/parts.jsx:50
+#: src/panel/tabs/Upsell.jsx:29
+msgid "Get Easy SVG Pro"
+msgstr "Easy SVG Pro holen"
+
+#: src/panel/tabs/Library.jsx:38
+msgid "The icon library is off. Switch it on under the Settings tab."
+msgstr "Die Icon-Library ist aus. Schalte sie im Tab „Einstellungen“ ein."
+
+#: src/panel/tabs/Library.jsx:63
+msgid "Icon removed."
+msgstr "Icon entfernt."
+
+#: src/panel/tabs/Library.jsx:81
+msgid "SVG file"
+msgstr "SVG-Datei"
+
+#: src/panel/tabs/Library.jsx:86
+msgid "Add an icon"
+msgstr "Icon hinzufügen"
+
+#: src/panel/tabs/Library.jsx:87
+msgid "Upload an .svg file or paste its markup. It is sanitised and hardened before it is stored — the same bar as a media upload."
+msgstr "Lade eine .svg-Datei hoch oder füge ihr Markup ein. Sie wird vor dem Speichern bereinigt und gehärtet — dieselbe Hürde wie beim Medien-Upload."
+
+#: src/panel/tabs/Library.jsx:91
+msgid "Optional — a slug is derived from it."
+msgstr "Optional — daraus wird ein Slug abgeleitet."
+
+#: src/panel/tabs/Library.jsx:97
+msgid "e.g. arrow-right"
+msgstr "z. B. pfeil-rechts"
+
+#: src/panel/tabs/Library.jsx:119
+msgid "SVG markup"
+msgstr "SVG-Markup"
+
+#: src/panel/tabs/Library.jsx:120
+msgid "Paste the <svg>…</svg>, or pick a file above."
+msgstr "Füge das <svg>…</svg> ein oder wähle oben eine Datei."
+
+#: src/panel/tabs/Library.jsx:139
+msgid "Preview"
+msgstr "Vorschau"
+
+#: src/panel/tabs/Library.jsx:155
+msgid "Adding…"
+msgstr "Fügt hinzu…"
+
+#: src/panel/tabs/Library.jsx:155
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: src/panel/tabs/Library.jsx:166
+#: src/panel/tabs/Library.jsx:170
+#: src/panel/tabs/Library.jsx:178
+msgid "Your icons"
+msgstr "Deine Icons"
+
+#: src/panel/tabs/Library.jsx:172
+msgid "No icons yet"
+msgstr "Noch keine Icons"
+
+#: src/panel/tabs/Library.jsx:173
+msgid "Add your first icon with the form above."
+msgstr "Füge mit dem Formular oben dein erstes Icon hinzu."
+
+#. translators: %d: number of icons in the library.
+#: src/panel/tabs/Library.jsx:181
+#, js-format
+msgid "%d icon in the library."
+msgid_plural "%d icons in the library."
+msgstr[0] "%d Icon in der Library."
+msgstr[1] "%d Icons in der Library."
+
+#. translators: %s: icon name.
+#: src/panel/tabs/Library.jsx:214
+#, js-format
+msgid "Delete %s"
+msgstr "%s löschen"
+
+#: src/panel/tabs/Library.jsx:217
+msgid "Delete"
+msgstr "Löschen"
+
+#: src/panel/tabs/Settings.jsx:105
+msgid "Features"
+msgstr "Features"
+
+#: src/panel/tabs/Settings.jsx:106
+msgid "Both are off by default. The security layer (every SVG is sanitised, plus the size cap) is always on — there is no switch for it."
+msgstr "Beide sind standardmäßig aus. Die Sicherheitsschicht (jede SVG wird bereinigt, plus das Größen-Limit) ist immer aktiv — dafür gibt es keinen Schalter."
+
+#: src/panel/tabs/Settings.jsx:112
+msgid "Allow SVG uploads in the media library"
+msgstr "SVG-Uploads in der Mediathek erlauben"
+
+#: src/panel/tabs/Settings.jsx:113
+msgid "Editors can upload .svg files; each one is sanitised on the way in."
+msgstr "Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
+
+#: src/panel/tabs/Settings.jsx:119
+msgid "Enable the icon library"
+msgstr "Icon-Library aktivieren"
+
+#: src/panel/tabs/Settings.jsx:120
+msgid "Adds the Icon library tab and the Icon block."
+msgstr "Fügt den Tab „Icon-Library“ und den Icon-Block hinzu."
+
+#: src/panel/tabs/Settings.jsx:125
+msgid "Security"
+msgstr "Sicherheit"
+
+#: src/panel/tabs/Settings.jsx:126
+msgid "The cap limits what the sanitiser will parse — always on, regardless of the features above."
+msgstr "Das Limit begrenzt, was der Sanitizer parst — immer aktiv, unabhängig von den Features oben."
+
+#: src/panel/tabs/Settings.jsx:130
+msgid "Files larger than this are rejected before the sanitiser runs."
+msgstr "Größere Dateien werden abgewiesen, bevor der Sanitizer läuft."
+
+#: src/panel/tabs/Settings.jsx:154
+msgid "Unsaved changes"
+msgstr "Ungespeicherte Änderungen"
+
+#: src/panel/tabs/Settings.jsx:155
+msgid "All changes saved"
+msgstr "Alle Änderungen gespeichert"
+
+#: src/panel/tabs/Settings.jsx:156
+msgid "Save"
+msgstr "Speichern"
+
+#: src/panel/tabs/Settings.jsx:157
+msgid "Saving…"
+msgstr "Speichert…"
+
+#: src/panel/tabs/Settings.jsx:158
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+#: src/panel/tabs/Upsell.jsx:10
+msgid "Easy SVG Pro"
+msgstr "Easy SVG Pro"
+
+#: src/panel/tabs/Upsell.jsx:11
+msgid "The agency layer for SVG icons — all right here in the panel, once Pro is active and licensed."
+msgstr "Die Agentur-Schicht für SVG-Icons — alles direkt hier im Panel, sobald Pro aktiv und lizenziert ist."

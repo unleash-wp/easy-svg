@@ -15,12 +15,14 @@ import {
 
 // The UnleashWP buttons, same rules as the account app:
 // primary = navy, hover turns it yellow; accent = the one yellow call to action;
-// ghost = outline. The "forge" radius and the 500/600 weights are theirs.
+// ghost = outline. The "forge" radius is theirs. The self-hosted Ubuntu ships
+// only 400 and 700, so buttons use 700 — 500/600 would render as a faux weight
+// the font never shipped.
 export function Button({ variant = 'ghost', size = 'md', danger, children, ...rest }) {
   const common = {
     size: size === 'sm' ? 'sm' : 'md',
     borderRadius: 'forge',
-    fontWeight: '500',
+    fontWeight: '700',
     h: 'auto',
     py: size === 'sm' ? '2.5' : '3',
     _focusVisible: { outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' },
@@ -29,7 +31,7 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
 
   if (variant === 'accent') {
     return (
-      <CButton {...common} bg="yellow" color="navy" fontWeight="600" boxShadow="sm"
+      <CButton {...common} bg="yellow" color="navy" boxShadow="sm"
         _hover={{ bg: '#e6ac00' }} _active={{ transform: 'translateY(1px)' }}
         _disabled={{ opacity: 0.55, bg: 'yellow', color: 'navy', cursor: 'default' }} {...rest}>
         {children}

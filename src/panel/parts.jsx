@@ -1,10 +1,19 @@
 import React from 'react'
-import { Box, HStack, Stack, Spinner, Text, Heading } from '@chakra-ui/react'
-import { Button, Card } from '../ui.jsx'
+import { Box, HStack, Stack, Text, Heading } from '@chakra-ui/react'
+import { __ } from '@wordpress/i18n'
+import { Button, Card, ProBadge } from '../ui.jsx'
 
-export function Notice({ bad, children }) {
+// A single-line message panel. `bad` paints the error colours; `role` opts the
+// box into a live region so assistive tech announces it when it mounts — pass
+// "alert" for an error and "status" for a confirmation. role=alert implies an
+// assertive live region and role=status a polite one; we set aria-live to match
+// so late-inserted notices are still announced.
+export function Notice({ bad, role, children }) {
+  const live = role === 'alert' ? 'assertive' : role === 'status' ? 'polite' : undefined
   return (
     <Box
+      role={role}
+      aria-live={live}
       borderWidth="1px"
       borderLeftWidth="4px"
       borderRadius="forge"
@@ -21,31 +30,24 @@ export function Notice({ bad, children }) {
   )
 }
 
-export function Loading() {
-  return (
-    <HStack color="ui.muted" gap="3" py="4">
-      <Spinner size="sm" />
-      <Text fontSize="sm">Lädt…</Text>
-    </HStack>
-  )
-}
-
 // A Pro tab a free (or unlicensed) site sees: the teaser + a call to action.
+// The title and teaser come localised from the tab definition; the ProBadge is
+// the designed replacement for the old ' 🔒' suffix.
 export function LockedTab({ tab, proActive }) {
   return (
     <Card maxW="640px">
-      <Stack gap="3">
-        <HStack gap="2" align="center">
-          <Text fontSize="xl" aria-hidden>🔒</Text>
-          <Heading as="h2" size="md" color="ui.text">{tab.label}</Heading>
+      <Stack gap="4">
+        <HStack gap="3" align="center">
+          <Heading as="h2" textStyle="sectionTitle">{tab.label}</Heading>
+          <ProBadge>{__('Pro', 'easy-svg')}</ProBadge>
         </HStack>
-        <Text color="ui.muted" fontSize="sm">{tab.teaser}</Text>
+        <Text textStyle="description" maxW="52ch">{tab.teaser}</Text>
         <Box pt="1">
           <Button
             variant="accent"
             onClick={() => window.open('https://unleash-wp.com/products/easy-svg-pro/', '_blank', 'noopener')}
           >
-            {proActive ? 'Lizenz aktivieren' : 'Easy SVG Pro holen'}
+            {proActive ? __('Activate licence', 'easy-svg') : __('Get Easy SVG Pro', 'easy-svg')}
           </Button>
         </Box>
       </Stack>
