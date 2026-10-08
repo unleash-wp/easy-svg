@@ -990,7 +990,7 @@ check( 'BELL: and the same file through the media uploader is an upload error, n
  * states come from `easy_svg_accept_icon()`, so the two lists are checked
  * against each other rather than a hand-written copy of one of them.
  */
-foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved' ) as $state ) {
+foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved', 'too_large', 'too_complex' ) as $state ) {
 	check(
 		"the '{$state}' state has something to say",
 		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )
@@ -1030,6 +1030,20 @@ check( 'SILENCE: the shipped source was read', false !== strpos( $shipped, 'easy
 foreach ( array( 'easy_svg_icon_limit', 'EASY_SVG_ICON_LIMIT', 'limit_reached', 'PHP_INT_MAX', 'icon_may_add' ) as $needle ) {
 	check( "BELL: the shipped code carries no '{$needle}'", false === strpos( $shipped, $needle ) );
 }
+
+// ─── And the icon-add path is bounded ────────────────────────────────────────
+
+/*
+ * The gate reads 0 and null as "no bound" -- right for a CLI import of a site's
+ * own files, wrong for a request -- so the WIRING is what can regress in
+ * silence: the gate would pass every check in tests/icons.php while the panel's
+ * REST add went back to handing the sanitiser's DOM parser whatever arrived.
+ * Asserted against the one shipped file that stores an uploaded icon, which has
+ * no other reason to name either bound.
+ */
+$manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
+check( 'BELL: the shipped icon-add asks the gate for the size bound', false !== strpos( $manager, 'easy_svg_max_bytes()' ) );
+check( 'BELL: and for the complexity bound', false !== strpos( $manager, "'easy_svg_svg_too_complex'" ) );
 // The Icons panel (includes/panel.php) is the one intended Pro touchpoint: it
 // detects Pro, draws the locked Pro tabs and the upsell. That is allowed and is
 // the product's design. Everything ELSE free ships must stay free of paid cruft

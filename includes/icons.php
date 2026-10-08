@@ -322,13 +322,21 @@ function easy_svg_harden_icon_markup( $markup ) {
  * name makes no icon name" and "that file is not an SVG" send a person to two
  * different places, and one message covering both sends half of them wrong.
  *
- * @param string        $label    What the person typed.
- * @param string        $markup   The bytes they uploaded.
- * @param callable      $sanitize Cleans SVG markup, or returns false.
- * @param callable|null $slugger  Turns the label into a slug.
+ * How many icons is unbounded; how much WORK one may cost is not. `$max_bytes`
+ * and `$too_complex` are the same two bounds the media-upload path applies
+ * (`easy_svg_max_bytes()`, `easy_svg_svg_too_complex()`), and they are passed
+ * in rather than read so this stays a pure decision -- and so a caller that
+ * wants none (a test, a CLI import of its own files) can ask for none.
+ *
+ * @param string        $label       What the person typed.
+ * @param string        $markup      The bytes they uploaded.
+ * @param callable      $sanitize    Cleans SVG markup, or returns false.
+ * @param callable|null $slugger     Turns the label into a slug.
+ * @param int           $max_bytes   Largest markup accepted; 0 for no bound.
+ * @param callable|null $too_complex Returns true for markup too costly to parse.
  * @return array{state: string, slug?: string, content?: string}
  */
-function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
+function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max_bytes = 0, $too_complex = null ) {
     $slug = easy_svg_icon_slug( $label, $slugger );
     if ( '' === $slug ) {
         return array( 'state' => 'bad_name' );
@@ -336,6 +344,22 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null ) {
 
     if ( '' === trim( (string) $markup ) ) {
         return array( 'state' => 'empty' );
+    }
+
+    /*
+     * Both bounds BEFORE the sanitiser, which is what hands the bytes to a DOM
+     * parser: refusing afterwards would already have spent what this is here to
+     * save. Size alone does not bound the work -- a small file with a
+     * thousand <use> references is cheap to send and expensive to parse -- so
+     * the complexity guard is asked as well.
+     */
+    $max_bytes = (int) $max_bytes;
+    if ( $max_bytes > 0 && strlen( (string) $markup ) > $max_bytes ) {
+        return array( 'state' => 'too_large' );
+    }
+
+    if ( null !== $too_complex && call_user_func( $too_complex, (string) $markup ) ) {
+        return array( 'state' => 'too_complex' );
     }
 
     /*

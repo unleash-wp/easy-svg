@@ -325,10 +325,20 @@ function easy_svg_add_icon( $label, $markup ) {
         return 'no_sanitizer';
     }
 
+    /*
+     * The same two bounds the media uploader applies, so every way into the
+     * icon store costs a request the same amount at most. Without them the
+     * panel's REST add handed whatever arrived straight to the sanitiser's DOM
+     * parser; `max_mb` is the site's own setting, so the bound a person sees on
+     * the Settings tab is the bound an icon meets.
+     */
     $decision = easy_svg_accept_icon(
         $label,
         $markup,
-        array( $sanitizer, 'sanitize' )
+        array( $sanitizer, 'sanitize' ),
+        null,
+        easy_svg_max_bytes(),
+        'easy_svg_svg_too_complex'
     );
 
     if ( 'ok' !== $decision['state'] ) {
@@ -445,6 +455,8 @@ function easy_svg_icon_message( $state ) {
         'bad_name'     => __( 'That name cannot be turned into an icon name. Use letters and numbers.', 'easy-svg' ),
         'empty'        => __( 'No file was uploaded.', 'easy-svg' ),
         'not_svg'      => __( 'That file could not be read as an SVG, so nothing was stored.', 'easy-svg' ),
+        'too_large'    => __( 'That SVG is larger than the size allowed in Settings, so nothing was stored.', 'easy-svg' ),
+        'too_complex'  => __( 'That SVG has too many parts to be read safely, so nothing was stored.', 'easy-svg' ),
         'no_sanitizer' => __( 'The SVG sanitiser did not load, so nothing was checked and nothing was stored.', 'easy-svg' ),
         'not_saved'    => __( 'WordPress could not save the icon, so nothing was stored. Please try again.', 'easy-svg' ),
     );

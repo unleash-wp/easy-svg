@@ -175,6 +175,10 @@ function easy_svg_panel_add_message( string $state ): string {
 			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
 		case 'not_svg':
 			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
+		case 'too_large':
+			return __( 'That SVG is larger than the size allowed in Settings.', 'easy-svg' );
+		case 'too_complex':
+			return __( 'That SVG has too many parts to be read safely.', 'easy-svg' );
 		default:
 			return __( 'The icon could not be added.', 'easy-svg' );
 	}
@@ -186,7 +190,10 @@ function easy_svg_panel_add_message( string $state ): string {
  */
 function easy_svg_panel_library_add( $request ) {
 	if ( ! function_exists( 'easy_svg_add_icon' ) ) {
-		return new WP_Error( 'easy_svg_no_store', __( 'The icon library is off. Switch it on under Einstellungen.', 'easy-svg' ), array( 'status' => 409 ) );
+		// Deliberately the same sentence the Library tab shows (Library.jsx), so
+		// the REST refusal and the UI that provoked it read identically -- and so
+		// there is one string to translate rather than two spellings of one.
+		return new WP_Error( 'easy_svg_no_store', __( 'The icon library is off. Switch it on under the Settings tab.', 'easy-svg' ), array( 'status' => 409 ) );
 	}
 	$body   = (array) $request->get_json_params();
 	$label  = isset( $body['label'] ) ? sanitize_text_field( (string) $body['label'] ) : '';

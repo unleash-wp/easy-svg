@@ -322,6 +322,50 @@ check( 'BELL: and nothing that decides whether one more is allowed', ! function_
 add_filter( 'easy_svg_icon_limit', static function () { return 0; } );
 check( 'BELL: a leftover limit filter cannot refuse an icon', 'ok' === easy_svg_accept_icon( 'Sixth', $SVG, $strip, $sanitize )['state'] );
 
+// ─── A bound on the work, which is not a cap on the feature ──────────────────
+
+/*
+ * How MANY icons a site may keep is unlimited, and the checks above keep it
+ * that way. How much WORK one of them may cost is not: the sanitiser hands the
+ * bytes to a DOM parser, and the media-upload path has refused oversized and
+ * pathological markup for exactly that reason since 4.x
+ * (`easy_svg_max_bytes()`, `easy_svg_svg_too_complex()` in the main file).
+ *
+ * The icon path reached the parser with neither bound, so the panel's REST add
+ * -- an administrator's call, but still one request -- could spend the whole
+ * request on one icon. Both bounds belong to this gate, which every icon write
+ * goes through. They are PASSED IN rather than read, so this file can check
+ * them without WordPress, and so a caller with no limits (a test, WP-CLI) can
+ * still ask for none.
+ *
+ * Checked BEFORE the sanitiser: the point is not to hand it the bytes at all.
+ */
+$seen = 0;
+$spy  = static function ( $markup ) use ( &$seen, $strip ) {
+	$seen++;
+	return $strip( $markup );
+};
+
+$seen = 0;
+check( 'BELL: markup past the byte bound is refused', 'too_large' === easy_svg_accept_icon( 'Big', $SVG, $spy, $sanitize, 8 )['state'] );
+check( 'BELL: and the sanitiser never saw it', 0 === $seen );
+
+$seen = 0;
+check( 'SILENCE: the same markup with no bound is accepted', 'ok' === easy_svg_accept_icon( 'Big', $SVG, $spy, $sanitize, 0 )['state'] );
+check( 'SILENCE: and that one did reach the sanitiser', 1 === $seen );
+
+$seen      = 0;
+$too_much  = static function ( $markup ) {
+	return true;
+};
+check( 'BELL: markup the complexity guard refuses is refused', 'too_complex' === easy_svg_accept_icon( 'Complex', $SVG, $spy, $sanitize, 0, $too_much )['state'] );
+check( 'BELL: and that one never reached the sanitiser either', 0 === $seen );
+
+$fine = static function ( $markup ) {
+	return false;
+};
+check( 'SILENCE: a guard that passes changes nothing', 'ok' === easy_svg_accept_icon( 'Fine', $SVG, $strip, $sanitize, 0, $fine )['state'] );
+
 // ─── Handing them to core ────────────────────────────────────────────────────
 
 $collection_calls = array();
