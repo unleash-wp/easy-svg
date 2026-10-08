@@ -1,7 +1,7 @@
 === Easy SVG Support ===
 Contributors: Benjamin_Zekavica
 Tags: svg, svg upload, sanitize, icons, media
-Requires at least: 6.0
+Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
 Stable tag: 5.0.0

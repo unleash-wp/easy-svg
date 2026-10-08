@@ -39,6 +39,9 @@ function apply_filters( $h, $v, ...$a ) {
 function __( $s, $d = '' ): string {
 	return (string) $s;
 }
+function sanitize_text_field( $s ): string {
+	return trim( preg_replace( '/<[^>]*>/', '', (string) $s ) );
+}
 function register_setting( ...$a ): void {}
 function add_settings_section( ...$a ): void {}
 function add_settings_field( ...$a ): void {}
@@ -126,6 +129,22 @@ check( 'BELL: a missing id is refused', easy_svg_panel_library_delete( new WP_RE
 // easy_svg_add_icon() is defined only when the icons feature registered the CPT;
 // here it is not, so add must say so rather than fatal.
 check( 'BELL: add is refused when the icon store is off', easy_svg_panel_library_add( new WP_REST_Request( array( 'markup' => '<svg/>' ) ) ) instanceof WP_Error );
+
+// ─── library/add sanitises the label before storing it ────────────────────────
+// Defined here, after the store-off check above, so that one still sees no
+// easy_svg_add_icon (a conditional definition is not hoisted). This stub records
+// the label it is handed, which is what easy_svg_add_icon() documents as "already
+// sanitised as text" -- the REST must hold to that, like the form handler it
+// replaces, or an unsanitised title is stored for later output to choke on.
+if ( ! function_exists( 'easy_svg_add_icon' ) ) {
+	function easy_svg_add_icon( $label, $markup ) {
+		$GLOBALS['added_label'] = $label;
+		return 'added';
+	}
+}
+easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => "<script>alert(1)</script>Heart", 'markup' => '<svg/>' ) ) );
+check( 'BELL: the label is sanitised before storage (no markup reaches the title)', ! str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), '<' ) );
+check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), 'Heart' ) );
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"

@@ -7,7 +7,7 @@ Version:      5.0.0
 Author:       UnleashWP
 Author URI:   https://www.unleash-wp.com
 Requires PHP: 8.0
-Requires at least: 6.0
+Requires at least: 6.6
 Text Domain:  easy-svg
 Domain Path:  /languages
 License:      GPL-3.0-or-later

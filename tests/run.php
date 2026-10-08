@@ -1461,6 +1461,14 @@ check( 'the changelog mentions it', false !== strpos( $readme, '= ' . ( $header_
  * the one line a site owner reads before clicking update.
  */
 check( 'BELL: tested up to the WordPress the icon feature needs', 1 === preg_match( '/^Tested up to:\s*7\.1\s*$/mi', $readme ) );
+// The panel enqueues the `react-jsx-runtime` script handle, which WordPress
+// first registered in 6.6. Claiming to run on less gives the lower half of the
+// range a blank Icons screen, so the floor must be 6.6+ and the two headers
+// must agree.
+preg_match( '/Requires at least:\s*([\d.]+)/i', (string) file_get_contents( $root . '/easy-svg.php' ), $hmin );
+preg_match( '/Requires at least:\s*([\d.]+)/i', $readme, $rmin );
+check( 'BELL: requires WordPress 6.6+ (the panel needs react-jsx-runtime)', version_compare( $hmin[1] ?? '0', '6.6', '>=' ) );
+check( 'BELL: and the readme agrees with the header', ( $hmin[1] ?? 'h' ) === ( $rmin[1] ?? 'r' ) );
 $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade Notice ==' ) );
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );

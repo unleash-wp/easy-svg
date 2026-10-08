@@ -185,7 +185,7 @@ function easy_svg_panel_library_add( $request ) {
 		return new WP_Error( 'easy_svg_no_store', __( 'The icon library is off. Switch it on under Einstellungen.', 'easy-svg' ), array( 'status' => 409 ) );
 	}
 	$body   = (array) $request->get_json_params();
-	$label  = isset( $body['label'] ) ? (string) $body['label'] : '';
+	$label  = isset( $body['label'] ) ? sanitize_text_field( (string) $body['label'] ) : '';
 	$markup = isset( $body['markup'] ) ? (string) $body['markup'] : '';
 	$result = easy_svg_add_icon( $label, $markup );
 	if ( 'added' !== $result ) {
