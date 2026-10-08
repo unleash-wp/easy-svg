@@ -1572,6 +1572,42 @@ $gitignore = (string) @file_get_contents( $root . '/.gitignore' );
 check( 'SILENCE: composer.lock is tracked, so .gitignore does not claim to ignore it', 1 !== preg_match( '/^composer\.lock\s*$/m', $gitignore ) );
 check( 'SILENCE: and .DS_Store is ignored', 1 === preg_match( '/^\.DS_Store\s*$/m', $gitignore ) );
 
+// ─── The JS translations have to be delivered, not merely shipped ────────────
+
+/*
+ * Three separate things have to agree before a single translated word reaches
+ * the panel, and every one of them fails silently -- the panel just renders in
+ * English, which looks like "no translation exists yet" rather than a bug.
+ *
+ * 1. WordPress asks for a file named after md5() of the enqueued script's path
+ *    RELATIVE TO THE PLUGIN (`build/panel.js`). A JSON under any other name is
+ *    never opened. The hash is path-based, so rebuilding the bundle is safe --
+ *    but renaming or moving the script silently orphans the catalogue.
+ * 2. It looks for that file in WP_LANG_DIR/plugins and, since 6.7, in the
+ *    textdomain registry -- never inside the plugin unless a path is passed as
+ *    the third argument to wp_set_script_translations(). The floor here is 6.6.
+ * 3. translate.wordpress.org names each JSON after the JS reference paths in the
+ *    PO. `.distignore` keeps `/src` out of the release, so a POT generated from
+ *    `src/*.jsx` produces pack filenames for files that do not exist in the zip,
+ *    and WordPress asks for a name the pack never contains. The POT therefore
+ *    has to be generated against the built bundle.
+ */
+$panel_src = 'build/panel.js';
+check(
+	'BELL: the shipped JS catalogue is named after md5() of the enqueued script path',
+	is_readable( $root . '/languages/easy-svg-de_DE-' . md5( $panel_src ) . '.json' )
+);
+$panel_php = (string) @file_get_contents( $root . '/includes/panel.php' );
+check(
+	'BELL: and wp_set_script_translations is given a path, so the bundled catalogue is looked for inside the plugin',
+	1 === preg_match( '/wp_set_script_translations\(\s*[^;]*languages/s', $panel_php )
+);
+$pot = (string) @file_get_contents( $root . '/languages/easy-svg.pot' );
+check(
+	'BELL: and the POT points its JS strings at the built bundle, which is what ships',
+	false !== strpos( $pot, '#: ' . $panel_src ) && false === strpos( $pot, '#: src/' )
+);
+
 // ─── How a release leaves this repository ────────────────────────────────────
 
 /*

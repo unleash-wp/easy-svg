@@ -51,10 +51,21 @@ export default function App({ config }) {
 
   // Tabs Pro registered that are NOT in the catalogue (e.g. Features): shown only
   // when Pro is active and licensed, using the label/order it passed.
+  //
+  // The order Pro passes is clamped into the pro band. The rail emits a group
+  // eyebrow on every group change in sorted order, so an extra that sorted in
+  // among the free tabs would read general → pro → general: "General" printed
+  // twice, the second with a duplicate React key.
+  const PRO_BAND_START = 30
+  const PRO_EXTRA_DEFAULT = 65
   const knownIds = new Set([...FREE_TABS, ...PRO_TABS, UPSELL_TAB].map((t) => t.id))
   const extras = (reg && config.proLicensed ? reg.list() : [])
     .filter((t) => !knownIds.has(t.id))
-    .map((t) => ({ id: t.id, group: 'pro', label: t.label || t.id, order: t.order ?? 65, locked: false, render: (c) => t.render(c) }))
+    .map((t) => {
+      const asked = Number(t.order)
+      const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
+      return { id: t.id, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+    })
 
   const tabs = [
     ...FREE_TABS,
@@ -79,11 +90,13 @@ export default function App({ config }) {
   // and the data-orientation styling), so resolve the responsive intent to a
   // value rather than handing it an object: a horizontal strip on phones, a
   // vertical left rail from md up.
-  const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }) ?? 'horizontal'
+  //
+  // ssr:false because this panel is client-only. The hook defaults to seeding
+  // its state with the `base` value and reading matchMedia in an effect, which
+  // on a desktop paints one frame of horizontal tab chrome before flipping to
+  // the rail.
+  const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
   const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
-  // Controlled selection drives a lazy-mount / unmount-on-exit render: only the
-  // active tab's content is in the DOM. (ark's own lazyMount/unmountOnExit props
-  // leak onto the DOM through Chakra's styled wrapper, so this gates it instead.)
   const activeValue = active || tabs[0]?.id
 
   // Flatten the rail into triggers with a non-interactive group eyebrow before
@@ -139,12 +152,21 @@ export default function App({ config }) {
         {__('SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place.', 'easy-svg')}
       </Text>
 
+      {/*
+        lazyMount + unmountOnExit belong on the Root: ark lifts them out with
+        splitRenderStrategyProps() into a context the panels read, so only the
+        active tab's content is ever in the DOM. (On Tabs.Content they are not
+        split out and React warns about unknown DOM props — which is what the
+        earlier hand-rolled gate here was working around.)
+      */}
       <Tabs.Root
         value={activeValue}
         onValueChange={(e) => setActive(e.value)}
         orientation={orientation}
         variant="line"
         colorPalette="brand"
+        lazyMount
+        unmountOnExit
       >
         <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }}>
           <Tabs.List
@@ -174,7 +196,7 @@ export default function App({ config }) {
           >
             {tabs.map((t) => (
               <Tabs.Content key={t.id} value={t.id} p="0">
-                {activeValue === t.id ? t.render(ctx) : null}
+                {t.render(ctx)}
               </Tabs.Content>
             ))}
           </Box>

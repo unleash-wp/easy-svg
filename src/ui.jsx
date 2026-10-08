@@ -278,9 +278,13 @@ export function SkeletonRows({ rows = 4 }) {
 
 // Small brand badge — the designed replacement for the literal ' 🔒' on pro
 // tabs. The text (e.g. "Pro") is passed in so the tabs localise it.
+//
+// fontWeight is set explicitly: Chakra's badge recipe bases it on `medium`
+// (500), which it emits inside `@layer recipes`, and Ubuntu ships only 400 and
+// 700 — so the default renders as a faux weight the browser synthesises.
 export function ProBadge({ children, ...rest }) {
   return (
-    <Badge colorPalette="brand" variant="subtle" size="sm" {...rest}>
+    <Badge colorPalette="brand" variant="subtle" size="sm" fontWeight="700" {...rest}>
       {children}
     </Badge>
   )

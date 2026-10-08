@@ -88,8 +88,17 @@ function easy_svg_panel_assets( $hook ): void {
 		true
 	);
 
-	// Serve the panel's JS translations (languages/easy-svg-*-easy-svg-panel.json).
-	wp_set_script_translations( 'easy-svg-panel', 'easy-svg' );
+	/*
+	 * Serve the panel's JS translations. The third argument is required for the
+	 * catalogue this plugin BUNDLES: without a path, WordPress looks only in
+	 * WP_LANG_DIR/plugins (the wordpress.org language pack), and on 6.7+ also in
+	 * the textdomain registry -- which happens to carry this plugin's own
+	 * languages directory because of the `Domain Path` header, but not on the
+	 * 6.6 floor this plugin still supports. Measured on 7.1.3: found either way;
+	 * on 6.6 only with the path. The file is named after md5() of the enqueued
+	 * script's plugin-relative path (`build/panel.js`), which is pinned by a test.
+	 */
+	wp_set_script_translations( 'easy-svg-panel', 'easy-svg', dirname( __DIR__ ) . '/languages' );
 
 	$pro_active   = function_exists( 'easy_svg_pro_pro_enabled' );
 	$pro_licensed = $pro_active && easy_svg_pro_pro_enabled();
