@@ -79,13 +79,17 @@ function easy_svg_panel_assets( $hook ): void {
 	}
 
 	// React, ReactDOM and the JSX runtime come from WordPress, not the bundle.
+	// wp-i18n ships the wp.i18n global the bundle externalises for __()/_x().
 	wp_enqueue_script(
 		'easy-svg-panel',
 		plugins_url( 'build/panel.js', $main ),
-		array( 'react', 'react-dom', 'react-jsx-runtime' ),
+		array( 'react', 'react-dom', 'react-jsx-runtime', 'wp-i18n' ),
 		(string) filemtime( $build ),
 		true
 	);
+
+	// Serve the panel's JS translations (languages/easy-svg-*-easy-svg-panel.json).
+	wp_set_script_translations( 'easy-svg-panel', 'easy-svg' );
 
 	$pro_active   = function_exists( 'easy_svg_pro_pro_enabled' );
 	$pro_licensed = $pro_active && easy_svg_pro_pro_enabled();

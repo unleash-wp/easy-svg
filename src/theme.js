@@ -82,6 +82,48 @@ const config = defineConfig({
         lg: { value: '0 18px 48px rgba(32,49,89,.16)' },
       },
     },
+    // Typography scale for the panel. The self-hosted Ubuntu (assets/panel-fonts.css)
+    // ships ONLY 400 and 700, so the scale uses only those two weights — 500/600
+    // would render as a faux-bold the font never shipped. Apply with textStyle="…".
+    textStyles: {
+      h1: {
+        value: {
+          fontSize: '24px',
+          fontWeight: '700',
+          letterSpacing: '-0.01em',
+          color: 'ui.heading',
+        },
+      },
+      sectionTitle: {
+        value: {
+          fontSize: '16px',
+          fontWeight: '700',
+          color: 'ui.heading',
+        },
+      },
+      fieldLabel: {
+        value: {
+          fontSize: '14px',
+          fontWeight: '700',
+          color: 'ui.heading',
+        },
+      },
+      description: {
+        value: {
+          fontSize: '13px',
+          fontWeight: '400',
+          lineHeight: '1.5',
+          color: 'ui.muted',
+        },
+      },
+      caption: {
+        value: {
+          fontSize: '12px',
+          fontWeight: '400',
+          color: 'ui.muted',
+        },
+      },
+    },
   },
 })
 

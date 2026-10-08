@@ -24,7 +24,10 @@ export default defineConfig({
       // React, ReactDOM AND the JSX runtime come from WordPress, so Chakra and
       // our code share one React instance (two copies -> "Objects are not valid
       // as a React child"). WP ships the `react-jsx-runtime` handle for this.
-      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+      // @wordpress/i18n is externalised to the wp.i18n global (WordPress ships it
+      // as the `wp-i18n` script handle), exactly like the React externals above,
+      // so __()/_x() calls map to the global instead of being bundled.
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@wordpress/i18n'],
       output: {
         assetFileNames: 'panel.[ext]',
         globals: {
@@ -33,6 +36,7 @@ export default defineConfig({
           'react-dom/client': 'ReactDOM',
           'react/jsx-runtime': 'ReactJSXRuntime',
           'react/jsx-dev-runtime': 'ReactJSXRuntime',
+          '@wordpress/i18n': 'wp.i18n',
         },
       },
     },
