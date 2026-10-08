@@ -205,6 +205,76 @@ check( 'BELL: a collection-qualified name resolves the same icon', easy_svg_icon
 check( 'SILENCE: an unknown icon returns empty', '' === easy_svg_icon( 'no-such-icon' ) );
 check( 'BELL: a class argument is applied to the svg', false !== strpos( easy_svg_icon( 'arrow-left', array( 'class' => 'ico' ) ), 'class="ico"' ) );
 
+// ─── The icon carries its accessibility role ─────────────────────────────────
+
+/*
+ * The core Icon block INLINES this markup into the page, so the <svg> is read by
+ * a screen reader as part of the document. Decoration must be hidden from it
+ * (aria-hidden), or it is announced as a mystery; content must be named
+ * (role="img" + aria-label), or it is announced as nothing. Either way the icon
+ * carries focusable="false", because IE and old Edge made every inline <svg> a
+ * tab stop. The default follows the label; a 'decorative' argument overrides it.
+ */
+$decorative = easy_svg_icon( 'arrow-left' );
+check(
+	'BELL: an icon with no label is decorative -- aria-hidden, focusable="false", no role',
+	false !== strpos( $decorative, 'aria-hidden="true"' )
+		&& false !== strpos( $decorative, 'focusable="false"' )
+		&& false === strpos( $decorative, 'role="img"' )
+);
+
+$labelled = easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left' ) );
+check(
+	'BELL: a labelled icon is meaningful -- role="img", aria-label, focusable="false", no aria-hidden',
+	false !== strpos( $labelled, 'role="img"' )
+		&& false !== strpos( $labelled, 'aria-label="Arrow left"' )
+		&& false !== strpos( $labelled, 'focusable="false"' )
+		&& false === strpos( $labelled, 'aria-hidden' )
+);
+
+// 'decorative' wins over the label default, in both directions.
+$forced_hidden = easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left', 'decorative' => true ) );
+check(
+	'BELL: decorative=true overrides a label -- aria-hidden, no role, no aria-label',
+	false !== strpos( $forced_hidden, 'aria-hidden="true"' )
+		&& false === strpos( $forced_hidden, 'role="img"' )
+		&& false === strpos( $forced_hidden, 'aria-label' )
+);
+
+$forced_meaningful = easy_svg_icon( 'arrow-left', array( 'decorative' => false ) );
+check(
+	'BELL: decorative=false without a label is still meaningful -- role="img", focusable="false", no aria-hidden',
+	false !== strpos( $forced_meaningful, 'role="img"' )
+		&& false !== strpos( $forced_meaningful, 'focusable="false"' )
+		&& false === strpos( $forced_meaningful, 'aria-hidden' )
+);
+
+// class rides alongside the role attributes, not instead of them.
+$classed = easy_svg_icon( 'arrow-left', array( 'class' => 'ico', 'label' => 'Arrow left' ) );
+check(
+	'BELL: a class and a label coexist on one svg',
+	false !== strpos( $classed, 'class="ico"' )
+		&& false !== strpos( $classed, 'role="img"' )
+		&& false !== strpos( $classed, 'aria-label="Arrow left"' )
+);
+
+/*
+ * The label reaches an HTML attribute, so a quote or an angle bracket in it has
+ * to arrive escaped or it would break out of that attribute. The raw string must
+ * not survive; the escaped entities must.
+ */
+$escaped = easy_svg_icon( 'arrow-left', array( 'label' => 'a "b" <c>' ) );
+check(
+	'BELL: a label is attribute-escaped, never printed raw',
+	false !== strpos( $escaped, '&quot;' )
+		&& false !== strpos( $escaped, '&lt;' )
+		&& false === strpos( $escaped, 'a "b" <c>' )
+);
+
+// An unknown icon stays nothing at all, whatever the arguments ask of it: no
+// empty wrapper is invented to hang the role attributes on.
+check( 'SILENCE: an unknown icon stays empty even when a label is asked for', '' === easy_svg_icon( 'no-such-icon', array( 'label' => 'Nope' ) ) );
+
 // A collection the CPT does not own can be supplied by a filter (this is how
 // Pro serves its own collections through the one template tag).
 add_filter( 'easy_svg_icon_markup', static function ( $markup, $slug, $collection ) {

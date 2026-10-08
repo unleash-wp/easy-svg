@@ -158,7 +158,12 @@ function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
  * WordPress 7.1.
  *
  * @param string $name Icon name, bare slug or collection-qualified.
- * @param array  $args Optional: 'class' (string), 'label' (string -> aria-label + role="img").
+ * @param array  $args Optional. 'class' (string). 'label' (string): names the
+ *                     icon, so it reads as content -- role="img" + aria-label.
+ *                     'decorative' (bool): overrides that default -- true hides
+ *                     the icon from assistive tech, false keeps it meaningful.
+ *                     With neither a label nor 'decorative' the icon is
+ *                     decorative, because the block inlines it into the page.
  * @return string SVG markup ready to echo, or '' when the icon is unknown.
  */
 function easy_svg_icon( $name, $args = array() ) {
@@ -174,15 +179,23 @@ function easy_svg_icon( $name, $args = array() ) {
         return '';
     }
 
+    // An inlined icon is decoration unless a label gives it a name; an explicit
+    // 'decorative' argument overrides that default in either direction.
+    $decorative = isset( $args['decorative'] ) ? (bool) $args['decorative'] : empty( $args['label'] );
+
     $attrs = '';
     if ( ! empty( $args['class'] ) ) {
         $attrs .= ' class="' . esc_attr( (string) $args['class'] ) . '"';
     }
-    if ( ! empty( $args['label'] ) ) {
-        $attrs .= ' role="img" aria-label="' . esc_attr( (string) $args['label'] ) . '"';
-    }
-    if ( '' === $attrs ) {
-        return $markup;
+    if ( $decorative ) {
+        // Hidden from a screen reader, and never a tab stop in IE / old Edge.
+        $attrs .= ' aria-hidden="true" focusable="false"';
+    } else {
+        // Read as an image; focusable="false" keeps it off the tab order too.
+        $attrs .= ' role="img" focusable="false"';
+        if ( ! empty( $args['label'] ) ) {
+            $attrs .= ' aria-label="' . esc_attr( (string) $args['label'] ) . '"';
+        }
     }
 
     // Inject the wrapper attributes onto the root <svg> once.
