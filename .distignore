@@ -18,6 +18,11 @@
 /composer.lock
 /RELEASING.md
 /README.md
+# Notes for whoever changes this code next, and a customer is neither. Both are
+# git-ignored, so a CI checkout never has them -- this is for the zip somebody
+# builds on a laptop, where rsync copies the working tree and would.
+/CLAUDE.md
+/AGENTS.md
 /docs
 /tests
 

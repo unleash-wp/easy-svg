@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.0.0
+Stable tag: 5.1.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,15 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
+= 5.1.0 =
+* New: one Icons screen. SVG uploads, the icon library and everything else now live together under Icons, instead of being split across Settings and Media. The two older screens are gone; nothing you had is lost and no setting changed its meaning.
+* New: the icon library is a grid you can search, and an icon can be renamed without losing the slug a template already writes.
+* New: the hooks this plugin fires are documented, under "For add-on authors" in the FAQ. Nine of them, with what three of them cost.
+* Fix: every path that adds an icon now has the same size and complexity limits as an upload. A file that is too large, or shaped to make the sanitizer expensive, is refused rather than stored.
+* Fix: an icon rendered by `easy_svg_icon()` carries the right accessibility role — decorative unless you give it a label.
+* Fix: a library with no icons no longer offers an empty collection to the Icon block.
+* Fix: German and every other translation now reaches the screen's JavaScript, not just its PHP.
+
 = 5.0.0 =
 * Security: the bundled sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0. This fixes four published advisories: GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf and GHSA-qhmf-972w-m957. SVGs that rely on custom DTD entities, as some older Illustrator exports do, are now refused.
 * Security: SVGs added outside the media uploader, for example through WP-CLI `wp media import`, `media_sideload_image()`, importers or raw REST uploads, are now sanitized too, or refused.
@@ -175,6 +184,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.1.0 =
+SVG uploads and the icon library now share one screen under Icons. Nothing is lost in the move and no setting changed its meaning. Every path that adds an icon is now bounded the way an upload is.
 
 = 5.0.0 =
 Security: fixes four published security advisories in the bundled sanitizer, and cleans SVGs from `wp media import`, importers or REST. SVGs with custom DTD entities are refused. Features are now opt-in under Settings → Easy SVG; sites already using uploads keep them — re-upload older files.
