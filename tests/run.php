@@ -2016,6 +2016,64 @@ if ( is_callable( $meta_cb ) ) {
 	check( 'SILENCE: a non-SVG attachment metadata is unchanged', array( 'x' => 1 ) === $meta_cb( array( 'x' => 1 ), 78 ) );
 }
 
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Every hook this plugin fires is documented, and every documented hook exists.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * An extension point nobody wrote down is not a contract -- it is something an
+ * agency finds by reading our source, builds on, and loses at the next release
+ * because we never knew they had it. And a documented hook that no longer
+ * exists is worse: it is a promise that fails silently in somebody else's code.
+ *
+ * So the lock goes both ways, and it is structural rather than a habit. Fire a
+ * new filter without a line in the readme and this fails; rename one and the
+ * stale line fails. readme.txt is the surface because it is the only
+ * documentation the free plugin ships -- wordpress.org renders it, and it is
+ * what a developer evaluating the plugin reads before installing it.
+ *
+ * Only hooks this plugin FIRES. The ones it merely hangs on are WordPress's.
+ */
+$hookSrc = '';
+foreach ( array_merge( glob( $root . '/includes/*.php' ) ?: array(), array( $root . '/easy-svg.php' ) ) as $hookFile ) {
+	$hookSrc .= (string) file_get_contents( $hookFile );
+}
+preg_match_all( "/(?:apply_filters|do_action)\(\s*'([a-z0-9_]+)'/", $hookSrc, $hookMatches );
+$fired = array_values( array_unique( $hookMatches[1] ) );
+sort( $fired );
+
+/*
+ * The FAQ, and not a section of its own: wordpress.org merges a section it does
+ * not know into the Description, which is the rule the add-on notes above are
+ * already written to -- and a hooks reference swallowed into the Description is
+ * a hooks reference nobody finds.
+ */
+$readme = (string) file_get_contents( $root . '/readme.txt' );
+$faqFrom = (int) strpos( $readme, '== Frequently Asked Questions ==' );
+$faqTo   = (int) strpos( $readme, '== Screenshots ==' );
+$devDoc  = substr( $readme, $faqFrom, $faqTo - $faqFrom );
+check( 'BELL: the hooks are written down inside the FAQ', '' !== $devDoc && str_contains( $devDoc, 'which hooks are there' ) );
+
+$undocumented = array();
+foreach ( $fired as $hook ) {
+	if ( ! is_string( $devDoc ) || ! str_contains( $devDoc, $hook ) ) {
+		$undocumented[] = $hook;
+	}
+}
+check(
+	'BELL: every hook this plugin fires is written down' . ( $undocumented ? ' -- missing: ' . implode( ', ', $undocumented ) : '' ),
+	array() === $undocumented
+);
+
+preg_match_all( "/`((?:easy_svg|esw_svg)_[a-z0-9_]+)`/", is_string( $devDoc ) ? $devDoc : '', $claimMatches );
+$claimed = array_values( array_unique( $claimMatches[1] ) );
+$ghosts  = array_values( array_diff( $claimed, $fired ) );
+check(
+	'BELL: and every hook it writes down is one it fires' . ( $ghosts ? ' -- ghosts: ' . implode( ', ', $ghosts ) : '' ),
+	array() === $ghosts
+);
+check( 'BELL: the section actually names hooks', array() !== $claimed );
+
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
 $before = $failed;
