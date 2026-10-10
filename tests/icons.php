@@ -241,6 +241,38 @@ check(
 		&& false === strpos( $forced_hidden, 'aria-label' )
 );
 
+// ─── A label is text, not a regular-expression replacement ───────────────────
+//
+// The attributes used to be spliced in with preg_replace(), whose REPLACEMENT
+// string reads `$1`, `${1}` and `\1` as backreferences. esc_attr() escapes
+// `& < > " '` and says nothing about `$` or `\`, so a perfectly ordinary label
+// was rewritten on its way into the markup:
+//
+//   "Price $20"  ->  "Price "          the price silently gone
+//   "A $0 B"     ->  "A <svg B"        a raw `<` INSIDE an attribute, after
+//                                      esc_attr() had already run
+//
+// The second one is an escaping bypass: esc_attr() did its job and the regex
+// engine undid it. Nothing can be built on top of a splice that rewrites its
+// own input, so the splice does not go through a regex any more.
+
+$dollar = easy_svg_icon( 'arrow-left', array( 'label' => 'Price $20' ) );
+check( 'BELL: a label containing $20 survives intact', false !== strpos( $dollar, 'aria-label="Price $20"' ) );
+
+$group = easy_svg_icon( 'arrow-left', array( 'label' => 'A $0 B' ) );
+check( 'BELL: $0 is text, not the whole match', false !== strpos( $group, 'aria-label="A $0 B"' ) );
+check( 'BELL: and no markup is injected into the attribute', false === strpos( $group, 'aria-label="A <svg' ) );
+
+$brace = easy_svg_icon( 'arrow-left', array( 'label' => 'Ref ${1} here' ) );
+check( 'BELL: ${1} is text too', false !== strpos( $brace, 'aria-label="Ref ${1} here"' ) );
+
+$slash = easy_svg_icon( 'arrow-left', array( 'class' => 'a\\1b' ) );
+check( 'BELL: a backslash in a class is kept verbatim', false !== strpos( $slash, 'class="a\\1b"' ) );
+
+// And the splice still happens exactly once, on the ROOT svg only.
+$nested = easy_svg_icon( 'arrow-left', array( 'label' => 'Once' ) );
+check( 'BELL: the attributes are added once', 1 === substr_count( $nested, 'aria-label="Once"' ) );
+
 $forced_meaningful = easy_svg_icon( 'arrow-left', array( 'decorative' => false ) );
 check(
 	'BELL: decorative=false without a label is still meaningful -- role="img", focusable="false", no aria-hidden',

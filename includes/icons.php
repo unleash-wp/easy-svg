@@ -198,8 +198,57 @@ function easy_svg_icon( $name, $args = array() ) {
         }
     }
 
-    // Inject the wrapper attributes onto the root <svg> once.
-    return preg_replace( '/<svg\b/', '<svg' . $attrs, $markup, 1 );
+    /*
+     * Splice the attributes onto the root <svg>, without a regular expression.
+     *
+     * This was `preg_replace( '/<svg\b/', '<svg' . $attrs, $markup, 1 )`, and
+     * the replacement string is the trap: preg_replace reads `$1`, `${1}` and
+     * `\1` in a REPLACEMENT as backreferences. `esc_attr()` escapes
+     * `& < > " '` and says nothing about `$` or `\`, so an ordinary label was
+     * rewritten on its way in -- "Price $20" arrived as "Price ", and "A $0 B"
+     * arrived as "A <svg B", a raw `<` inside an attribute that esc_attr() had
+     * already finished escaping.
+     *
+     * So the insertion point is found and the string is spliced. There is
+     * nothing in `$attrs` a splice can interpret.
+     *
+     * The match is the same one the pattern made: `<svg` followed by a
+     * non-word character, which is what `\b` meant. A document whose root is
+     * `<svgfoo` was never matched before and is not matched now.
+     */
+    $at = easy_svg_root_svg_offset( $markup );
+    if ( null === $at ) {
+        return $markup;
+    }
+
+    return substr( $markup, 0, $at + 4 ) . $attrs . substr( $markup, $at + 4 );
+}
+
+/**
+ * Where the root `<svg` tag starts, or null when there is none.
+ *
+ * `<svg` has to be followed by something that is not a word character -- a
+ * space, `>`, a newline -- so `<svgfoo` is not an svg root. That is exactly
+ * what `\b` meant in the pattern this replaced; it is spelled out here because
+ * the splice no longer runs a regular expression over attacker-influenced text.
+ *
+ * @param string $markup
+ * @return int|null Byte offset of the `<` , or null.
+ */
+function easy_svg_root_svg_offset( $markup ) {
+    $markup = (string) $markup;
+    $at     = 0;
+    while ( true ) {
+        $at = stripos( $markup, '<svg', $at );
+        if ( false === $at ) {
+            return null;
+        }
+        $next = substr( $markup, $at + 4, 1 );
+        if ( '' === $next || 1 !== preg_match( '/\w/', $next ) ) {
+            return $at;
+        }
+        $at += 4;
+    }
 }
 
 /**
