@@ -193,10 +193,13 @@ if ( ! defined( 'OBJECT' ) ) {
 	define( 'OBJECT', 'OBJECT' );
 }
 $GLOBALS['esw_pages'] = array(
-	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_title' => 'Arrow Left', 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+	'untitled'   => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_title' => '', 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
 );
+$GLOBALS['esw_lookups'] = 0;
 if ( ! function_exists( 'get_page_by_path' ) ) {
 	function get_page_by_path( $slug, $output = OBJECT, $post_type = 'page' ) {
+		$GLOBALS['esw_lookups']++;
 		return $GLOBALS['esw_pages'][ $slug ] ?? null;
 	}
 }
@@ -273,6 +276,18 @@ check( 'BELL: a backslash in a class is kept verbatim', false !== strpos( $slash
 $nested = easy_svg_icon( 'arrow-left', array( 'label' => 'Once' ) );
 check( 'BELL: the attributes are added once', 1 === substr_count( $nested, 'aria-label="Once"' ) );
 
+/*
+ * decorative=false with no label used to emit role="img" and no name at all.
+ *
+ * That is worse than either alternative. A screen reader meets an image and
+ * announces "graphic" with nothing after it: WCAG 1.1.1 with the role spelled
+ * out, which is exactly the shape an automated audit flags. The caller DID say
+ * this icon means something, so hiding it instead would contradict them.
+ *
+ * The icon has a name already -- the esw_icon post's title, which is what the
+ * inserter shows -- so that becomes the accessible name. The extra lookup
+ * happens only in this branch, which is the uncommon one.
+ */
 $forced_meaningful = easy_svg_icon( 'arrow-left', array( 'decorative' => false ) );
 check(
 	'BELL: decorative=false without a label is still meaningful -- role="img", focusable="false", no aria-hidden',
@@ -280,6 +295,35 @@ check(
 		&& false !== strpos( $forced_meaningful, 'focusable="false"' )
 		&& false === strpos( $forced_meaningful, 'aria-hidden' )
 );
+check( 'BELL: and it is NAMED, from the icon\'s own stored title', false !== strpos( $forced_meaningful, 'aria-label="Arrow Left"' ) );
+
+// The invariant, said as an invariant: role="img" and no name is never the
+// output, whichever way the arguments arrive.
+foreach ( array(
+	array( 'decorative' => false ),
+	array( 'decorative' => false, 'label' => '' ),
+	array( 'decorative' => false, 'class' => 'ico' ),
+) as $i => $args ) {
+	$out = easy_svg_icon( 'arrow-left', $args );
+	check( "BELL: role=img always carries a name (case {$i})", false === strpos( $out, 'role="img"' ) || false !== strpos( $out, 'aria-label="' ) );
+}
+
+// An icon stored with no title of its own still gets a name, read off the slug
+// the way the inserter reads derived labels.
+$untitled = easy_svg_icon( 'untitled', array( 'decorative' => false ) );
+check( 'BELL: an untitled icon is named from its slug', false !== strpos( $untitled, 'aria-label="Untitled"' ) );
+
+// A caller's label still wins -- the stored title is a fallback, not an override.
+$both = easy_svg_icon( 'arrow-left', array( 'decorative' => false, 'label' => 'Back' ) );
+check( 'BELL: the caller\'s label wins over the stored title', false !== strpos( $both, 'aria-label="Back"' ) && false === strpos( $both, 'Arrow Left' ) );
+
+// And the common path does not pay for it: one lookup, as before.
+$GLOBALS['esw_lookups'] = 0;
+easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left' ) );
+check( 'SILENCE: a labelled icon still costs one lookup', 1 === $GLOBALS['esw_lookups'] );
+$GLOBALS['esw_lookups'] = 0;
+easy_svg_icon( 'arrow-left' );
+check( 'SILENCE: and so does a decorative one', 1 === $GLOBALS['esw_lookups'] );
 
 // class rides alongside the role attributes, not instead of them.
 $classed = easy_svg_icon( 'arrow-left', array( 'class' => 'ico', 'label' => 'Arrow left' ) );

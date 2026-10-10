@@ -151,6 +151,30 @@ function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
 }
 
 /**
+ * A human LABEL for an icon: its stored title, else its slug read back as words.
+ *
+ * Used only to name an icon a caller called meaningful without giving a label.
+ * The esw_icon post's title is the name the inserter already shows, so it is
+ * the name a reader would expect to hear. A slug is the last resort and still
+ * beats an unnamed role="img".
+ *
+ * @param string $slug
+ * @param string $collection
+ * @return string
+ */
+function easy_svg_icon_label( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
+    $slug = (string) $slug;
+    if ( EASY_SVG_ICON_COLLECTION === $collection && function_exists( 'get_page_by_path' ) ) {
+        $post = get_page_by_path( $slug, OBJECT, EASY_SVG_ICON_POST_TYPE );
+        if ( is_object( $post ) && isset( $post->post_title ) && '' !== trim( (string) $post->post_title ) ) {
+            return (string) $post->post_title;
+        }
+    }
+    $words = trim( str_replace( array( '-', '_' ), ' ', $slug ) );
+    return '' === $words ? $slug : ucfirst( $words );
+}
+
+/**
  * Render a stored icon. Accepts 'slug' or 'easy-svg/slug'.
  *
  * Reads the store directly, so it renders the full hardened SVG (richer than
@@ -164,6 +188,9 @@ function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
  *                     the icon from assistive tech, false keeps it meaningful.
  *                     With neither a label nor 'decorative' the icon is
  *                     decorative, because the block inlines it into the page.
+ *                     A meaningful icon is always named: by 'label', else by
+ *                     the icon's stored title, else by its slug read back as
+ *                     words. role="img" without a name is never emitted.
  * @return string SVG markup ready to echo, or '' when the icon is unknown.
  */
 function easy_svg_icon( $name, $args = array() ) {
@@ -191,11 +218,24 @@ function easy_svg_icon( $name, $args = array() ) {
         // Hidden from a screen reader, and never a tab stop in IE / old Edge.
         $attrs .= ' aria-hidden="true" focusable="false"';
     } else {
-        // Read as an image; focusable="false" keeps it off the tab order too.
+        /*
+         * Read as an image; focusable="false" keeps it off the tab order too.
+         *
+         * role="img" with no accessible name is never emitted. A screen reader
+         * meets an image and announces "graphic" with nothing after it -- WCAG
+         * 1.1.1 with the role spelled out. This branch used to do exactly that
+         * when a caller passed 'decorative' => false and no label. Hiding the
+         * icon instead would contradict a caller who just said it means
+         * something, so it is named: from the label given, else the icon's own
+         * stored title, else the slug read back as words. The extra lookup
+         * happens only in this branch, and only when no label came in.
+         */
         $attrs .= ' role="img" focusable="false"';
-        if ( ! empty( $args['label'] ) ) {
-            $attrs .= ' aria-label="' . esc_attr( (string) $args['label'] ) . '"';
+        $label  = (string) ( $args['label'] ?? '' );
+        if ( '' === trim( $label ) ) {
+            $label = easy_svg_icon_label( $slug, $collection );
         }
+        $attrs .= ' aria-label="' . esc_attr( $label ) . '"';
     }
 
     /*
