@@ -116,9 +116,20 @@ export default function Library({ ctx }) {
   const [editing, setEditing] = useState(null)
   const fileRef = useRef(null)
 
+  // Cancelled when the tab goes away, or when the icon library is switched off
+  // while a load is in flight. See the note in tabs/Settings.jsx.
   useEffect(() => {
-    if (!ctx.iconsEnabled) return
-    api.get('/library').then(setIcons).catch((e) => setErr(e.message))
+    if (!ctx.iconsEnabled) return undefined
+    const ac = new AbortController()
+    api
+      .get('/library', { signal: ac.signal })
+      .then(setIcons)
+      .catch((e) => {
+        if ('AbortError' !== e.name) {
+          setErr(e.message)
+        }
+      })
+    return () => ac.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.iconsEnabled])
 

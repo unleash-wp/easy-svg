@@ -53,15 +53,31 @@ export default function Settings({ ctx }) {
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 
+  /*
+   * The load is cancelled when this tab goes away.
+   *
+   * A closed tab is unmounted (the panel's Tabs root uses unmountOnExit), so
+   * without this a load started on mount resolves into a component that is
+   * gone -- and two loads of the same resource can resolve out of order, so an
+   * older payload lands last and the form shows pre-save values. AbortError is
+   * what fetch rejects with when we did the cancelling, so it is not an error
+   * to show anybody.
+   */
   useEffect(() => {
+    const ac = new AbortController()
     api
-      .get('/settings')
+      .get('/settings', { signal: ac.signal })
       .then((data) => {
         const n = normalize(data)
         snap.current = n
         setForm(n)
       })
-      .catch((e) => setErr(e.message))
+      .catch((e) => {
+        if ('AbortError' !== e.name) {
+          setErr(e.message)
+        }
+      })
+    return () => ac.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
