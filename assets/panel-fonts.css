@@ -1,0 +1,32 @@
+/* Ubuntu, self-hosted (fontsource, SIL OFL). Enqueued only on the set edit
+   screen alongside the editor bundle, so the editor matches the UnleashWP type.
+   Paths resolve relative to this file: assets/fonts/. */
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/ubuntu-v21-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Ubuntu';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/ubuntu-v21-latin-700-normal.woff2') format('woff2');
+}
+
+/* The panel's own page heading.
+
+   WordPress styles `.wrap h1` at 23px/400, and the panel renders inside a
+   `.wrap`. That selector is one class plus one element; the heading token emits
+   a single class, so WordPress wins and the panel's h1 came out in the admin's
+   default heading style rather than the UnleashWP scale -- measured 23px/400,
+   and 24px/700 the moment the `wrap` class was taken off. Dropping `.wrap`
+   would also move where WordPress puts admin notices, so the panel keeps it and
+   this rule outranks the one rule in the way. Values mirror textStyles.h1 in
+   src/theme.js; the colour already comes through. */
+#easy-svg-panel h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}

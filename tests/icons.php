@@ -193,10 +193,13 @@ if ( ! defined( 'OBJECT' ) ) {
 	define( 'OBJECT', 'OBJECT' );
 }
 $GLOBALS['esw_pages'] = array(
-	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+	'arrow-left' => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_title' => 'Arrow Left', 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
+	'untitled'   => (object) array( 'post_type' => EASY_SVG_ICON_POST_TYPE, 'post_title' => '', 'post_content' => '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>' ),
 );
+$GLOBALS['esw_lookups'] = 0;
 if ( ! function_exists( 'get_page_by_path' ) ) {
 	function get_page_by_path( $slug, $output = OBJECT, $post_type = 'page' ) {
+		$GLOBALS['esw_lookups']++;
 		return $GLOBALS['esw_pages'][ $slug ] ?? null;
 	}
 }
@@ -204,6 +207,149 @@ check( 'BELL: the template tag returns the stored icon markup', false !== strpos
 check( 'BELL: a collection-qualified name resolves the same icon', easy_svg_icon( 'easy-svg/arrow-left' ) === easy_svg_icon( 'arrow-left' ) );
 check( 'SILENCE: an unknown icon returns empty', '' === easy_svg_icon( 'no-such-icon' ) );
 check( 'BELL: a class argument is applied to the svg', false !== strpos( easy_svg_icon( 'arrow-left', array( 'class' => 'ico' ) ), 'class="ico"' ) );
+
+// ─── The icon carries its accessibility role ─────────────────────────────────
+
+/*
+ * The core Icon block INLINES this markup into the page, so the <svg> is read by
+ * a screen reader as part of the document. Decoration must be hidden from it
+ * (aria-hidden), or it is announced as a mystery; content must be named
+ * (role="img" + aria-label), or it is announced as nothing. Either way the icon
+ * carries focusable="false", because IE and old Edge made every inline <svg> a
+ * tab stop. The default follows the label; a 'decorative' argument overrides it.
+ */
+$decorative = easy_svg_icon( 'arrow-left' );
+check(
+	'BELL: an icon with no label is decorative -- aria-hidden, focusable="false", no role',
+	false !== strpos( $decorative, 'aria-hidden="true"' )
+		&& false !== strpos( $decorative, 'focusable="false"' )
+		&& false === strpos( $decorative, 'role="img"' )
+);
+
+$labelled = easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left' ) );
+check(
+	'BELL: a labelled icon is meaningful -- role="img", aria-label, focusable="false", no aria-hidden',
+	false !== strpos( $labelled, 'role="img"' )
+		&& false !== strpos( $labelled, 'aria-label="Arrow left"' )
+		&& false !== strpos( $labelled, 'focusable="false"' )
+		&& false === strpos( $labelled, 'aria-hidden' )
+);
+
+// 'decorative' wins over the label default, in both directions.
+$forced_hidden = easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left', 'decorative' => true ) );
+check(
+	'BELL: decorative=true overrides a label -- aria-hidden, no role, no aria-label',
+	false !== strpos( $forced_hidden, 'aria-hidden="true"' )
+		&& false === strpos( $forced_hidden, 'role="img"' )
+		&& false === strpos( $forced_hidden, 'aria-label' )
+);
+
+// ─── A label is text, not a regular-expression replacement ───────────────────
+//
+// The attributes used to be spliced in with preg_replace(), whose REPLACEMENT
+// string reads `$1`, `${1}` and `\1` as backreferences. esc_attr() escapes
+// `& < > " '` and says nothing about `$` or `\`, so a perfectly ordinary label
+// was rewritten on its way into the markup:
+//
+//   "Price $20"  ->  "Price "          the price silently gone
+//   "A $0 B"     ->  "A <svg B"        a raw `<` INSIDE an attribute, after
+//                                      esc_attr() had already run
+//
+// The second one is an escaping bypass: esc_attr() did its job and the regex
+// engine undid it. Nothing can be built on top of a splice that rewrites its
+// own input, so the splice does not go through a regex any more.
+
+$dollar = easy_svg_icon( 'arrow-left', array( 'label' => 'Price $20' ) );
+check( 'BELL: a label containing $20 survives intact', false !== strpos( $dollar, 'aria-label="Price $20"' ) );
+
+$group = easy_svg_icon( 'arrow-left', array( 'label' => 'A $0 B' ) );
+check( 'BELL: $0 is text, not the whole match', false !== strpos( $group, 'aria-label="A $0 B"' ) );
+check( 'BELL: and no markup is injected into the attribute', false === strpos( $group, 'aria-label="A <svg' ) );
+
+$brace = easy_svg_icon( 'arrow-left', array( 'label' => 'Ref ${1} here' ) );
+check( 'BELL: ${1} is text too', false !== strpos( $brace, 'aria-label="Ref ${1} here"' ) );
+
+$slash = easy_svg_icon( 'arrow-left', array( 'class' => 'a\\1b' ) );
+check( 'BELL: a backslash in a class is kept verbatim', false !== strpos( $slash, 'class="a\\1b"' ) );
+
+// And the splice still happens exactly once, on the ROOT svg only.
+$nested = easy_svg_icon( 'arrow-left', array( 'label' => 'Once' ) );
+check( 'BELL: the attributes are added once', 1 === substr_count( $nested, 'aria-label="Once"' ) );
+
+/*
+ * decorative=false with no label used to emit role="img" and no name at all.
+ *
+ * That is worse than either alternative. A screen reader meets an image and
+ * announces "graphic" with nothing after it: WCAG 1.1.1 with the role spelled
+ * out, which is exactly the shape an automated audit flags. The caller DID say
+ * this icon means something, so hiding it instead would contradict them.
+ *
+ * The icon has a name already -- the esw_icon post's title, which is what the
+ * inserter shows -- so that becomes the accessible name. The extra lookup
+ * happens only in this branch, which is the uncommon one.
+ */
+$forced_meaningful = easy_svg_icon( 'arrow-left', array( 'decorative' => false ) );
+check(
+	'BELL: decorative=false without a label is still meaningful -- role="img", focusable="false", no aria-hidden',
+	false !== strpos( $forced_meaningful, 'role="img"' )
+		&& false !== strpos( $forced_meaningful, 'focusable="false"' )
+		&& false === strpos( $forced_meaningful, 'aria-hidden' )
+);
+check( 'BELL: and it is NAMED, from the icon\'s own stored title', false !== strpos( $forced_meaningful, 'aria-label="Arrow Left"' ) );
+
+// The invariant, said as an invariant: role="img" and no name is never the
+// output, whichever way the arguments arrive.
+foreach ( array(
+	array( 'decorative' => false ),
+	array( 'decorative' => false, 'label' => '' ),
+	array( 'decorative' => false, 'class' => 'ico' ),
+) as $i => $args ) {
+	$out = easy_svg_icon( 'arrow-left', $args );
+	check( "BELL: role=img always carries a name (case {$i})", false === strpos( $out, 'role="img"' ) || false !== strpos( $out, 'aria-label="' ) );
+}
+
+// An icon stored with no title of its own still gets a name, read off the slug
+// the way the inserter reads derived labels.
+$untitled = easy_svg_icon( 'untitled', array( 'decorative' => false ) );
+check( 'BELL: an untitled icon is named from its slug', false !== strpos( $untitled, 'aria-label="Untitled"' ) );
+
+// A caller's label still wins -- the stored title is a fallback, not an override.
+$both = easy_svg_icon( 'arrow-left', array( 'decorative' => false, 'label' => 'Back' ) );
+check( 'BELL: the caller\'s label wins over the stored title', false !== strpos( $both, 'aria-label="Back"' ) && false === strpos( $both, 'Arrow Left' ) );
+
+// And the common path does not pay for it: one lookup, as before.
+$GLOBALS['esw_lookups'] = 0;
+easy_svg_icon( 'arrow-left', array( 'label' => 'Arrow left' ) );
+check( 'SILENCE: a labelled icon still costs one lookup', 1 === $GLOBALS['esw_lookups'] );
+$GLOBALS['esw_lookups'] = 0;
+easy_svg_icon( 'arrow-left' );
+check( 'SILENCE: and so does a decorative one', 1 === $GLOBALS['esw_lookups'] );
+
+// class rides alongside the role attributes, not instead of them.
+$classed = easy_svg_icon( 'arrow-left', array( 'class' => 'ico', 'label' => 'Arrow left' ) );
+check(
+	'BELL: a class and a label coexist on one svg',
+	false !== strpos( $classed, 'class="ico"' )
+		&& false !== strpos( $classed, 'role="img"' )
+		&& false !== strpos( $classed, 'aria-label="Arrow left"' )
+);
+
+/*
+ * The label reaches an HTML attribute, so a quote or an angle bracket in it has
+ * to arrive escaped or it would break out of that attribute. The raw string must
+ * not survive; the escaped entities must.
+ */
+$escaped = easy_svg_icon( 'arrow-left', array( 'label' => 'a "b" <c>' ) );
+check(
+	'BELL: a label is attribute-escaped, never printed raw',
+	false !== strpos( $escaped, '&quot;' )
+		&& false !== strpos( $escaped, '&lt;' )
+		&& false === strpos( $escaped, 'a "b" <c>' )
+);
+
+// An unknown icon stays nothing at all, whatever the arguments ask of it: no
+// empty wrapper is invented to hang the role attributes on.
+check( 'SILENCE: an unknown icon stays empty even when a label is asked for', '' === easy_svg_icon( 'no-such-icon', array( 'label' => 'Nope' ) ) );
 
 // A collection the CPT does not own can be supplied by a filter (this is how
 // Pro serves its own collections through the one template tag).
@@ -252,6 +398,50 @@ check( 'BELL: and nothing that decides whether one more is allowed', ! function_
 add_filter( 'easy_svg_icon_limit', static function () { return 0; } );
 check( 'BELL: a leftover limit filter cannot refuse an icon', 'ok' === easy_svg_accept_icon( 'Sixth', $SVG, $strip, $sanitize )['state'] );
 
+// ─── A bound on the work, which is not a cap on the feature ──────────────────
+
+/*
+ * How MANY icons a site may keep is unlimited, and the checks above keep it
+ * that way. How much WORK one of them may cost is not: the sanitiser hands the
+ * bytes to a DOM parser, and the media-upload path has refused oversized and
+ * pathological markup for exactly that reason since 4.x
+ * (`easy_svg_max_bytes()`, `easy_svg_svg_too_complex()` in the main file).
+ *
+ * The icon path reached the parser with neither bound, so the panel's REST add
+ * -- an administrator's call, but still one request -- could spend the whole
+ * request on one icon. Both bounds belong to this gate, which every icon write
+ * goes through. They are PASSED IN rather than read, so this file can check
+ * them without WordPress, and so a caller with no limits (a test, WP-CLI) can
+ * still ask for none.
+ *
+ * Checked BEFORE the sanitiser: the point is not to hand it the bytes at all.
+ */
+$seen = 0;
+$spy  = static function ( $markup ) use ( &$seen, $strip ) {
+	$seen++;
+	return $strip( $markup );
+};
+
+$seen = 0;
+check( 'BELL: markup past the byte bound is refused', 'too_large' === easy_svg_accept_icon( 'Big', $SVG, $spy, $sanitize, 8 )['state'] );
+check( 'BELL: and the sanitiser never saw it', 0 === $seen );
+
+$seen = 0;
+check( 'SILENCE: the same markup with no bound is accepted', 'ok' === easy_svg_accept_icon( 'Big', $SVG, $spy, $sanitize, 0 )['state'] );
+check( 'SILENCE: and that one did reach the sanitiser', 1 === $seen );
+
+$seen      = 0;
+$too_much  = static function ( $markup ) {
+	return true;
+};
+check( 'BELL: markup the complexity guard refuses is refused', 'too_complex' === easy_svg_accept_icon( 'Complex', $SVG, $spy, $sanitize, 0, $too_much )['state'] );
+check( 'BELL: and that one never reached the sanitiser either', 0 === $seen );
+
+$fine = static function ( $markup ) {
+	return false;
+};
+check( 'SILENCE: a guard that passes changes nothing', 'ok' === easy_svg_accept_icon( 'Fine', $SVG, $strip, $sanitize, 0, $fine )['state'] );
+
 // ─── Handing them to core ────────────────────────────────────────────────────
 
 $collection_calls = array();
@@ -283,7 +473,31 @@ $refused    = static function ( $slug, $args ) { return false; };
 check( 'BELL: no collection means no icons are offered', 0 === easy_svg_register_icons( $icons, $refused, $ok_icon ) );
 check( 'SILENCE: and none were attempted', array() === $icon_calls );
 
+/*
+ * An empty library registers NOTHING, not an empty collection.
+ *
+ * The collection has to go in before the icons, because core refuses an icon
+ * whose collection is unknown -- but doing that unconditionally put "Easy SVG"
+ * in the editor's icon picker on every site with the feature switched on and
+ * nothing in it yet. Clicking it showed a blank panel, which reads as a broken
+ * plugin rather than an empty one. Seen in the picker before this was fixed.
+ */
+$collection_calls = array();
+$icon_calls       = array();
+check( 'BELL: an empty library registers no collection at all', 0 === easy_svg_register_icons( array(), $ok_collection, $ok_icon ) );
+check( 'BELL: so the picker is not offered an empty collection', array() === $collection_calls );
+check( 'SILENCE: and no icon was attempted either', array() === $icon_calls );
+
+// Icons that all fail their name check leave nothing behind either: the
+// collection is only worth registering if something lands in it.
+$collection_calls = array();
+$icon_calls       = array();
+$all_bad          = array( array( 'slug' => 'Arrow', 'label' => 'Bad', 'content' => $SVG ) );
+check( 'BELL: a library of unusable names registers no collection either', 0 === easy_svg_register_icons( $all_bad, $ok_collection, $ok_icon ) );
+check( 'SILENCE: nothing was offered to the picker', array() === $collection_calls );
+
 // One bad name must not cost the others.
+$collection_calls = array();
 $icon_calls = array();
 $mixed      = array(
     array( 'slug' => 'Arrow',  'label' => 'Bad name', 'content' => $SVG ),

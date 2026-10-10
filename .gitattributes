@@ -8,6 +8,9 @@
 /composer.json export-ignore
 /composer.lock export-ignore
 /RELEASING.md export-ignore
+/README.md export-ignore
+/CLAUDE.md export-ignore
+/AGENTS.md export-ignore
 /docs export-ignore
 /tests export-ignore
 /vendor/enshrined/svg-sanitize/src/svg-scanner.php export-ignore
@@ -15,3 +18,8 @@
 /vendor/enshrined/svg-sanitize/CHANGELOG.md export-ignore
 /vendor/enshrined/svg-sanitize/composer.json export-ignore
 .DS_Store export-ignore
+/src export-ignore
+/node_modules export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/vite.config.js export-ignore

@@ -3,11 +3,11 @@
 Plugin Name:  Easy SVG Support
 Plugin URI:   https://wordpress.org/plugins/easy-svg/
 Description:  Add SVG support for WordPress.
-Version:      5.0.0
+Version:      5.1.0
 Author:       UnleashWP
 Author URI:   https://www.unleash-wp.com
 Requires PHP: 8.0
-Requires at least: 6.0
+Requires at least: 6.6
 Text Domain:  easy-svg
 Domain Path:  /languages
 License:      GPL-3.0-or-later
@@ -777,6 +777,10 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
  */
 require_once __DIR__ . '/includes/icon-manager.php';
 
+// The "Icons" admin panel (React/Chakra), which an add-on can extend through
+// window.EasySvgPanel. Loaded last so the functions it wraps are defined.
+require_once __DIR__ . '/includes/panel.php';
+
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );
@@ -792,8 +796,6 @@ if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'save_post_' . EASY_SVG_ICON_POST_TYPE, 'easy_svg_forget_icons' );
     add_action( 'deleted_post', 'easy_svg_forget_deleted_icon', 10, 2 );
 }
-
-easy_svg_icons_admin();
 
 /**
  * Add support for SVG file uploads by modifying MIME types.

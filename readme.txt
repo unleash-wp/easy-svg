@@ -1,10 +1,10 @@
 === Easy SVG Support ===
 Contributors: Benjamin_Zekavica
 Tags: svg, svg upload, sanitize, icons, media
-Requires at least: 6.0
+Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.0.0
+Stable tag: 5.1.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -99,7 +99,29 @@ Exactly one function. Everything else in this plugin is an internal detail that 
 
 `easy_svg_sanitizer()` returns a sanitizer configured with this site's allowed tags and attributes, or null when the sanitizing library is not loaded. Use it rather than the classes behind it, so an add-on cleans files exactly the way the site does.
 
-`EASY_SVG_API` is an integer that changes only when that function changes shape. It is 3. Compare against it rather than against the plugin version.
+`EASY_SVG_API` is an integer that changes only when that surface changes shape. It is 3. Compare against it rather than against the plugin version.
+
+The hooks below are part of that surface too, because this plugin's own add-on already depends on two of them. Everything not named here or in those two answers is an internal detail that may be renamed or removed.
+
+= For add-on authors: which hooks are there? =
+
+`easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. Every icon this plugin draws passes through it, whatever asked for it: the Icon block, a shortcode, a page builder, an add-on. Add a class or a `<title>` with it. Return your own string and you own the escaping.
+
+`easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
+
+`easy_svg_max_bytes` is the largest SVG the uploader accepts, in bytes. It defaults to the setting on the Icons screen. A file over it is refused, never truncated.
+
+`easy_svg_max_php_tags` (10) and `easy_svg_max_use_tags` (1000) are two structural bounds checked before sanitizing. They are not about size: the sanitizer rescans the whole document once per nested PHP processing instruction, and once per `<use>` for every element with an id, so a file well under the byte cap can hold a worker for minutes. Raising them raises that ceiling. No icon and no ordinary drawing comes near either.
+
+`easy_svg_respect_network_filetypes` (true) decides whether a multisite network's own upload-filetype setting is honoured. Left alone, a network that does not permit SVG keeps not permitting it whatever a single site says. Return false to let a site decide for itself.
+
+= For add-on authors: which hooks loosen a security decision? =
+
+Three, and what they cost is worth stating. Nothing in this plugin's settings can switch sanitizing off, so reaching these is a deliberate act of code on a site whose owner accepted the trade.
+
+`esw_svg_allowed_tags` and `esw_svg_allowed_attributes` are the sanitizer's allow-list of elements and of attributes. Adding to either lets markup through that is refused today. `<script>`, `on*` handlers and `javascript:` URLs are refused for the ordinary reason, and admitting them makes an uploaded file able to run code in your admins' browsers. Admitting a drawing element that an icon library needs is the case these exist for.
+
+`esw_svg_remove_remote_references` (true) decides whether references to other hosts are stripped out of an uploaded SVG. Left alone, an SVG cannot pull anything from somewhere else. Turned off, an uploaded file can fetch from a third-party host on your visitors' behalf -- a request that leaves your site and can be logged by whoever receives it.
 
 = Where can I get help? =
 
@@ -116,6 +138,15 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 3. An SVG as the featured image of a post.
 
 == Changelog ==
+
+= 5.1.0 =
+* New: one Icons screen. SVG uploads, the icon library and everything else now live together under Icons, instead of being split across Settings and Media. The two older screens are gone; nothing you had is lost and no setting changed its meaning.
+* New: the icon library is a grid you can search, and an icon can be renamed without losing the slug a template already writes.
+* New: the hooks this plugin fires are documented, under "For add-on authors" in the FAQ. Nine of them, with what three of them cost.
+* Fix: every path that adds an icon now has the same size and complexity limits as an upload. A file that is too large, or shaped to make the sanitizer expensive, is refused rather than stored.
+* Fix: an icon rendered by `easy_svg_icon()` carries the right accessibility role — decorative unless you give it a label.
+* Fix: a library with no icons no longer offers an empty collection to the Icon block.
+* Fix: German and every other translation now reaches the screen's JavaScript, not just its PHP.
 
 = 5.0.0 =
 * Security: the bundled sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0. This fixes four published advisories: GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf and GHSA-qhmf-972w-m957. SVGs that rely on custom DTD entities, as some older Illustrator exports do, are now refused.
@@ -153,6 +184,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.1.0 =
+SVG uploads and the icon library now share one screen under Icons. Nothing is lost in the move and no setting changed its meaning. Every path that adds an icon is now bounded the way an upload is.
 
 = 5.0.0 =
 Security: fixes four published security advisories in the bundled sanitizer, and cleans SVGs from `wp media import`, importers or REST. SVGs with custom DTD entities are refused. Features are now opt-in under Settings → Easy SVG; sites already using uploads keep them — re-upload older files.

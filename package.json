@@ -1,0 +1,22 @@
+{
+  "name": "easy-svg-panel",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The Icons admin panel for Easy SVG. Chakra UI v3 on the UnleashWP design system; the bundle loads only on the Icons panel screen. Pro extends it through window.EasySvgPanel.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^3.36.1",
+    "@emotion/react": "^11.14.0",
+    "dompurify": "^3.4.16",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.0"
+  }
+}

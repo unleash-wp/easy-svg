@@ -344,10 +344,27 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 	return null === $doc->documentElement ? '' : (string) $doc->saveXML( $doc->documentElement );
 }
 
-$GLOBALS['media_pages'] = [];
-function add_media_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
-	$GLOBALS['media_pages'][] = $slug;
-	return 'media_page_' . $slug;
+// Admin menu registration, recorded in the order it happens -- which is the
+// property that matters here, not just that a page exists. WordPress points a
+// top-level link at whichever submenu entry was registered FIRST.
+$GLOBALS['menu_pages']    = [];   // slug => callback
+$GLOBALS['submenu_pages'] = [];   // [ parent, slug, callback ], in order
+$GLOBALS['options_pages'] = [];   // slug
+function add_menu_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '', string $icon = '', $position = null ) {
+	$GLOBALS['menu_pages'][ $slug ] = $callback;
+	return 'toplevel_page_' . $slug;
+}
+function add_submenu_page( string $parent, string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
+	$GLOBALS['submenu_pages'][] = array(
+		'parent'   => $parent,
+		'slug'     => $slug,
+		'callback' => $callback,
+	);
+	return $parent . '_page_' . $slug;
+}
+function add_options_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
+	$GLOBALS['options_pages'][] = $slug;
+	return 'settings_page_' . $slug;
 }
 
 // ─── Attachments, as far as the safety net sees them ─────────────────────────
@@ -783,17 +800,32 @@ check(
 	1 !== preg_match( '/is_admin\(\).{0,200}easy_svg_boot_icons/s', $main_source )
 );
 
-check( 'the screen is hooked', in_array( 'easy_svg_icons_menu', $GLOBALS['hooks']['admin_menu'] ?? [], true ) );
-
 /*
- * On a WordPress without the icon API there is nothing to manage, and a menu
- * entry that opens onto "this needs 7.1" is clutter on every older site. This
- * suite is such a WordPress until its last section.
+ * ONE page may answer to the panel's slug.
+ *
+ * There were two. The classic icons screen registered `easy-svg-icons` as a
+ * Media submenu and the panel registers that same slug as a top-level menu, so
+ * on WordPress 7.1 BOTH render callbacks ran on the one screen and the old
+ * table drew itself underneath the React panel. Nothing errored; it just looked
+ * broken -- which is the kind of defect a suite has to hold down, because the
+ * two registrations sat in different files and neither looked wrong alone.
+ *
+ * Asserted against the shipped source rather than by registering menus:
+ * WordPress only collides at `admin_menu` time, on a version this suite is not,
+ * and the fact worth pinning is which FILES claim the slug at all.
  */
-easy_svg_icons_menu();
-check( 'BELL: before 7.1 there is no SVG icons submenu', [] === $GLOBALS['media_pages'] );
-check( 'adding an icon is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_add_icon'] ) );
-check( 'removing one is reachable', isset( $GLOBALS['hooks']['admin_post_easy_svg_delete_icon'] ) );
+$slug_owners = array();
+foreach ( array_merge( array( $root . '/easy-svg.php' ), glob( $root . '/includes/*.php' ) ?: array() ) as $slug_file ) {
+	$claims = substr_count( (string) file_get_contents( $slug_file ), 'easy-svg-icons' );
+	if ( $claims > 0 ) {
+		$slug_owners[ basename( $slug_file ) ] = $claims;
+	}
+}
+check( 'BELL: the icon manager registers no screen of its own', ! isset( $slug_owners['icon-manager.php'] ) );
+check(
+	'BELL: and the panel slug is claimed exactly once across the shipped source (' . ( json_encode( $slug_owners ) ?: '?' ) . ')',
+	array( 'panel.php' => 1 ) === $slug_owners
+);
 
 // ─── Only who may manage icons can write them ────────────────────────────────
 
@@ -983,33 +1015,32 @@ try {
 unlink( $file['tmp_name'] );
 check( 'BELL: and the same file through the media uploader is an upload error, not a fatal', isset( $after['error'] ) && ! isset( $after['threw'] ) );
 
-// ─── Every refusal has a sentence ────────────────────────────────────────────
+// ─── Every refusal has a sentence of its own ──────────────────────────────────
 
 /*
- * A state with no message shows an empty notice box, which reads as a bug. The
- * states come from `easy_svg_accept_icon()`, so the two lists are checked
- * against each other rather than a hand-written copy of one of them.
+ * A refused add reaches the person as the REST error the Library tab prints, so
+ * `easy_svg_panel_add_message()` is now the only place a refusal gets words.
+ * The states come from `easy_svg_accept_icon()` and `easy_svg_add_icon()`, so
+ * the two lists are checked against each other rather than a hand-written copy
+ * of one of them.
+ *
+ * Compared against the GENERIC sentence, not against "". The function has a
+ * `default` branch, so "says something" would pass for a state that silently
+ * falls through to it -- a person told only that it did not work, which is true,
+ * useless, and indistinguishable from a bug. A new state with no case of its own
+ * has to fail here rather than ship as a shrug.
+ *
+ * No 'limit_reached' in this list, because there is no limit: that one is
+ * asserted as a shape against the shipped source below, not as a missing string.
  */
-foreach ( array( 'added', 'deleted', 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved' ) as $state ) {
+$generic_refusal = function_exists( 'easy_svg_panel_add_message' ) ? easy_svg_panel_add_message( 'nonsense' ) : '';
+check( 'the panel has a sentence for a state it does not know', '' !== $generic_refusal );
+foreach ( array( 'bad_name', 'empty', 'not_svg', 'no_sanitizer', 'not_saved', 'too_large', 'too_complex' ) as $state ) {
 	check(
-		"the '{$state}' state has something to say",
-		function_exists( 'easy_svg_icon_message' ) && '' !== easy_svg_icon_message( $state )
+		"BELL: the '{$state}' refusal says what went wrong, not merely that something did",
+		'' !== $generic_refusal && $generic_refusal !== easy_svg_panel_add_message( $state )
 	);
 }
-check(
-	'SILENCE: and an unknown state says nothing rather than something wrong',
-	function_exists( 'easy_svg_icon_message' ) && '' === easy_svg_icon_message( 'nonsense' )
-);
-
-// ─── The count is a count, not a quota ───────────────────────────────────────
-
-/*
- * With no cap there is nothing to count against, and the line above the table
- * says only what is there. "N of 5" would advertise a limit that is gone.
- */
-check( 'BELL: the counter names how many there are, and nothing to be measured against', '7 icons. They appear in the Icon block.' === easy_svg_icon_count_message( 7 ) );
-check( 'SILENCE: and one icon reads as one', '1 icon. They appear in the Icon block.' === easy_svg_icon_count_message( 1 ) );
-check( 'SILENCE: there is no refusal for being full', '' === easy_svg_icon_message( 'limit_reached' ) );
 
 // ─── Nothing in this plugin is for sale ──────────────────────────────────────
 
@@ -1030,9 +1061,34 @@ check( 'SILENCE: the shipped source was read', false !== strpos( $shipped, 'easy
 foreach ( array( 'easy_svg_icon_limit', 'EASY_SVG_ICON_LIMIT', 'limit_reached', 'PHP_INT_MAX', 'icon_may_add' ) as $needle ) {
 	check( "BELL: the shipped code carries no '{$needle}'", false === strpos( $shipped, $needle ) );
 }
+
+// ─── And the icon-add path is bounded ────────────────────────────────────────
+
+/*
+ * The gate reads 0 and null as "no bound" -- right for a CLI import of a site's
+ * own files, wrong for a request -- so the WIRING is what can regress in
+ * silence: the gate would pass every check in tests/icons.php while the panel's
+ * REST add went back to handing the sanitiser's DOM parser whatever arrived.
+ * Asserted against the one shipped file that stores an uploaded icon, which has
+ * no other reason to name either bound.
+ */
+$manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
+check( 'BELL: the shipped icon-add asks the gate for the size bound', false !== strpos( $manager, 'easy_svg_max_bytes()' ) );
+check( 'BELL: and for the complexity bound', false !== strpos( $manager, "'easy_svg_svg_too_complex'" ) );
+// The Icons panel (includes/panel.php) is the one intended Pro touchpoint: it
+// detects Pro, draws the locked Pro tabs and the upsell. That is allowed and is
+// the product's design. Everything ELSE free ships must stay free of paid cruft
+// -- no "lifts the limit" teasing in the upload or icon code.
+$shipped_functional = '';
+foreach ( array_merge( array( $root . '/easy-svg.php' ), glob( $root . '/includes/*.php' ) ?: array() ) as $f ) {
+	if ( 'panel.php' === basename( $f ) ) {
+		continue;
+	}
+	$shipped_functional .= (string) file_get_contents( $f );
+}
 check(
-	'BELL: and no comment pointing at a paid product',
-	1 !== preg_match( '/easy svg pro|\bpro\b|\bpaid\b|\bpaying\b|premium|lifts? the (cap|limit)/i', $shipped )
+	'BELL: and no comment pointing at a paid product (outside the Icons panel)',
+	1 !== preg_match( '/easy svg pro|\bpro\b|\bpaid\b|\bpaying\b|premium|lifts? the (cap|limit)/i', $shipped_functional )
 );
 
 // ─── The contract an add-on may rely on ──────────────────────────────────────
@@ -1355,71 +1411,35 @@ check(
 	false !== strpos( (string) easy_svg_sanitizer()->sanitize( $handler ), 'onload' )
 );
 
-// ─── The preview cannot run what the store let through ───────────────────────
+// ─── The stored hardener strips what no icon may carry (defence in depth) ─────
 
 /*
- * The icons screen printed stored markup raw. That was safe only as long as
- * the site's allow-list was: a site that widens it -- as the filters above now
- * have, to `script` and `onload` -- stores icons that would run in an
+ * There used to be a block here about the admin PREVIEW: the classic icons
+ * screen printed stored markup into the page, so it ran every icon through
+ * wp_kses with the site's own SVG allow-list minus everything executable. A
+ * site that widens that allow-list -- as the filters just above do, to `script`
+ * and `onload` -- stores icons that would otherwise have run in an
  * administrator's browser the moment the screen opened.
  *
- * So the preview goes through wp_kses with the site's own SVG allow-list, minus
- * everything that can execute, whatever a filter added.
+ * That screen and those helpers are gone with the slug collision. The DEFENCE
+ * did not go with them; it sits on both sides of the removed code:
+ *
+ *   - on the way out, the panel's Library tab runs every preview through
+ *     DOMPurify's SVG profile before it reaches innerHTML, in the browser
+ *     (src/panel/tabs/Library.jsx -- the only place stored markup is drawn now);
+ *   - on the way in, the markup is hardened before it is ever stored, which is
+ *     the layer checked below -- and the one that also protects visitors,
+ *     because the Icon block inlines it into their pages too.
+ *
+ * So the check that matters is the hardener, not a preview.
  */
-$hostile = '<?xml version="1.0"?>'
-	. '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-	. '<script>alert(document.cookie)</script>'
-	. '<rect onload="alert(1)" width="24" height="24"/>'
-	. '<foreignObject><body xmlns="http://www.w3.org/1999/xhtml"><iframe src="javascript:alert(1)"/></body></foreignObject>'
-	. '<path d="M0 0L24 24"/></svg>';
-
-$GLOBALS['kses_calls'] = 0;
-$preview = easy_svg_icon_preview( $hostile );
-
-check( 'BELL: the preview goes through wp_kses', 1 === $GLOBALS['kses_calls'] );
-check( 'BELL: a script element is not emitted, even where the site allows it', false === stripos( $preview, '<script' ) );
-check( 'BELL: nor an event handler the site allowed', false === stripos( $preview, 'onload' ) );
-check( 'BELL: nor foreignObject, which can carry HTML', false === stripos( $preview, 'foreignobject' ) && false === stripos( $preview, 'iframe' ) );
-check( 'SILENCE: and the drawing is still there', false !== strpos( $preview, '<path' ) && false !== strpos( $preview, '<rect' ) );
-// wp_kses removes a tag and keeps its text. Inert, but a preview reading
-// "alert(document.cookie)" next to the drawing is a bug report waiting.
-check( 'SILENCE: and the removed script leaves no text behind', false === strpos( $preview, 'alert(' ) );
-
-// ─── The stored hardener strips what the preview strips (defence in depth) ────
 // easy_svg_harden_icon_markup() produces the markup the Icon block inlines for
 // visitors. On a widened allow-list the sanitiser can pass an on* handler
-// through to it, so the hardener drops event handlers itself -- the stored
-// markup must be no less defended than the admin preview above.
+// through to it, so the hardener drops event handlers itself -- the one layer
+// every reader of an icon, administrator or visitor, sits behind.
 $hardened = easy_svg_harden_icon_markup( '<svg xmlns="http://www.w3.org/2000/svg"><rect onload="alert(1)" onclick="x()" width="24" height="24"/><path d="M0 0h9"/></svg>' );
 check( 'BELL: the hardener drops an on* event handler', false === stripos( $hardened, 'onload' ) && false === stripos( $hardened, 'onclick' ) );
 check( 'SILENCE: and keeps the drawing', false !== strpos( $hardened, '<rect' ) && false !== strpos( $hardened, '<path' ) );
-
-// A link in a thumbnail has nowhere legitimate to go except a part of the same
-// drawing; a stylesheet in it styles the whole admin page.
-$linked = easy_svg_icon_preview(
-	'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
-	. '<defs><path id="p" d="M0 0h9"/></defs>'
-	. '<a xlink:href="javascript:alert(1)"><rect width="9" height="9"/></a>'
-	. '<a href=" https://example.invalid/"><circle r="1"/></a>'
-	. '<use xlink:href="#p"/><use href="#p"/>'
-	. '<style>body{display:none}</style></svg>'
-);
-check( 'BELL: a preview keeps no href that leaves the drawing', false === stripos( $linked, 'javascript' ) && false === strpos( $linked, 'example.invalid' ) );
-check( 'SILENCE: references to its own parts stay', 2 === substr_count( $linked, '"#p"' ) );
-check( 'BELL: a preview carries no style element', false === stripos( $linked, '<style' ) && false === strpos( $linked, 'display:none' ) );
-check( 'SILENCE: markup that is not XML previews as nothing', '' === easy_svg_icon_preview( '<svg><scr<script>ipt>alert(1)</script></svg>' ) );
-
-$preview_html = easy_svg_icon_preview_allowed_html();
-check( 'SILENCE: the preview allow-list is lower case, the way wp_kses looks names up', isset( $preview_html['lineargradient'] ) || isset( $preview_html['path'] ) );
-foreach ( array( 'script', 'foreignobject', 'iframe', 'set', 'animate', 'handler', 'listener', 'style' ) as $never ) {
-	check( "BELL: '{$never}' is never in the preview allow-list", ! isset( $preview_html[ $never ] ) );
-}
-
-$manager_source = (string) file_get_contents( $root . '/includes/icon-manager.php' );
-check(
-	'BELL: the screen no longer prints stored markup raw',
-	1 !== preg_match( '/echo\s+\$icon\[\s*\'content\'\s*\]/', $manager_source )
-);
 
 // ─── The two places a version is written ─────────────────────────────────────
 
@@ -1450,6 +1470,14 @@ check( 'the changelog mentions it', false !== strpos( $readme, '= ' . ( $header_
  * the one line a site owner reads before clicking update.
  */
 check( 'BELL: tested up to the WordPress the icon feature needs', 1 === preg_match( '/^Tested up to:\s*7\.1\s*$/mi', $readme ) );
+// The panel enqueues the `react-jsx-runtime` script handle, which WordPress
+// first registered in 6.6. Claiming to run on less gives the lower half of the
+// range a blank Icons screen, so the floor must be 6.6+ and the two headers
+// must agree.
+preg_match( '/Requires at least:\s*([\d.]+)/i', (string) file_get_contents( $root . '/easy-svg.php' ), $hmin );
+preg_match( '/Requires at least:\s*([\d.]+)/i', $readme, $rmin );
+check( 'BELL: requires WordPress 6.6+ (the panel needs react-jsx-runtime)', version_compare( $hmin[1] ?? '0', '6.6', '>=' ) );
+check( 'BELL: and the readme agrees with the header', ( $hmin[1] ?? 'h' ) === ( $rmin[1] ?? 'r' ) );
 $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade Notice ==' ) );
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
@@ -1535,7 +1563,7 @@ $read_list = static function ( string $file, bool $attributes ): array {
 $distignore = $read_list( $root . '/.distignore', false );
 $exportign  = $read_list( $root . '/.gitattributes', true );
 
-foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
+foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', 'README.md', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
 	check( "BELL: .distignore keeps {$kept_out} out of the release", in_array( $kept_out, $distignore, true ) );
 }
 check(
@@ -1560,6 +1588,54 @@ foreach ( array( 'easy-svg.php', 'uninstall.php', 'includes', 'vendor', 'languag
 $gitignore = (string) @file_get_contents( $root . '/.gitignore' );
 check( 'SILENCE: composer.lock is tracked, so .gitignore does not claim to ignore it', 1 !== preg_match( '/^composer\.lock\s*$/m', $gitignore ) );
 check( 'SILENCE: and .DS_Store is ignored', 1 === preg_match( '/^\.DS_Store\s*$/m', $gitignore ) );
+
+// ─── The JS translations have to be delivered, not merely shipped ────────────
+
+/*
+ * Three separate things have to agree before a single translated word reaches
+ * the panel, and every one of them fails silently -- the panel just renders in
+ * English, which looks like "no translation exists yet" rather than a bug.
+ *
+ * 1. WordPress asks for a file named after md5() of the enqueued script's path
+ *    RELATIVE TO THE PLUGIN (`build/panel.js`). A JSON under any other name is
+ *    never opened. The hash is path-based, so rebuilding the bundle is safe --
+ *    but renaming or moving the script silently orphans the catalogue.
+ * 2. It looks for that file in WP_LANG_DIR/plugins and, since 6.7, in the
+ *    textdomain registry -- never inside the plugin unless a path is passed as
+ *    the third argument to wp_set_script_translations(). The floor here is 6.6.
+ * 3. translate.wordpress.org names each JSON after the JS reference paths in the
+ *    PO. `.distignore` keeps `/src` out of the release, so a POT generated from
+ *    `src/*.jsx` produces pack filenames for files that do not exist in the zip,
+ *    and WordPress asks for a name the pack never contains. The POT therefore
+ *    has to be generated against the built bundle.
+ */
+$panel_src = 'build/panel.js';
+check(
+	'BELL: the shipped JS catalogue is named after md5() of the enqueued script path',
+	is_readable( $root . '/languages/easy-svg-de_DE-' . md5( $panel_src ) . '.json' )
+);
+$panel_php = (string) @file_get_contents( $root . '/includes/panel.php' );
+check(
+	'BELL: and wp_set_script_translations is given a path, so the bundled catalogue is looked for inside the plugin',
+	1 === preg_match( '/wp_set_script_translations\(\s*[^;]*languages/s', $panel_php )
+);
+$pot = (string) @file_get_contents( $root . '/languages/easy-svg.pot' );
+check(
+	'BELL: and the POT points its JS strings at the built bundle, which is what ships',
+	false !== strpos( $pot, '#: ' . $panel_src ) && false === strpos( $pot, '#: src/' )
+);
+/*
+ * Both at once, which is the part that is easy to lose. Extracting straight
+ * from the built bundle gets the reference right and throws the translators:
+ * notes away with every other comment the minifier strips -- so a placeholder
+ * reaches translate.wordpress.org as a bare %d with nothing saying what it
+ * counts. The POT is therefore extracted from source, for the comments, and
+ * its JS references are rewritten to the shipped bundle afterwards.
+ */
+check(
+	'BELL: and a JS placeholder still carries the note that says what it stands for',
+	1 === preg_match( '/^#\. translators:[^\n]*\n#: ' . preg_quote( $panel_src, '/' ) . '$/m', $pot )
+);
 
 // ─── How a release leaves this repository ────────────────────────────────────
 
@@ -1650,9 +1726,10 @@ if ( ! function_exists( 'wp_register_icon' ) ) {
 
 check( 'the icon API now counts as present', easy_svg_icons_supported() );
 
-easy_svg_icons_menu();
-check( 'BELL: on 7.1 the SVG icons submenu is there', [ 'easy-svg-icons' ] === $GLOBALS['media_pages'] );
-
+// No menu assertion here any more: the Icons panel's menu entry does not depend
+// on the icon API at all (it hosts the Settings and licence tabs too, which work
+// on any supported WordPress), so there is nothing version-dependent left to
+// check. What 7.1 gates is the STORE and the handover to core, below.
 easy_svg_register_icon_store();
 $store_args = $GLOBALS['post_types']['esw_icon'] ?? [];
 $caps       = (array) ( $store_args['capabilities'] ?? [] );
@@ -1853,9 +1930,68 @@ $plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
 check( 'BELL: upload hooks are gated on the svg_upload toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'svg_upload'\\s*\\)/", $plugin_src ) );
 check( 'BELL: icon registration is gated on the icons toggle', (bool) preg_match( "/easy_svg_feature_enabled\\(\\s*'icons'\\s*\\)/", $plugin_src ) );
 
-// ─── The settings page registers against WordPress ───────────────────────────
-check( 'BELL: a settings page callback is on admin_menu', in_array( 'easy_svg_settings_menu', $GLOBALS['hooks']['admin_menu'] ?? array(), true ) );
-check( 'BELL: the setting is registered on admin_init', in_array( 'easy_svg_settings_register', $GLOBALS['hooks']['admin_init'] ?? array(), true ) );
+// ─── One screen for these settings, and it can be reached ────────────────────
+
+/*
+ * These three settings are edited in the Icons panel and nowhere else. A second
+ * form under Settings -> Easy SVG used to offer the same three options over the
+ * same option, so a person had two places to look for one switch and every new
+ * setting had to be built twice.
+ */
+/*
+ * Fired, not merely inspected. Asking what is in $GLOBALS['options_pages']
+ * without running `admin_menu` passes whether or not anybody registers a page,
+ * because nothing has called the callbacks yet -- a green that means nothing.
+ * Everything below reads what actually happened when WordPress asked.
+ */
+$GLOBALS['menu_pages']    = array();
+$GLOBALS['submenu_pages'] = array();
+$GLOBALS['options_pages'] = array();
+fire( 'admin_menu' );
+
+check( 'BELL: nothing registers a second settings screen under Settings', array() === $GLOBALS['options_pages'] );
+check( 'SILENCE: and the sanitiser the panel REST writes through is still here', function_exists( 'easy_svg_sanitize_settings' ) );
+
+/*
+ * Reaching it is a separate claim from having it, and this is where it broke:
+ * add_menu_page() registers NO submenu entry of its own. While nothing else
+ * nests under the slug that is invisible, because WordPress just shows the
+ * top-level link. The paid plugin nests its icon-set post type here, and then
+ * WordPress renders a submenu and points the PARENT link at its first entry --
+ * so without an explicit self-entry, registered BEFORE core adds post-type
+ * submenus on `admin_menu` at the default 10, clicking "Icons" opens a post
+ * list and the panel cannot be reached from the menu at all.
+ */
+check( 'BELL: the panel registers its top-level menu', isset( $GLOBALS['menu_pages'][ EASY_SVG_PANEL_SLUG ] ) );
+check(
+	'BELL: and its own submenu entry, which is what keeps the parent link on the panel',
+	isset( $GLOBALS['submenu_pages'][0] )
+		&& EASY_SVG_PANEL_SLUG === $GLOBALS['submenu_pages'][0]['parent']
+		&& EASY_SVG_PANEL_SLUG === $GLOBALS['submenu_pages'][0]['slug']
+		&& 'easy_svg_panel_render' === $GLOBALS['submenu_pages'][0]['callback']
+);
+check(
+	'BELL: registered before WordPress appends post-type submenus at priority 10',
+	( $GLOBALS['priorities']['admin_menu']['easy_svg_panel_menu'] ?? 10 ) < 10
+);
+
+/*
+ * A tab that is not current must not be on screen.
+ *
+ * `lazyMount` / `unmountOnExit` are a render STRATEGY, not a guarantee: a panel
+ * that had already been mounted stayed mounted and visible after the tab
+ * changed, so clicking a second tab left the first tab's content in place and
+ * pushed the new one a full screen below it. Measured in the running panel:
+ * 2610 px of page with two panels stacked, 982 px once closed ones are hidden.
+ * The hide is one declaration on the content and does not depend on the tab
+ * library's internals; this asserts it is still there, because the symptom is
+ * "the panel looks broken" rather than any error.
+ */
+$app_jsx = (string) @file_get_contents( $root . '/src/panel/App.jsx' );
+check(
+	'BELL: a tab panel that is not current is hidden, not merely unmounted-in-theory',
+	1 === preg_match( '/_closed=\{\{\s*display:\s*[\'"]none[\'"]/', $app_jsx )
+);
 
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
@@ -1879,6 +2015,64 @@ if ( is_callable( $meta_cb ) ) {
 	$GLOBALS['attachments'][78] = array( 'file' => '/tmp/none.png', 'mime' => 'image/png' );
 	check( 'SILENCE: a non-SVG attachment metadata is unchanged', array( 'x' => 1 ) === $meta_cb( array( 'x' => 1 ), 78 ) );
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Every hook this plugin fires is documented, and every documented hook exists.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * An extension point nobody wrote down is not a contract -- it is something an
+ * agency finds by reading our source, builds on, and loses at the next release
+ * because we never knew they had it. And a documented hook that no longer
+ * exists is worse: it is a promise that fails silently in somebody else's code.
+ *
+ * So the lock goes both ways, and it is structural rather than a habit. Fire a
+ * new filter without a line in the readme and this fails; rename one and the
+ * stale line fails. readme.txt is the surface because it is the only
+ * documentation the free plugin ships -- wordpress.org renders it, and it is
+ * what a developer evaluating the plugin reads before installing it.
+ *
+ * Only hooks this plugin FIRES. The ones it merely hangs on are WordPress's.
+ */
+$hookSrc = '';
+foreach ( array_merge( glob( $root . '/includes/*.php' ) ?: array(), array( $root . '/easy-svg.php' ) ) as $hookFile ) {
+	$hookSrc .= (string) file_get_contents( $hookFile );
+}
+preg_match_all( "/(?:apply_filters|do_action)\(\s*'([a-z0-9_]+)'/", $hookSrc, $hookMatches );
+$fired = array_values( array_unique( $hookMatches[1] ) );
+sort( $fired );
+
+/*
+ * The FAQ, and not a section of its own: wordpress.org merges a section it does
+ * not know into the Description, which is the rule the add-on notes above are
+ * already written to -- and a hooks reference swallowed into the Description is
+ * a hooks reference nobody finds.
+ */
+$readme = (string) file_get_contents( $root . '/readme.txt' );
+$faqFrom = (int) strpos( $readme, '== Frequently Asked Questions ==' );
+$faqTo   = (int) strpos( $readme, '== Screenshots ==' );
+$devDoc  = substr( $readme, $faqFrom, $faqTo - $faqFrom );
+check( 'BELL: the hooks are written down inside the FAQ', '' !== $devDoc && str_contains( $devDoc, 'which hooks are there' ) );
+
+$undocumented = array();
+foreach ( $fired as $hook ) {
+	if ( ! is_string( $devDoc ) || ! str_contains( $devDoc, $hook ) ) {
+		$undocumented[] = $hook;
+	}
+}
+check(
+	'BELL: every hook this plugin fires is written down' . ( $undocumented ? ' -- missing: ' . implode( ', ', $undocumented ) : '' ),
+	array() === $undocumented
+);
+
+preg_match_all( "/`((?:easy_svg|esw_svg)_[a-z0-9_]+)`/", is_string( $devDoc ) ? $devDoc : '', $claimMatches );
+$claimed = array_values( array_unique( $claimMatches[1] ) );
+$ghosts  = array_values( array_diff( $claimed, $fired ) );
+check(
+	'BELL: and every hook it writes down is one it fires' . ( $ghosts ? ' -- ghosts: ' . implode( ', ', $ghosts ) : '' ),
+	array() === $ghosts
+);
+check( 'BELL: the section actually names hooks', array() !== $claimed );
 
 // ─── The suite has to be able to fail ────────────────────────────────────────
 
