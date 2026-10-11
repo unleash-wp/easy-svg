@@ -64,16 +64,15 @@ function easy_svg_panel_menu(): void {
 	/*
 	 * The panel's own entry inside its submenu, and it is not decoration.
 	 *
-	 * add_menu_page() alone registers no submenu item. While nothing else hangs
-	 * under this slug WordPress simply shows the top-level link, so the panel
-	 * opens and the omission is invisible. The moment something does nest here
-	 * -- the paid plugin puts its icon sets under this slug -- WordPress renders
-	 * the submenu and points the PARENT link at its first entry. Without this
-	 * call that first entry is the icon-set list, so clicking "Icons" lands on a
-	 * post list and the panel cannot be reached from the menu at all.
+	 * add_menu_page() registers no submenu item, and while nothing nests under
+	 * this slug WordPress just shows the top-level link, so the omission is
+	 * invisible. The moment something does nest here, WordPress renders the
+	 * submenu and points the PARENT link at its first entry -- which would be the
+	 * icon-set list, so "Icons" would land on a post list and the panel could not
+	 * be reached from the menu at all.
 	 *
-	 * Same slug and same callback as the parent, which is what makes it the
-	 * self-entry rather than a second page.
+	 * Same slug and callback as the parent: that is what makes it the self-entry
+	 * rather than a second page.
 	 */
 	add_submenu_page(
 		EASY_SVG_PANEL_SLUG,
@@ -221,14 +220,12 @@ const EASY_SVG_PANEL_LIBRARY_MAX = 500;
 /**
  * The library response: the icons, and how many there really are.
  *
- * Five routes returned `easy_svg_icon_page( 1, 500 )` -- page one, five
- * hundred, with `no_found_rows` so not even a count came back. A site with 501
- * icons was shown 500 and told nothing: no error, no note, no way to reach the
- * rest. The cap can stay. Being silent about it cannot.
+ * The routes returned page one of five hundred with `no_found_rows`, so a site
+ * with 501 icons was shown 500 and told nothing. The cap can stay; being silent
+ * about it cannot.
  *
- * `wp_count_posts()` is the count, not a second query of our own: WordPress
- * caches it per post type and busts it on save, so asking costs nothing on the
- * second call and is honest on the first.
+ * `wp_count_posts()` is the count rather than a query of our own: WordPress
+ * caches it per post type and busts it on save.
  *
  * @return array{items:array,total:int,truncated:bool}
  */
@@ -331,19 +328,14 @@ function easy_svg_panel_library_rename( $request ) {
 
 	/*
 	 * kses off for this one write, and only if it was on -- the same hazard
-	 * easy_svg_add_icon() documents, reached from the other side. wp_update_post()
-	 * merges the stored row and re-saves it whole, so the markup passes through
-	 * `content_save_pre` again: for every administrator without unfiltered_html
-	 * (any multisite sub-site, any site with DISALLOW_UNFILTERED_HTML) kses would
-	 * strip the SVG it knows nothing about, and renaming an icon would quietly
-	 * empty it. What is being re-saved is what this site's own sanitiser produced.
+	 * easy_svg_add_icon() documents, from the other side. wp_update_post() re-saves
+	 * the row whole, so the markup passes `content_save_pre` again and for any
+	 * administrator without unfiltered_html kses would strip the SVG: renaming an
+	 * icon would quietly empty it. Restored in `finally`, so no error or exception
+	 * leaves kses off for the rest of the request.
 	 *
-	 * Restored in `finally`, so neither an error nor an exception leaves kses off
-	 * for the rest of the request.
-	 *
-	 * The title is slashed because wp_insert_post() unslashes what it is given;
-	 * core slashes the fields it pulls out of the database itself, so only the new
-	 * title is ours to slash.
+	 * Only the new title is slashed; core slashes the fields it pulls out of the
+	 * database itself.
 	 */
 	$kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
 	if ( $kses_was_on ) {

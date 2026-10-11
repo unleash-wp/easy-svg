@@ -3,33 +3,19 @@
  * The icon store, and the WordPress adapters over it.
  *
  * Everything that decides anything is in `icons.php`, injected and checked
- * without WordPress. What is left here is the part that cannot be: a post type,
- * a query, and the one write that stores an icon.
+ * without WordPress. What is left here is a post type, a query, and the one
+ * write that stores an icon. There is no screen: the Icons panel writes
+ * through this file.
  *
- * There is no screen in this file. The product's interface is the Icons panel
- * (`panel.php`), which owns the menu entry, the Library tab and the REST routes
- * that add and remove icons. This file is what that panel writes through.
+ * Two capabilities, two questions. `EASY_SVG_ICON_CAP` is
+ * `edit_theme_options` and belongs to the POST TYPE -- what every other route
+ * into the store must clear, XML-RPC and a generic post editor included. An
+ * icon applies site-wide and shows up in every editor, so it is a design
+ * decision, not `upload_files`. The panel asks for `manage_options`, which is
+ * stricter and widens nothing.
  *
- * ─── Capability ─────────────────────────────────────────────────────────────
- *
- * Two levels, and they are not the same question.
- *
- * `EASY_SVG_ICON_CAP` is `edit_theme_options` and belongs to the POST TYPE: it
- * is what every other route into the store -- XML-RPC's `wp.newPost`, a
- * plugin's generic post editor, REST if it were ever switched on -- has to
- * clear. An icon applies site-wide, like a theme asset, and appears in every
- * editor for everyone, so it is a design decision rather than an upload and
- * not `upload_files`.
- *
- * The panel itself asks for `manage_options`, as an options screen does. That
- * is the stricter of the two, so it does not widen anything here.
- *
- * ─── Absent-safe ────────────────────────────────────────────────────────────
- *
- * `wp_register_icon()` is `@since 7.1.0` and this plugin declares WordPress
- * 6.6. Nothing here may assume it exists. On an older site nothing is
- * registered at all; a fatal on 40,000 installs is not a trade anybody would
- * take.
+ * `wp_register_icon()` is `@since 7.1.0` and this plugin declares 6.6, so
+ * nothing here may assume it exists; on an older site nothing registers.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -53,13 +39,10 @@ const EASY_SVG_ICON_VERSION = 'easy_svg_icons_version';
 /**
  * The store.
  *
- * Private in every direction: no archive, no single view, not queryable, not in
- * search. An icon is markup that belongs to the editor, not a page somebody
- * should be able to open.
- *
- * `show_ui` is false as well. The Icons panel is the interface; the generic
- * post list would offer a content editor for SVG markup, which is a text area
- * somebody would paste anything into.
+ * Private in every direction -- no archive, no single view, not queryable,
+ * not searchable: an icon is editor markup, not a page anybody should open.
+ * `show_ui` is false too, because the generic post list would offer a content
+ * editor for SVG markup; the Icons panel is the interface.
  */
 function easy_svg_register_icon_store() {
     // Nothing to store before 7.1, which has no icon registry to hand icons
@@ -84,15 +67,12 @@ function easy_svg_register_icon_store() {
             'query_var'           => false,
             'supports'            => array( 'title', 'editor' ),
             /*
-             * Every capability is this plugin's own. The `post` defaults would
-             * let an Author create an icon and an Editor change anybody's
-             * through any route that asks the post type -- XML-RPC, REST if it
-             * were ever switched on, a plugin's generic post editor. An icon
-             * appears in every editor on the site; who may add one is the
-             * same question as who may change the theme.
-             *
-             * `map_meta_cap` off, so `edit_post` and friends are checked as
-             * written here instead of being mapped back to post-author rules.
+             * Every capability is this plugin's own. The `post` defaults would let an
+             * Author create an icon and an Editor change anybody's through any route
+             * that asks the post type -- XML-RPC, REST if it were ever switched on, a
+             * plugin's generic post editor. Who may add one is the same question as who
+             * may change the theme. `map_meta_cap` off, so these are checked as written
+             * instead of mapped back to post-author rules.
              */
             'capabilities'        => array(
                 'edit_post'              => EASY_SVG_ICON_CAP,
@@ -117,25 +97,18 @@ function easy_svg_register_icon_store() {
 }
 
 /**
- * Every stored icon, oldest first.
+ * Every stored icon, oldest first, so the picker does not reshuffle when
+ * somebody adds one.
  *
- * Oldest first so the picker does not reshuffle itself when somebody adds one.
+ * Cached because core has no lazy hook for its icon registry: it registers on
+ * every `init` and so must we, the Icon block rendering server-side for every
+ * visitor. Uncached, that is a full query with markup on every request of
+ * every 7.1 site, most of which have no icons.
  *
- * ─── Why it is cached ───────────────────────────────────────────────────────
- *
- * Core has no lazy hook for its icon registry: it registers its own icons on
- * every `init`, and so must we, because the Icon block is rendered on the
- * server for every visitor. Reading the list from the posts table there meant
- * a full query, markup included, on every request of every 7.1 site -- most of
- * which have no icons at all -- for a list that changes only when somebody adds
- * or removes one.
- *
- * So the list lives in a transient, dropped whenever an icon is saved or
- * deleted (see `easy_svg_forget_icons()`; hooked on the post type, so WP-CLI
- * and anything else that writes icons drops it too). It is given an expiry for
- * two reasons: a transient with one is not autoloaded, so a site with many
- * icons does not carry their markup through every request's options; and a
- * write that bypassed WordPress entirely heals by itself within a day.
+ * Dropped whenever an icon is saved or deleted, hooked on the post type so
+ * WP-CLI drops it too. The expiry earns its keep twice: a transient with one
+ * is not autoloaded, so the markup is not carried through every request; and
+ * a write that bypassed WordPress heals within a day.
  *
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
@@ -295,14 +268,12 @@ function easy_svg_add_icon( $label, $markup ) {
 
     /*
      * `post_name` is left to WordPress, which makes it unique against what is
-     * already there. Two icons called "Arrow" then become `arrow` and `arrow-2`
-     * rather than one silently replacing the other -- and the second name is
-     * still one core accepts, because `wp_unique_post_slug` only ever appends
-     * `-<number>`.
+     * already there: two icons called "Arrow" become `arrow` and `arrow-2`
+     * rather than one replacing the other, and the second is still a name core
+     * accepts, since `wp_unique_post_slug` only appends `-<number>`.
      *
-     * Asked for a WP_Error, and the answer is checked. "Icon added." above a
-     * table without the icon -- a full disk, a read-only database, a plugin
-     * vetoing the insert -- sends a person looking for a bug in the wrong place.
+     * A WP_Error is asked for and checked. "Icon added." above a table without
+     * the icon sends a person looking for a bug in the wrong place.
      */
     /*
      * kses is switched off for this one insert, and only if it was on.
@@ -311,11 +282,8 @@ function easy_svg_add_icon( $label, $markup ) {
      * every site with DISALLOW_UNFILTERED_HTML -- and kses knows no SVG, so the
      * icon arrived empty. The markup has just been through this site's SVG
      * sanitiser, which is the check that understands it. Restored in `finally`,
-     * so neither an error return nor an exception leaves kses off for the
-     * rest of the request.
-     *
-     * Slashed, because wp_insert_post() unslashes what it is given; without
-     * it a backslash in the markup is lost.
+     * so no path leaves kses off for the rest of the request. Slashed, because
+     * wp_insert_post() unslashes what it is given.
      */
     $kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
     if ( $kses_was_on ) {

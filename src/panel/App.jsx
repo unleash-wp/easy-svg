@@ -24,7 +24,7 @@ const PRO_TABS = [
   { id: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} /> }
+const UPSELL_TAB = { id: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 export default function App({ config }) {
   const [, force] = useState(0)
@@ -47,6 +47,8 @@ export default function App({ config }) {
     proActive: !!config.proActive,
     proLicensed: !!config.proLicensed,
     iconsEnabled: !!config.iconsEnabled,
+    // Set below, once we know Pro registered a licence tab to switch to.
+    onActivate: undefined,
   }
 
   // Tabs Pro registered that are NOT in the catalogue (e.g. Features): shown only
@@ -80,6 +82,7 @@ export default function App({ config }) {
       // registers it, so a Pro that is active but has not registered would
       // otherwise send the reader to another locked tab.
       const licenceReachable = !!(reg && reg.get('licence'))
+      ctx.onActivate = licenceReachable ? () => setActive('licence') : undefined
       return {
         ...t,
         locked: !unlocked,
@@ -95,7 +98,8 @@ export default function App({ config }) {
       }
     }),
     ...extras,
-    UPSELL_TAB,
+    // A licensed site has no use for a tab selling what it already owns.
+    ...(config.proLicensed ? [] : [UPSELL_TAB]),
   ].sort((a, b) => a.order - b.order)
 
   // zag reads `orientation` as a concrete string (it drives arrow-key direction

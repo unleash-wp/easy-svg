@@ -171,6 +171,7 @@ export function SaveBar({
       borderTopWidth="1px"
       borderColor="ui.border"
       bg="ui.surface"
+      borderBottomRadius="forge"
       py="3"
       px={{ base: '4', md: '6' }}
       boxShadow="0 -1px 2px rgba(32,49,89,.06)"

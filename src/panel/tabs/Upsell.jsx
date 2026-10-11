@@ -2,7 +2,9 @@ import { Stack, HStack, Text, Box } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { Section, Button } from '../../ui.jsx'
 
-export default function Upsell({ proTabs = [] }) {
+export default function Upsell({ proTabs = [], onActivate }) {
+  // Pro installed but unlicensed: the key goes in the Licence tab, not the shop.
+  const canActivate = 'function' === typeof onActivate
   return (
     <Stack gap="5" maxW="720px">
       <Section
@@ -23,9 +25,13 @@ export default function Upsell({ proTabs = [] }) {
         <Box pt="5">
           <Button
             variant="accent"
-            onClick={() => window.open('https://unleash-wp.com/products/easy-svg-pro/', '_blank', 'noopener')}
+            onClick={() =>
+              canActivate
+                ? onActivate()
+                : window.open('https://unleash-wp.com/products/easy-svg-pro/', '_blank', 'noopener')
+            }
           >
-            {__('Get Easy SVG Pro', 'easy-svg')}
+            {canActivate ? __('Activate licence', 'easy-svg') : __('Get Easy SVG Pro', 'easy-svg')}
           </Button>
         </Box>
       </Section>
