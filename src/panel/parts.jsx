@@ -129,15 +129,13 @@ export function ReportList({ summary, rows, onDismiss, dismissLabel }) {
 }
 
 // A Pro tab a free (or unlicensed) site sees: the teaser + a call to action.
-// The title and teaser come localised from the tab definition; the ProBadge is
-// the designed replacement for the old ' 🔒' suffix.
+// Title and teaser come localised from the tab definition.
 //
 // `onActivate` is what the button does when Pro is already INSTALLED and only
-// waiting for a key. It used to open the sales page in both cases, so somebody
-// who had already bought Pro, saw a locked tab and clicked "Activate licence"
-// was sent back to the shop instead of to the field their key goes in. App.jsx
-// passes the callback only when a licence tab is actually there to switch to;
-// without one the sales page is still the honest answer.
+// waiting for a key -- sending that person to the shop instead of to the field
+// their key goes in is the bug this avoids. App.jsx passes the callback only
+// when a licence tab is there to switch to; without one the sales page is the
+// honest answer.
 export function LockedTab({ tab, proActive, onActivate }) {
   const canActivate = proActive && 'function' === typeof onActivate
   return (
