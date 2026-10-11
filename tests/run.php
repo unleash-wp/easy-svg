@@ -2034,6 +2034,47 @@ foreach ( array( 'react', 'react-dom' ) as $dep ) {
 	check( "BELL: {$dep} is declared on the major WordPress ships (18)", 1 === preg_match( '/^\^?18\./', $want ) );
 }
 
+/*
+ * No font file ships with this plugin.
+ *
+ * It carried two Ubuntu woff2 whose stylesheet called them "SIL OFL". They are
+ * not: fontsource lists the family as UFL-1.0, the Ubuntu Font Licence, which
+ * Debian holds to fall short of its free-software guidelines. wordpress.org
+ * requires everything in the directory to be GPL-compatible, fonts included,
+ * and `/assets` is not in .distignore -- so both files went to SVN on every
+ * deploy, under a licence claim that was wrong in the one direction that
+ * matters.
+ *
+ * Asserted over the whole tree rather than the one folder they sat in, because
+ * the next one would not land there.
+ */
+$font_files = array();
+$walk_all   = static function ( string $dir ) use ( &$walk_all ): array {
+	$found = array();
+	foreach ( (array) glob( $dir . '/*' ) as $path ) {
+		if ( is_dir( $path ) ) {
+			if ( in_array( basename( (string) $path ), array( 'node_modules', '.git', 'vendor' ), true ) ) {
+				continue;
+			}
+			$found = array_merge( $found, $walk_all( (string) $path ) );
+			continue;
+		}
+		$found[] = (string) $path;
+	}
+	return $found;
+};
+foreach ( $walk_all( $root ) as $f ) {
+	if ( 1 === preg_match( '/\.(woff2?|ttf|otf|eot)$/i', $f ) ) {
+		$font_files[] = str_replace( $root . '/', '', $f );
+	}
+}
+check( 'BELL: no font file ships: ' . implode( ', ', $font_files ), array() === $font_files );
+check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'panel-fonts.css' ) );
+
+// The panel's type stack must start at a face the machine already has.
+$theme_js = (string) @file_get_contents( $root . '/src/theme.js' );
+check( 'BELL: the type stack starts at the system face', 1 === preg_match( "/body:\s*\{\s*value:\s*'system-ui/", $theme_js ) );
+
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
 file_put_contents( $dim_path, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect/></svg>' );

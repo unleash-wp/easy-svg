@@ -36,9 +36,13 @@ const config = defineConfig({
           950: { value: '#0f131f' },
         },
       },
+      // No webfont ships with this plugin -- see includes/panel.php for why --
+      // so the stack starts at the system face. Ubuntu stays in it, after the
+      // system fonts rather than before: a Linux machine that already has it
+      // gets the UnleashWP type for free, and nobody downloads anything.
       fonts: {
-        heading: { value: '"Ubuntu", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
-        body: { value: '"Ubuntu", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+        heading: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
+        body: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
       },
       radii: {
         forge: { value: '0.3125rem' },
@@ -82,9 +86,9 @@ const config = defineConfig({
         lg: { value: '0 18px 48px rgba(32,49,89,.16)' },
       },
     },
-    // Typography scale for the panel. The self-hosted Ubuntu (assets/panel-fonts.css)
-    // ships ONLY 400 and 700, so the scale uses only those two weights — 500/600
-    // would render as a faux-bold the font never shipped. Apply with textStyle="…".
+    // Typography scale for the panel. Only 400 and 700 are used: Ubuntu ships
+    // exactly those two, so a machine that has it renders both for real instead
+    // of synthesising 500/600 as a faux-bold. Apply with textStyle="…".
     textStyles: {
       h1: {
         value: {

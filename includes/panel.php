@@ -102,15 +102,16 @@ function easy_svg_panel_assets( $hook ): void {
 		return;
 	}
 
-	$fonts = dirname( __DIR__ ) . '/assets/panel-fonts.css';
-	if ( is_readable( $fonts ) ) {
-		wp_enqueue_style(
-			'easy-svg-panel-fonts',
-			plugins_url( 'assets/panel-fonts.css', $main ),
-			array(),
-			(string) filemtime( $fonts )
-		);
-	}
+	/*
+	 * No webfont ships with this plugin.
+	 *
+	 * It self-hosted two Ubuntu woff2 files, and the Ubuntu Font Licence 1.0 is
+	 * not the SIL OFL the stylesheet claimed it was. Debian treats UFL-1.0 as
+	 * not meeting its free-software guidelines, and wordpress.org requires
+	 * everything in the directory to be GPL-compatible -- fonts included. The
+	 * panel's type stack starts at system-ui instead, which is what it fell
+	 * back to on any machine the download failed on anyway.
+	 */
 
 	// React, ReactDOM and the JSX runtime come from WordPress, not the bundle.
 	// wp-i18n ships the wp.i18n global the bundle externalises for __()/_x().
