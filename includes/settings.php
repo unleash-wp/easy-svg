@@ -1,10 +1,9 @@
 <?php
 /**
- * One option, one page, for turning features off and sizing the parser.
+ * One option for the feature switches and the parser's size cap.
  *
- * Everything here reads a single option so the gate below cannot drift from
- * what the screen shows. Defaults are on and usable: the free plugin is whole
- * with the settings untouched.
+ * Everything here reads that one option, so the gate cannot drift from what the
+ * panel's Settings tab shows.
  */
 
 declare(strict_types=1);
@@ -16,12 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 const EASY_SVG_SETTINGS_OPTION = 'easy_svg_settings';
 
 /**
- * The shape and the defaults.
- *
- * Features are OFF by default: a fresh install does nothing until the admin
- * turns on what they need, so the plugin adds exactly what was asked for and
- * no more. `max_mb` is NOT a feature -- it is the security cap on what the
- * sanitiser will parse, always enforced, never off; only its value is settable.
+ * The shape and the defaults. Features are OFF on a fresh install: the plugin
+ * adds what was asked for and no more. `max_mb` is NOT a feature -- it caps
+ * what the sanitiser will parse, always enforced; only its value is settable.
  */
 function easy_svg_settings_defaults(): array {
 	return array(
@@ -32,11 +28,9 @@ function easy_svg_settings_defaults(): array {
 }
 
 /**
- * Stored settings over the defaults.
- *
- * Not memoised: get_option() is already served from WordPress's options cache
- * (one query per request), and leaving it un-cached keeps the gate honest when
- * the option changes mid-request -- and testable without a static to reset.
+ * Stored settings over the defaults. Deliberately not memoised: get_option()
+ * already comes from the options cache, and no static keeps the gate honest
+ * when the option changes mid-request.
  */
 function easy_svg_settings(): array {
 	$stored = get_option( EASY_SVG_SETTINGS_OPTION, array() );
@@ -50,25 +44,14 @@ function easy_svg_feature_enabled( string $key ): bool {
 }
 
 /*
- * There is no screen in this file any more.
- *
- * These three settings are edited in one place, the Icons panel's own Settings
- * tab, which writes them through the panel's REST route. A second form under
- * Settings -> Easy SVG offered the same three options over the same option, so
- * every future setting would have had to be built twice and kept in step -- and
- * a person had two places to look for one switch.
- *
- * What stays here is the data: the defaults, the reader, the feature test, and
- * the sanitiser the REST route calls on every write. `register_setting()` went
- * with the form it belonged to; nothing posts to `options.php` for this option
- * now.
+ * No screen in this file: these settings are edited only in the Icons panel's
+ * Settings tab, which writes them through the panel's REST route. Nothing posts
+ * to options.php for this option, so there is no register_setting() here.
  */
 
 /**
- * Booleans are booleans; the size is an integer megabyte in 1..20.
- *
- * A missing key keeps its default (off): features are opt-in, so a saved form
- * with a box unchecked -- which sends no key -- reads as off, as it should.
+ * Booleans are booleans; the size is an integer megabyte in 1..20. A missing
+ * key keeps its default, so an unchecked box -- which sends no key -- is off.
  *
  * @param mixed $input
  * @return array
@@ -88,19 +71,17 @@ function easy_svg_sanitize_settings( $input ): array {
 }
 
 /*
- * The 5.0 upgrade. Features are off by default now, but a site that updated from
- * 4.x was uploading SVGs all along, and turning that off under it on a security
- * release would break the media library and read as the plugin failing. So an
- * existing site keeps its uploads; a genuinely fresh install gets the opt-in
- * defaults. The icon library is new in 5.0, so it stays opt-in for everyone.
+ * The 5.0 upgrade. A site that updated from 4.x was uploading SVGs all along,
+ * so it keeps its uploads -- switching that off under it would break the media
+ * library. A fresh install gets the opt-in defaults, and the icon library is
+ * new in 5.0, so it is opt-in for everyone.
  */
 const EASY_SVG_SCHEMA_OPTION  = 'easy_svg_schema';
 const EASY_SVG_SCHEMA_VERSION = '5.0';
 
 /**
- * What to seed on the first 5.0 run, or null to leave the defaults (off).
- *
- * Pure: the WordPress query and option writes are in easy_svg_run_migration().
+ * What to seed on the first 5.0 run, or null to leave the defaults (off). Pure:
+ * the query and the option writes live in easy_svg_run_migration().
  *
  * @return array|null
  */
@@ -156,8 +137,6 @@ function easy_svg_migration_notice(): void {
 		return;
 	}
 	delete_transient( 'easy_svg_5_notice' );
-	// Points at the panel. This used to link to Settings -> Easy SVG, which no
-	// longer exists -- a welcome notice whose one link 404s is worse than none.
 	// Built from the constant, never from a copy of the slug: one file registers
 	// that page, and a test asserts the string appears in that file alone.
 	$link = '<a href="' . esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ) . '">' . esc_html__( 'Icons', 'easy-svg' ) . '</a>';
