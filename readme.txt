@@ -147,6 +147,8 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 * Fix: an icon rendered by `easy_svg_icon()` carries the right accessibility role — decorative unless you give it a label.
 * Fix: a library with no icons no longer offers an empty collection to the Icon block.
 * Fix: German and every other translation now reaches the screen's JavaScript, not just its PHP.
+* Fix: an icon you call meaningful is always named. `easy_svg_icon( 'x', [ 'decorative' => false ] )` without a label used to render an image with no accessible name at all; it now falls back to the icon's own title, then to its slug read back as words.
+* Change: no font file ships with this plugin any more. The panel used to self-host Ubuntu; it now starts from the type your system already has, which is what it fell back to whenever that download failed anyway.
 
 = 5.0.0 =
 * Security: the bundled sanitizer (enshrined/svg-sanitize) is updated from 0.22.0 to 1.0.0. This fixes four published advisories: GHSA-9rjx-3jch-6vjf, GHSA-m9xh-6747-9r6f, GHSA-v383-3rw5-q8rf and GHSA-qhmf-972w-m957. SVGs that rely on custom DTD entities, as some older Illustrator exports do, are now refused.
@@ -186,7 +188,7 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 == Upgrade Notice ==
 
 = 5.1.0 =
-SVG uploads and the icon library now share one screen under Icons. Nothing is lost in the move and no setting changed its meaning. Every path that adds an icon is now bounded the way an upload is.
+SVG uploads and the icon library now share one screen under Icons. Nothing is lost in the move and no setting changed its meaning. Every path that adds an icon is now bounded the way an upload is. The panel no longer ships a webfont and uses your system type instead.
 
 = 5.0.0 =
 Security: fixes four published security advisories in the bundled sanitizer, and cleans SVGs from `wp media import`, importers or REST. SVGs with custom DTD entities are refused. Features are now opt-in under Settings → Easy SVG; sites already using uploads keep them — re-upload older files.

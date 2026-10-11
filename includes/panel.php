@@ -102,15 +102,16 @@ function easy_svg_panel_assets( $hook ): void {
 		return;
 	}
 
-	$fonts = dirname( __DIR__ ) . '/assets/panel-fonts.css';
-	if ( is_readable( $fonts ) ) {
-		wp_enqueue_style(
-			'easy-svg-panel-fonts',
-			plugins_url( 'assets/panel-fonts.css', $main ),
-			array(),
-			(string) filemtime( $fonts )
-		);
-	}
+	/*
+	 * No webfont ships with this plugin.
+	 *
+	 * It self-hosted two Ubuntu woff2 files, and the Ubuntu Font Licence 1.0 is
+	 * not the SIL OFL the stylesheet claimed it was. Debian treats UFL-1.0 as
+	 * not meeting its free-software guidelines, and wordpress.org requires
+	 * everything in the directory to be GPL-compatible -- fonts included. The
+	 * panel's type stack starts at system-ui instead, which is what it fell
+	 * back to on any machine the download failed on anyway.
+	 */
 
 	// React, ReactDOM and the JSX runtime come from WordPress, not the bundle.
 	// wp-i18n ships the wp.i18n global the bundle externalises for __()/_x().
@@ -209,12 +210,54 @@ function easy_svg_panel_rest(): void {
 	);
 }
 
+/**
+ * How many icons one library response carries.
+ *
+ * A bound, not a page size: the response holds every icon's hardened markup, so
+ * it is the payload rather than the row count that has to stay sane.
+ */
+const EASY_SVG_PANEL_LIBRARY_MAX = 500;
+
+/**
+ * The library response: the icons, and how many there really are.
+ *
+ * Five routes returned `easy_svg_icon_page( 1, 500 )` -- page one, five
+ * hundred, with `no_found_rows` so not even a count came back. A site with 501
+ * icons was shown 500 and told nothing: no error, no note, no way to reach the
+ * rest. The cap can stay. Being silent about it cannot.
+ *
+ * `wp_count_posts()` is the count, not a second query of our own: WordPress
+ * caches it per post type and busts it on save, so asking costs nothing on the
+ * second call and is honest on the first.
+ *
+ * @return array{items:array,total:int,truncated:bool}
+ */
+function easy_svg_panel_library_payload() {
+	if ( ! function_exists( 'easy_svg_icon_page' ) ) {
+		return array(
+			'items'     => array(),
+			'total'     => 0,
+			'truncated' => false,
+		);
+	}
+
+	$items = array_values( (array) easy_svg_icon_page( 1, EASY_SVG_PANEL_LIBRARY_MAX ) );
+	$total = count( $items );
+	if ( function_exists( 'wp_count_posts' ) ) {
+		$counts = wp_count_posts( EASY_SVG_ICON_POST_TYPE );
+		$total  = max( $total, (int) ( $counts->publish ?? 0 ) );
+	}
+
+	return array(
+		'items'     => $items,
+		'total'     => $total,
+		'truncated' => $total > count( $items ),
+	);
+}
+
 /** GET /library -> the stored icons (id, slug, label, hardened markup). */
 function easy_svg_panel_library_get( $request ) {
-	if ( ! function_exists( 'easy_svg_icon_page' ) ) {
-		return new WP_REST_Response( array() );
-	}
-	return new WP_REST_Response( easy_svg_icon_page( 1, 500 ) );
+	return new WP_REST_Response( easy_svg_panel_library_payload() );
 }
 
 /** A user-readable reason for an add that the store refused. */
@@ -256,7 +299,7 @@ function easy_svg_panel_library_add( $request ) {
 	if ( 'added' !== $result ) {
 		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result ), array( 'status' => 422 ) );
 	}
-	return new WP_REST_Response( easy_svg_icon_page( 1, 500 ) );
+	return new WP_REST_Response( easy_svg_panel_library_payload() );
 }
 
 /**
@@ -337,7 +380,7 @@ function easy_svg_panel_library_rename( $request ) {
 		easy_svg_forget_icons();
 	}
 
-	return new WP_REST_Response( function_exists( 'easy_svg_icon_page' ) ? easy_svg_icon_page( 1, 500 ) : array() );
+	return new WP_REST_Response( easy_svg_panel_library_payload() );
 }
 
 /** POST /library/delete -> remove one icon by id (only an esw_icon post). */
@@ -349,7 +392,7 @@ function easy_svg_panel_library_delete( $request ) {
 		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
 	}
 	wp_delete_post( $id, true );
-	return new WP_REST_Response( function_exists( 'easy_svg_icon_page' ) ? easy_svg_icon_page( 1, 500 ) : array() );
+	return new WP_REST_Response( easy_svg_panel_library_payload() );
 }
 
 function easy_svg_panel_rest_permission(): bool {

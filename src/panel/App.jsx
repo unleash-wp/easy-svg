@@ -76,10 +76,22 @@ export default function App({ config }) {
       // rest. Every other pro tab stays locked until the licence is in (and the
       // pro REST refuses it server-side regardless of what the client shows).
       const unlocked = got && (t.id === 'licence' || config.proLicensed)
+      // Only offer "go to the licence tab" when there IS one to go to: Pro
+      // registers it, so a Pro that is active but has not registered would
+      // otherwise send the reader to another locked tab.
+      const licenceReachable = !!(reg && reg.get('licence'))
       return {
         ...t,
         locked: !unlocked,
-        render: unlocked ? (c) => got.render(c) : () => <LockedTab tab={t} proActive={config.proActive} />,
+        render: unlocked
+          ? (c) => got.render(c)
+          : () => (
+              <LockedTab
+                tab={t}
+                proActive={config.proActive}
+                onActivate={licenceReachable ? () => setActive('licence') : undefined}
+              />
+            ),
       }
     }),
     ...extras,

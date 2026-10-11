@@ -15,9 +15,9 @@ import {
 
 // The UnleashWP buttons, same rules as the account app:
 // primary = navy, hover turns it yellow; accent = the one yellow call to action;
-// ghost = outline. The "forge" radius is theirs. The self-hosted Ubuntu ships
-// only 400 and 700, so buttons use 700 — 500/600 would render as a faux weight
-// the font never shipped.
+// ghost = outline. The "forge" radius is theirs. Ubuntu ships only 400 and
+// 700, so buttons use 700 — 500/600 would render as a faux weight the font
+// never shipped.
 export function Button({ variant = 'ghost', size = 'md', danger, children, ...rest }) {
   const common = {
     size: size === 'sm' ? 'sm' : 'md',

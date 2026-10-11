@@ -1478,6 +1478,24 @@ preg_match( '/Requires at least:\s*([\d.]+)/i', (string) file_get_contents( $roo
 preg_match( '/Requires at least:\s*([\d.]+)/i', $readme, $rmin );
 check( 'BELL: requires WordPress 6.6+ (the panel needs react-jsx-runtime)', version_compare( $hmin[1] ?? '0', '6.6', '>=' ) );
 check( 'BELL: and the readme agrees with the header', ( $hmin[1] ?? 'h' ) === ( $rmin[1] ?? 'r' ) );
+
+/*
+ * And so does the code that REASONS about the floor.
+ *
+ * The header and the readme already had to agree; a docblock did not, and
+ * includes/icons.php said "This plugin declares WordPress 6.0" long after the
+ * floor moved to 6.6 for the panel's react-jsx-runtime. A comment that states
+ * the wrong floor is how the next absent-safety decision gets made against a
+ * version nobody supports any more.
+ */
+$floor_claims = array();
+foreach ( array_merge( glob( $root . '/includes/*.php' ) ?: array(), array( $root . '/easy-svg.php' ) ) as $f ) {
+	if ( 1 === preg_match( '/declares WordPress ([\d.]+)/', (string) file_get_contents( $f ), $claim )
+		&& ( $hmin[1] ?? '' ) !== $claim[1] ) {
+		$floor_claims[] = basename( $f ) . ' says ' . $claim[1];
+	}
+}
+check( 'BELL: no file claims a different WordPress floor than the header: ' . implode( ', ', $floor_claims ), array() === $floor_claims );
 $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade Notice ==' ) );
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
@@ -1992,6 +2010,103 @@ check(
 	'BELL: a tab panel that is not current is hidden, not merely unmounted-in-theory',
 	1 === preg_match( '/_closed=\{\{\s*display:\s*[\'"]none[\'"]/', $app_jsx )
 );
+
+/*
+ * "Activate licence" goes to the licence tab, not to the shop.
+ *
+ * LockedTab is what a site sees on a Pro tab it cannot open yet, and that
+ * includes a site where Pro is INSTALLED and only waiting for a key. The button
+ * opened the sales page in both cases, so a customer who had already bought,
+ * saw a locked tab and clicked the button labelled "Activate licence" was sent
+ * back to the shop instead of to the field the key goes in -- on the one path
+ * that matters to somebody who has already paid.
+ *
+ * Structural because the panel has no JS harness: what can be asserted is that
+ * the button has a second destination and that the label follows it.
+ */
+$parts_jsx = (string) @file_get_contents( $root . '/src/panel/parts.jsx' );
+check( 'BELL: the locked tab can send an installed Pro to its licence tab', str_contains( $parts_jsx, 'onActivate' ) );
+check( 'BELL: and the label follows whether it actually can', 1 === preg_match( "/\{\s*canActivate\s*\?\s*__\(\s*'Activate licence'/", $parts_jsx ) );
+check( 'BELL: App.jsx hands it the switch, and only when a licence tab is registered', str_contains( $app_jsx, "setActive( 'licence' )" ) || str_contains( $app_jsx, "setActive('licence')" ) );
+check( 'SILENCE: the sales page is no longer the only thing the button can do', 1 === preg_match( '/canActivate\s*\n?\s*\?\s*onActivate\(\)/', $parts_jsx ) );
+
+/*
+ * The React we BUILD against is the React WordPress SERVES.
+ *
+ * Both were declared `^19.0.0` while core ships 18.3 -- React 19 was aimed at
+ * 7.1 and then punted beyond it (make.wordpress.org dev note, 2026-07-24). The
+ * bundle externalises react and react/jsx-runtime to core's own handles, so the
+ * browser got 18.3 while the toolchain resolved 19.3. It happens to work,
+ * because the automatic runtime emits the same jsx()/jsxs() either way -- the
+ * rebuild after pinning was byte-for-byte the same size -- but "happens to" is
+ * the whole problem: React 19 dropped defaultProps on function components,
+ * dropped string refs and changed ref handling, and any of that compiling
+ * against 19 and running on 18.3 fails silently.
+ *
+ * Asserted as a MAJOR, not an exact version, so a patch bump is free and a
+ * jump to 19 has to be a decision somebody makes when core actually ships it.
+ */
+$pkg = json_decode( (string) @file_get_contents( $root . '/package.json' ), true );
+foreach ( array( 'react', 'react-dom' ) as $dep ) {
+	$want = (string) ( $pkg['dependencies'][ $dep ] ?? '' );
+	check( "BELL: {$dep} is declared on the major WordPress ships (18)", 1 === preg_match( '/^\^?18\./', $want ) );
+}
+
+/*
+ * No font file ships with this plugin.
+ *
+ * It carried two Ubuntu woff2 whose stylesheet called them "SIL OFL". They are
+ * not: fontsource lists the family as UFL-1.0, the Ubuntu Font Licence, which
+ * Debian holds to fall short of its free-software guidelines. wordpress.org
+ * requires everything in the directory to be GPL-compatible, fonts included,
+ * and `/assets` is not in .distignore -- so both files went to SVN on every
+ * deploy, under a licence claim that was wrong in the one direction that
+ * matters.
+ *
+ * Asserted over the whole tree rather than the one folder they sat in, because
+ * the next one would not land there.
+ */
+$font_files = array();
+$walk_all   = static function ( string $dir ) use ( &$walk_all ): array {
+	$found = array();
+	foreach ( (array) glob( $dir . '/*' ) as $path ) {
+		if ( is_dir( $path ) ) {
+			if ( in_array( basename( (string) $path ), array( 'node_modules', '.git', 'vendor' ), true ) ) {
+				continue;
+			}
+			$found = array_merge( $found, $walk_all( (string) $path ) );
+			continue;
+		}
+		$found[] = (string) $path;
+	}
+	return $found;
+};
+foreach ( $walk_all( $root ) as $f ) {
+	if ( 1 === preg_match( '/\.(woff2?|ttf|otf|eot)$/i', $f ) ) {
+		$font_files[] = str_replace( $root . '/', '', $f );
+	}
+}
+check( 'BELL: no font file ships: ' . implode( ', ', $font_files ), array() === $font_files );
+check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'panel-fonts.css' ) );
+
+// The panel's type stack must start at a face the machine already has.
+$theme_js = (string) @file_get_contents( $root . '/src/theme.js' );
+check( 'BELL: the type stack starts at the system face', 1 === preg_match( "/body:\s*\{\s*value:\s*'system-ui/", $theme_js ) );
+
+/*
+ * The library screen says how many icons there really are.
+ *
+ * Five routes answered `easy_svg_icon_page( 1, 500 )`: page one, five hundred,
+ * `no_found_rows` so not even a count. A site with 501 icons saw 500 and was
+ * told nothing -- no error, no note, no way to reach the rest. The cap can
+ * stay; being silent about it cannot.
+ */
+// Stripped, so the docblock that QUOTES the old call is not read as the call.
+$panel_php = (string) php_strip_whitespace( $root . '/includes/panel.php' );
+check( 'SILENCE: no route asks for a hard-coded page of icons any more', 1 !== preg_match( '/easy_svg_icon_page\(\s*1\s*,\s*500\s*\)/', $panel_php ) );
+check( 'BELL: they all go through the one payload', 4 === preg_match_all( '/return new WP_REST_Response\( easy_svg_panel_library_payload\(\) \);/', $panel_php ) );
+$library_jsx = (string) @file_get_contents( $root . '/src/panel/tabs/Library.jsx' );
+check( 'BELL: and the screen says so when it cannot list them all', str_contains( $library_jsx, 'const truncated = total > all.length' ) );
 
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
