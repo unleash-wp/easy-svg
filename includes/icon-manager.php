@@ -3,33 +3,21 @@
  * The icon store, and the WordPress adapters over it.
  *
  * Everything that decides anything is in `icons.php`, injected and checked
- * without WordPress. What is left here is the part that cannot be: a post type,
- * a query, and the one write that stores an icon.
+ * without WordPress. What is left here is a post type, a query, and the one
+ * write that stores an icon. There is no screen: the interface is the Icons
+ * panel, which writes through this file.
  *
- * There is no screen in this file. The product's interface is the Icons panel
- * (`panel.php`), which owns the menu entry, the Library tab and the REST routes
- * that add and remove icons. This file is what that panel writes through.
+ * Two capabilities, and they are not the same question.
+ * `EASY_SVG_ICON_CAP` is `edit_theme_options` and belongs to the POST TYPE --
+ * what every other route into the store has to clear, including XML-RPC and a
+ * generic post editor. An icon applies site-wide and appears in every editor
+ * for everyone, so it is a design decision rather than an upload, and not
+ * `upload_files`. The panel itself asks for `manage_options`, which is
+ * stricter and widens nothing.
  *
- * ─── Capability ─────────────────────────────────────────────────────────────
- *
- * Two levels, and they are not the same question.
- *
- * `EASY_SVG_ICON_CAP` is `edit_theme_options` and belongs to the POST TYPE: it
- * is what every other route into the store -- XML-RPC's `wp.newPost`, a
- * plugin's generic post editor, REST if it were ever switched on -- has to
- * clear. An icon applies site-wide, like a theme asset, and appears in every
- * editor for everyone, so it is a design decision rather than an upload and
- * not `upload_files`.
- *
- * The panel itself asks for `manage_options`, as an options screen does. That
- * is the stricter of the two, so it does not widen anything here.
- *
- * ─── Absent-safe ────────────────────────────────────────────────────────────
- *
- * `wp_register_icon()` is `@since 7.1.0` and this plugin declares WordPress
- * 6.6. Nothing here may assume it exists. On an older site nothing is
- * registered at all; a fatal on 40,000 installs is not a trade anybody would
- * take.
+ * `wp_register_icon()` is `@since 7.1.0` and this plugin declares 6.6, so
+ * nothing here may assume it exists. On an older site nothing is registered at
+ * all.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -117,25 +105,19 @@ function easy_svg_register_icon_store() {
 }
 
 /**
- * Every stored icon, oldest first.
+ * Every stored icon, oldest first, so the picker does not reshuffle when
+ * somebody adds one.
  *
- * Oldest first so the picker does not reshuffle itself when somebody adds one.
+ * Cached because core has no lazy hook for its icon registry: it registers on
+ * every `init` and so must we, because the Icon block renders server-side for
+ * every visitor. Reading the posts table there meant a full query, markup
+ * included, on every request of every 7.1 site -- most of which have no icons.
  *
- * ─── Why it is cached ───────────────────────────────────────────────────────
- *
- * Core has no lazy hook for its icon registry: it registers its own icons on
- * every `init`, and so must we, because the Icon block is rendered on the
- * server for every visitor. Reading the list from the posts table there meant
- * a full query, markup included, on every request of every 7.1 site -- most of
- * which have no icons at all -- for a list that changes only when somebody adds
- * or removes one.
- *
- * So the list lives in a transient, dropped whenever an icon is saved or
- * deleted (see `easy_svg_forget_icons()`; hooked on the post type, so WP-CLI
- * and anything else that writes icons drops it too). It is given an expiry for
- * two reasons: a transient with one is not autoloaded, so a site with many
- * icons does not carry their markup through every request's options; and a
- * write that bypassed WordPress entirely heals by itself within a day.
+ * The transient is dropped whenever an icon is saved or deleted, hooked on the
+ * post type so WP-CLI drops it too. It carries an expiry for two reasons: a
+ * transient with one is not autoloaded, so a site with many icons does not
+ * carry their markup through every request's options; and a write that bypassed
+ * WordPress heals by itself within a day.
  *
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
