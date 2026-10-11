@@ -51,19 +51,15 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 /*
  * The sanitiser 4.1 kept in a global, kept for the snippets that configure it.
  *
- * 4.1 created `$sanitizer` here and cleaned every upload with it, so a site
- * could write `global $sanitizer; $sanitizer->removeRemoteReferences( true );`
- * and have that apply. Dropping the global turned such a snippet into a fatal
- * call on null -- or, where it built its own, into a setting silently ignored.
+ * 4.1 cleaned every upload with this object, so a site could write
+ * `global $sanitizer; $sanitizer->removeRemoteReferences( true );` and have it
+ * apply. Dropping the global turns such a snippet into a fatal call on null.
+ * It is no longer what anybody sanitises WITH -- `easy_svg_sanitizer()` hands
+ * each caller a copy -- it is the template those copies start from.
  *
- * It is no longer the object anybody sanitises WITH: `easy_svg_sanitizer()`
- * hands each caller a copy of it (see there for why a shared instance is
- * wrong). It is the template the copies start from.
- *
- * Only created when the name is free. 4.1 overwrote it unconditionally, which
- * clobbered any other plugin's `$sanitizer` -- a common enough name -- and a
- * Sanitizer some earlier code already put there is exactly what should be
- * honoured, not replaced.
+ * Only created when the name is free: 4.1 overwrote it unconditionally and
+ * clobbered any other plugin's `$sanitizer`, and one that earlier code already
+ * put there is what should be honoured.
  */
 if ( class_exists( '\enshrined\svgSanitize\Sanitizer' ) && ! isset( $GLOBALS['sanitizer'] ) ) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- the 4.1 name, kept for site snippets.
@@ -107,19 +103,14 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 /**
  * The version of the contract this plugin offers to add-ons.
  *
- * The surface it covers:
+ * The surface is `easy_svg_sanitizer()`, a sanitiser with this site's
+ * allow-list. Bumped only when that changes shape; everything else here is an
+ * internal detail free to move.
  *
- *     easy_svg_sanitizer()      a sanitiser with this site's allow-list
- *
- * Bumped only when that surface changes shape. Everything else in this plugin
- * is an internal detail and may be renamed, moved or deleted without touching
- * this number.
- *
- * 2 added a filter over how many icons a site may keep. 3 removes it again:
- * the icon manager has no limit, so there is nothing left to filter, and an
- * add-on must not build on that filter or expect it to change anything. A
- * number says that where a version string cannot -- "4.3" with the filter and
- * "4.3" without it look the same to a comparison somebody wrote in a hurry.
+ * 2 added a filter over how many icons a site may keep; 3 removes it, because
+ * the icon manager has no limit and an add-on must not build on it. A number
+ * says that where a version string cannot -- "4.3" with the filter and "4.3"
+ * without it look the same to a hasty comparison.
  */
 define( 'EASY_SVG_API', 3 );
 
@@ -198,15 +189,15 @@ function easy_svg_read_svg_dimensions( $path ) {
 /**
  * Remove any animation element that drives an `href` or an `on*` handler.
  *
- * The default allow-list has no animation elements, so this is a no-op on an
- * ordinary site. A site that widens `esw_svg_allowed_tags` to `animate`/`set`
- * keeps them -- and the sanitiser's value checks look only at attributes whose
- * NAME contains href, never at `attributeName`/`values`. So `<animate
- * attributeName="href" values="javascript:...">` would set an href the
- * sanitiser already approved as a fragment. This strips exactly those: an
- * animation element whose target (attributeName, trimmed, lower-cased, with an
- * optional `xlink:` prefix) is `href` or begins `on`. Animation of a benign
- * property (opacity, transform) is left alone.
+ * A no-op on an ordinary site: the default allow-list has no animation
+ * elements. A site that widens `esw_svg_allowed_tags` to `animate`/`set` keeps
+ * them -- and the sanitiser's value checks look only at attributes whose NAME
+ * contains href, never at `attributeName`/`values`. So
+ * `<animate attributeName="href" values="javascript:...">` would set an href
+ * the sanitiser already approved as a fragment.
+ *
+ * This strips exactly those: an animation element whose target is `href` or
+ * begins `on`. Animation of a benign property is left alone.
  *
  * Parsed as XML (sanitiser output is XML), no network, no entities.
  *
@@ -252,21 +243,16 @@ function easy_svg_neutralize_href_animation( $markup ) {
 /**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
  *
- * ─── Why an add-on gets a function and not the classes ──────────────────────
+ * An add-on gets this function, not the classes. `esw_svg_tags` and friends are
+ * internals; an add-on reaching for them by name pins every rename here, and
+ * the breakage is silent -- `class_exists()` goes false, the add-on decides
+ * this plugin is not installed, and it tells somebody to install what is
+ * already active.
  *
- * `esw_svg_tags` and `esw_svg_attributes` are internals. An add-on that reaches
- * for them by name pins every rename in this file, and the breakage is silent:
- * `class_exists()` goes false, the add-on decides this plugin is not
- * installed, and it tells somebody to install something that is already
- * active. One documented function instead, and the rest is free to move.
- *
- * ─── Why this plugin uses it too ────────────────────────────────────────────
- *
- * Because otherwise it is a second path. The allow-list here is not the
- * library's default -- it goes through `esw_svg_allowed_tags`, which sites
- * widen for `style` or for animation elements -- and an add-on configured any
- * other way would report and remove things this site never would. One
- * function, used by both, is the only version of that which cannot drift.
+ * This plugin uses it too, or it would be a second path. The allow-list is not
+ * the library's default: it goes through `esw_svg_allowed_tags`, which sites
+ * widen for `style` or animation elements, so an add-on configured any other
+ * way would report and remove things this site never would.
  *
  * @return \enshrined\svgSanitize\Sanitizer|null Null when the library is absent.
  */
@@ -277,19 +263,14 @@ function easy_svg_sanitizer() {
 
     /*
      * One instance per call. The 4.1 global was reconfigured on every upload,
-     * so two callers meant whichever ran last decided what the other one
-     * stripped.
+     * so two callers meant whichever ran last decided what the other stripped.
      *
      * A COPY of that global when it holds a Sanitizer, so whatever a site
-     * snippet set on it -- remote references, minifying, the XML declaration,
-     * nesting limits -- still applies, as it did in 4.1. A clone is safe to
-     * hand out: the library builds a new DOMDocument on every sanitize() call,
-     * so nothing a caller does reaches the template. The allow-lists are set on
-     * the copy below and replace anything set on the global; 4.1 did exactly
-     * that on every upload, so a snippet never could set them there.
-     *
-     * Anything else under that name is somebody else's variable and is left
-     * alone.
+     * snippet set on it still applies as it did in 4.1. A clone is safe to hand
+     * out -- the library builds a new DOMDocument per sanitize() -- and the
+     * allow-lists set on the copy replace anything set on the global, which is
+     * what 4.1 did on every upload anyway. Anything else under that name is
+     * somebody else's variable and is left alone.
      */
     $legacy    = isset( $GLOBALS['sanitizer'] ) ? $GLOBALS['sanitizer'] : null;
     $sanitizer = $legacy instanceof \enshrined\svgSanitize\Sanitizer
@@ -527,22 +508,13 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 /*
  * The same check for files that do not come from the media uploader.
  *
- * WordPress builds this hook name from the action:
+ * WordPress builds `{$action}_prefilter` from `wp_handle_upload` OR
+ * `wp_handle_sideload`, and the second is what `media_sideload_image()`,
+ * WP-CLI `wp media import` and importers use.
  *
- *     $file = apply_filters( "{$action}_prefilter", $file );   wp-admin/includes/file.php
- *
- * and `$action` is `wp_handle_upload` OR `wp_handle_sideload`. The second is
- * what these use:
- *
- *   - `media_sideload_image()`, which themes and page builders use to pull in
- *     remote assets
- *   - WP-CLI `wp media import`
- *   - importers, and anything else that hands WordPress a file it already has
- *
- * Safe on this path: for a local file WP-CLI copies to a temporary first
- * (`make_copy()` -> `copy()`), and a remote one arrives through `download_url()`,
- * so `tmp_name` is always a temporary copy. Sanitising in place never touches
- * the file somebody passed in.
+ * Safe on this path: WP-CLI copies a local file to a temporary first and a
+ * remote one arrives through `download_url()`, so `tmp_name` is always a
+ * temporary copy. Sanitising in place never touches the file somebody passed in.
  */
 if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
     add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
@@ -675,16 +647,15 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 /**
  * The last check: every new SVG attachment, however its file got there.
  *
- * When an attachment that is an SVG is created -- by an upload, an importer,
- * or a plugin that writes a file and registers it -- its file is sanitised in
- * place with the same checker the uploads use. If the sanitiser cannot use it, the
- * attachment and its file are deleted -- a file nobody could clean must not
- * stay reachable under the uploads URL.
+ * An SVG attachment created by an upload, an importer, or a plugin that writes
+ * a file and registers it has that file sanitised in place with the checker the
+ * uploads use. If the sanitiser cannot use it, the attachment and its file are
+ * deleted: a file nobody could clean must not stay reachable under the uploads
+ * URL.
  *
- * For a file that already went through the upload filter this is a second,
- * harmless pass. Files outside the uploads directory are left alone (see
- * below), and so is an attachment with no local file (offloaded media, an
- * attachment that only points somewhere): there is nothing here to check,
+ * For a file that already went through the upload filter this is a harmless
+ * second pass. Files outside the uploads directory are left alone, and so is an
+ * attachment with no local file -- offloaded media has nothing here to check,
  * and deleting it would lose somebody's library entry.
  *
  * @param int $attachment_id The new attachment.
