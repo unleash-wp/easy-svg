@@ -193,16 +193,14 @@ function easy_svg_icon( $name, $args = array() ) {
         $attrs .= ' aria-hidden="true" focusable="false"';
     } else {
         /*
-         * Read as an image; focusable="false" keeps it off the tab order too.
+         * Read as an image; focusable="false" keeps it off the tab order.
          *
-         * role="img" with no accessible name is never emitted. A screen reader
-         * meets an image and announces "graphic" with nothing after it -- WCAG
-         * 1.1.1 with the role spelled out. This branch used to do exactly that
-         * when a caller passed 'decorative' => false and no label. Hiding the
-         * icon instead would contradict a caller who just said it means
-         * something, so it is named: from the label given, else the icon's own
-         * stored title, else the slug read back as words. The extra lookup
-         * happens only in this branch, and only when no label came in.
+         * role="img" without an accessible name is never emitted -- a screen
+         * reader announces "graphic" and nothing else, WCAG 1.1.1 with the role
+         * spelled out. Hiding it instead would contradict a caller who just said
+         * it means something, so it is named: the label given, else the stored
+         * title, else the slug as words. That lookup runs only here, and only
+         * when no label came in.
          */
         $attrs .= ' role="img" focusable="false"';
         $label  = (string) ( $args['label'] ?? '' );
