@@ -156,15 +156,12 @@ function easy_svg_icon_label( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
  * 7.1 registry. The markup is the sanitiser's hardened output.
  *
  * @param string $name Icon name, bare slug or collection-qualified.
- * @param array  $args Optional. 'class' (string). 'label' (string): names the
- *                     icon, so it reads as content -- role="img" + aria-label.
- *                     'decorative' (bool): overrides that default -- true hides
- *                     the icon from assistive tech, false keeps it meaningful.
- *                     With neither a label nor 'decorative' the icon is
- *                     decorative, because the block inlines it into the page.
- *                     A meaningful icon is always named: by 'label', else by
- *                     the icon's stored title, else by its slug read back as
- *                     words. role="img" without a name is never emitted.
+ * @param array  $args Optional. 'class' (string). 'label' (string) names the
+ *                     icon so it reads as content: role="img" + aria-label.
+ *                     'decorative' (bool) overrides -- true hides it from
+ *                     assistive tech, false keeps it meaningful. With neither,
+ *                     the icon is decorative. A meaningful one is always named:
+ *                     'label', else the stored title, else the slug as words.
  * @return string SVG markup ready to echo, or '' when the icon is unknown.
  */
 function easy_svg_icon( $name, $args = array() ) {
@@ -356,12 +353,11 @@ function easy_svg_harden_icon_markup( $markup ) {
 /**
  * Whether a submitted icon may be stored, and in what shape.
  *
- * A pure decision: the bounds are injected, not read, so a test or a CLI
- * import can ask for none. They are the same two the media-upload path applies.
- * How many icons a site keeps is unbounded; how much WORK one may cost is not.
- *
- * Each refusal is its own word: "that name makes no icon name" and "that file
- * is not an SVG" send a person somewhere different.
+ * A pure decision: the bounds are injected, not read, so a test or a CLI import
+ * can ask for none. They are the same two the media-upload path applies -- how
+ * many icons a site keeps is unbounded, how much WORK one may cost is not. Each
+ * refusal is its own word, because "that name makes no icon name" and "that
+ * file is not an SVG" send a person somewhere different.
  *
  * @param string        $label       What the person typed.
  * @param string        $markup      The bytes they uploaded.
@@ -410,16 +406,11 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max
     }
 
     /*
-     * The sanitiser refusing means it could not read the file. Storing whatever
-     * came back would put bytes nobody understood into every page that uses the
-     * icon.
-     *
-     * A probe says this line changes nothing today: `false` coerces to `''` on
-     * the way into `stripos()` below, which then refuses it anyway. It stays
-     * because that equivalence is a property of this file having no
-     * `declare(strict_types=1)`. Add one -- and every other file in this
-     * project has one -- and the coercion becomes a TypeError, so a clean
-     * refusal turns into a fatal on somebody's upload screen.
+     * The sanitiser refusing means it could not read the file, and storing what
+     * came back would put bytes nobody understood into every page using the icon.
+     * The explicit check is redundant only while this file has no
+     * `declare(strict_types=1)`: add one, as every other file here has, and the
+     * `false`-to-`''` coercion below becomes a TypeError on somebody's upload.
      */
     if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
         return array( 'state' => 'not_svg' );
