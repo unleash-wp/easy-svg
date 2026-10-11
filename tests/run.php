@@ -2093,6 +2093,15 @@ check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (strin
 $theme_js = (string) @file_get_contents( $root . '/src/theme.js' );
 check( 'BELL: the type stack starts at the system face', 1 === preg_match( "/body:\s*\{\s*value:\s*'system-ui/", $theme_js ) );
 
+// A licensed site does not get a tab selling what it already owns, and an
+// installed-but-unlicensed one is sent to the licence tab, not the shop.
+$app_src = (string) @file_get_contents( $root . '/src/panel/App.jsx' );
+check( 'BELL: the upsell tab is dropped once the licence is in', str_contains( $app_src, 'config.proLicensed ? [] : [UPSELL_TAB]' ) );
+check( 'BELL: and the upsell can reach the licence tab', str_contains( (string) @file_get_contents( $root . '/src/panel/tabs/Upsell.jsx' ), 'canActivate' ) );
+
+// The save bar closes a column of cards, so it carries their corners.
+check( 'BELL: the save bar shares the card radius', str_contains( (string) @file_get_contents( $root . '/src/ui.jsx' ), 'borderBottomRadius="forge"' ) );
+
 /*
  * The library screen says how many icons there really are.
  *
