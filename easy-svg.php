@@ -51,15 +51,12 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 /*
  * The sanitiser 4.1 kept in a global, kept for the snippets that configure it.
  *
- * 4.1 cleaned every upload with this object, so a site could write
- * `global $sanitizer; $sanitizer->removeRemoteReferences( true );` and have it
- * apply. Dropping the global turns such a snippet into a fatal call on null.
- * It is no longer what anybody sanitises WITH -- `easy_svg_sanitizer()` hands
- * each caller a copy -- it is the template those copies start from.
- *
- * Only created when the name is free: 4.1 overwrote it unconditionally and
- * clobbered any other plugin's `$sanitizer`, and one that earlier code already
- * put there is what should be honoured.
+ * 4.1 cleaned every upload with this object, so sites wrote
+ * `global $sanitizer; $sanitizer->removeRemoteReferences( true );` -- dropping
+ * the global turns that into a fatal call on null. It is now the template
+ * `easy_svg_sanitizer()` copies, not what anybody sanitises WITH. Created only
+ * when the name is free: 4.1 overwrote it unconditionally and clobbered any
+ * other plugin's `$sanitizer`, and an existing one should be honoured.
  */
 if ( class_exists( '\enshrined\svgSanitize\Sanitizer' ) && ! isset( $GLOBALS['sanitizer'] ) ) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- the 4.1 name, kept for site snippets.
@@ -104,13 +101,11 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
  * The version of the contract this plugin offers to add-ons.
  *
  * The surface is `easy_svg_sanitizer()`, a sanitiser with this site's
- * allow-list. Bumped only when that changes shape; everything else here is an
- * internal detail free to move.
- *
- * 2 added a filter over how many icons a site may keep; 3 removes it, because
- * the icon manager has no limit and an add-on must not build on it. A number
- * says that where a version string cannot -- "4.3" with the filter and "4.3"
- * without it look the same to a hasty comparison.
+ * allow-list; bumped only when that changes shape, everything else here is free
+ * to move. 2 had a filter over how many icons a site may keep; 3 removes it,
+ * because the manager has no limit and an add-on must not build on one. A
+ * number, because "4.3" with the filter and "4.3" without look the same to a
+ * hasty comparison.
  */
 define( 'EASY_SVG_API', 3 );
 
@@ -120,11 +115,10 @@ require_once __DIR__ . '/includes/settings.php';
 /**
  * The largest SVG this plugin will parse, in bytes.
  *
- * SVG is XML, and the work of parsing and cleaning it scales with its size.
- * A ceiling in front of every sanitise bounds how much a single upload can be.
- * Size alone does not bound the WORK, though -- see easy_svg_svg_too_complex()
- * for that. Two megabytes is far above any icon or ordinary drawing; a site
- * that needs more can raise it.
+ * A ceiling in front of every sanitise bounds how large one upload can be. It
+ * does not bound the WORK -- easy_svg_svg_too_complex() does that. Two
+ * megabytes is far above any icon or ordinary drawing; a site that needs more
+ * raises it.
  *
  * @return int
  */
@@ -136,13 +130,11 @@ function easy_svg_max_bytes() {
 /**
  * Whether an SVG is too structurally complex to sanitise within a bounded cost.
  *
- * The byte cap bounds input size, not the work the sanitiser does with it. The
- * bundled library has quadratic paths: it strips PHP processing instructions in
- * a loop that rescans the whole string once per nested layer, and it checks the
- * <use> threshold by scanning every id'd element once per <use>. A file far
- * under the size cap can therefore tie up a worker for minutes. These two token
- * counts stay linear to compute and reject the pathological shapes before the
- * parser ever sees them; no icon or ordinary drawing comes near either bound.
+ * The byte cap bounds the input, not the work: the bundled library rescans the
+ * whole string once per nested PHP processing instruction and walks every id'd
+ * element once per `<use>`, so a file far under the size cap can tie up a
+ * worker for minutes. These two counts stay linear and reject the pathological
+ * shapes before the parser sees them; no real drawing comes near either bound.
  *
  * @param string $markup
  * @return bool
@@ -189,17 +181,12 @@ function easy_svg_read_svg_dimensions( $path ) {
 /**
  * Remove any animation element that drives an `href` or an `on*` handler.
  *
- * A no-op on an ordinary site: the default allow-list has no animation
- * elements. A site that widens `esw_svg_allowed_tags` to `animate`/`set` keeps
- * them -- and the sanitiser's value checks look only at attributes whose NAME
- * contains href, never at `attributeName`/`values`. So
- * `<animate attributeName="href" values="javascript:...">` would set an href
- * the sanitiser already approved as a fragment.
- *
- * This strips exactly those: an animation element whose target is `href` or
- * begins `on`. Animation of a benign property is left alone.
- *
- * Parsed as XML (sanitiser output is XML), no network, no entities.
+ * A no-op by default -- the allow-list has no animation elements -- but a site
+ * that widens `esw_svg_allowed_tags` to `animate`/`set` keeps them, and the
+ * sanitiser's value checks read only attribute NAMES, never `attributeName`, so
+ * `<animate attributeName="href" values="javascript:...">` would set an href it
+ * had already approved. Animation of a benign property is left alone. Parsed as
+ * XML with no network and no entity expansion.
  *
  * @param string $markup Cleaned SVG markup.
  * @return string Markup without href-driving animation, or '' when unparseable.
@@ -243,16 +230,13 @@ function easy_svg_neutralize_href_animation( $markup ) {
 /**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
  *
- * An add-on gets this function, not the classes. `esw_svg_tags` and friends are
- * internals; an add-on reaching for them by name pins every rename here, and
- * the breakage is silent -- `class_exists()` goes false, the add-on decides
- * this plugin is not installed, and it tells somebody to install what is
- * already active.
- *
- * This plugin uses it too, or it would be a second path. The allow-list is not
- * the library's default: it goes through `esw_svg_allowed_tags`, which sites
- * widen for `style` or animation elements, so an add-on configured any other
- * way would report and remove things this site never would.
+ * Add-ons get this function, never the `esw_svg_*` classes: those are internals,
+ * and a rename breaks them silently -- `class_exists()` goes false, the add-on
+ * decides the plugin is not installed and tells somebody to install what is
+ * already active. This plugin uses it too, or it would be a second path. The
+ * allow-list runs through `esw_svg_allowed_tags`, which sites widen, so an
+ * add-on configured any other way would report and remove things this site
+ * never would.
  *
  * @return \enshrined\svgSanitize\Sanitizer|null Null when the library is absent.
  */
@@ -611,16 +595,14 @@ function easy_svg_markup_is_clean( $markup ) {
 }
 
 /**
- * The check on `wp_upload_bits()`, the function XML-RPC media uploads and
- * some plugins use to write a file.
+ * The check on `wp_upload_bits()`, which XML-RPC media uploads and some plugins
+ * use to write a file.
  *
- * Its filter cannot replace the bytes, only refuse them -- so an SVG passes
- * only when the sanitiser would leave it exactly as it is. Anything else is
- * refused with a sentence; the media library, which cleans files, is the way
- * to upload it.
- *
- * Empty bits pass: the WordPress importer reserves a file that way and fills
- * it afterwards, and the attachment check below sees the finished file.
+ * Its filter can only refuse the bytes, never replace them, so an SVG passes
+ * only when the sanitiser would leave it exactly as it is; anything else is
+ * refused with a sentence pointing at the media library, which cleans files.
+ * Empty bits pass -- the importer reserves a file that way and fills it
+ * afterwards, and the attachment check below sees the finished file.
  *
  * @param array $upload { name, bits, time }.
  * @return array|string The upload unchanged, or an error message.
@@ -647,16 +629,13 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 /**
  * The last check: every new SVG attachment, however its file got there.
  *
- * An SVG attachment created by an upload, an importer, or a plugin that writes
- * a file and registers it has that file sanitised in place with the checker the
- * uploads use. If the sanitiser cannot use it, the attachment and its file are
- * deleted: a file nobody could clean must not stay reachable under the uploads
- * URL.
- *
- * For a file that already went through the upload filter this is a harmless
- * second pass. Files outside the uploads directory are left alone, and so is an
- * attachment with no local file -- offloaded media has nothing here to check,
- * and deleting it would lose somebody's library entry.
+ * However the file got there -- upload, importer, or a plugin that writes and
+ * registers one -- it is sanitised in place with the checker the uploads use.
+ * If the sanitiser cannot use it, the attachment and its file are deleted: a
+ * file nobody could clean must not stay reachable under the uploads URL. A
+ * second pass over an already-filtered upload is harmless. Files outside the
+ * uploads directory and attachments with no local file are left alone --
+ * offloaded media has nothing here, and deleting it would lose a library entry.
  *
  * @param int $attachment_id The new attachment.
  */
@@ -734,17 +713,11 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 }
 
 /*
- * The icon manager.
- *
- * Required unconditionally, and registered here. Not behind `is_admin()`: the
- * icons have to be registered on the front end too, because the Icon block is
- * SERVER-rendered and `wp_get_icon()` resolves the name when the page is built.
- * An admin-only registration would show every icon in the editor and nothing at
- * all to a visitor.
- *
- * Priority 5 for the store and 10 for the icons, both after core's own
- * collections at 0. The order between the two is not a preference: the icons
- * are read out of the post type.
+ * The icon manager. Not behind `is_admin()`: the Icon block is SERVER-rendered
+ * and `wp_get_icon()` resolves the name as the page is built, so an admin-only
+ * registration would show every icon in the editor and nothing to a visitor.
+ * Priority 5 for the store and 10 for the icons, both after core's collections
+ * at 0; that order is forced, the icons are read out of the post type.
  */
 require_once __DIR__ . '/includes/icon-manager.php';
 
