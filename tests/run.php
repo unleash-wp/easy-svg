@@ -1993,6 +1993,47 @@ check(
 	1 === preg_match( '/_closed=\{\{\s*display:\s*[\'"]none[\'"]/', $app_jsx )
 );
 
+/*
+ * "Activate licence" goes to the licence tab, not to the shop.
+ *
+ * LockedTab is what a site sees on a Pro tab it cannot open yet, and that
+ * includes a site where Pro is INSTALLED and only waiting for a key. The button
+ * opened the sales page in both cases, so a customer who had already bought,
+ * saw a locked tab and clicked the button labelled "Activate licence" was sent
+ * back to the shop instead of to the field the key goes in -- on the one path
+ * that matters to somebody who has already paid.
+ *
+ * Structural because the panel has no JS harness: what can be asserted is that
+ * the button has a second destination and that the label follows it.
+ */
+$parts_jsx = (string) @file_get_contents( $root . '/src/panel/parts.jsx' );
+check( 'BELL: the locked tab can send an installed Pro to its licence tab', str_contains( $parts_jsx, 'onActivate' ) );
+check( 'BELL: and the label follows whether it actually can', 1 === preg_match( "/\{\s*canActivate\s*\?\s*__\(\s*'Activate licence'/", $parts_jsx ) );
+check( 'BELL: App.jsx hands it the switch, and only when a licence tab is registered', str_contains( $app_jsx, "setActive( 'licence' )" ) || str_contains( $app_jsx, "setActive('licence')" ) );
+check( 'SILENCE: the sales page is no longer the only thing the button can do', 1 === preg_match( '/canActivate\s*\n?\s*\?\s*onActivate\(\)/', $parts_jsx ) );
+
+/*
+ * The React we BUILD against is the React WordPress SERVES.
+ *
+ * Both were declared `^19.0.0` while core ships 18.3 -- React 19 was aimed at
+ * 7.1 and then punted beyond it (make.wordpress.org dev note, 2026-07-24). The
+ * bundle externalises react and react/jsx-runtime to core's own handles, so the
+ * browser got 18.3 while the toolchain resolved 19.3. It happens to work,
+ * because the automatic runtime emits the same jsx()/jsxs() either way -- the
+ * rebuild after pinning was byte-for-byte the same size -- but "happens to" is
+ * the whole problem: React 19 dropped defaultProps on function components,
+ * dropped string refs and changed ref handling, and any of that compiling
+ * against 19 and running on 18.3 fails silently.
+ *
+ * Asserted as a MAJOR, not an exact version, so a patch bump is free and a
+ * jump to 19 has to be a decision somebody makes when core actually ships it.
+ */
+$pkg = json_decode( (string) @file_get_contents( $root . '/package.json' ), true );
+foreach ( array( 'react', 'react-dom' ) as $dep ) {
+	$want = (string) ( $pkg['dependencies'][ $dep ] ?? '' );
+	check( "BELL: {$dep} is declared on the major WordPress ships (18)", 1 === preg_match( '/^\^?18\./', $want ) );
+}
+
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
 file_put_contents( $dim_path, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect/></svg>' );
