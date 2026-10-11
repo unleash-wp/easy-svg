@@ -78,7 +78,12 @@ function wp_delete_post( $id, $force = false ): bool {
 	return true;
 }
 function easy_svg_icon_page( $page, $per_page ): array {
-	return array();
+	$GLOBALS['asked_per_page'] = $per_page;
+	$n = (int) ( $GLOBALS['stored_icons'] ?? 0 );
+	return array_fill( 0, min( $n, (int) $per_page ), array( 'id' => 1, 'slug' => 'x', 'label' => 'X', 'content' => '<svg/>' ) );
+}
+function wp_count_posts( $type ) {
+	return (object) array( 'publish' => (int) ( $GLOBALS['stored_icons'] ?? 0 ) );
 }
 function is_wp_error( $thing ): bool {
 	return $thing instanceof WP_Error;
@@ -248,6 +253,32 @@ check( 'BELL: the new name is sanitised before storage', 'Herz voll' === $GLOBAL
 check( 'SILENCE: kses was off for the write and on again afterwards', array( 'off', 'on' ) === $GLOBALS['kses_calls'] && true === $GLOBALS['kses_on'] );
 check( 'BELL: a rename drops the cached icon list', 1 === $GLOBALS['forgot'] );
 check( 'SILENCE: and it answers with the fresh page', $renamed instanceof WP_REST_Response );
+
+// ─── the library payload says how many there really are ──────────────────────
+//
+// Five routes returned easy_svg_icon_page( 1, 500 ) -- page one, five hundred,
+// with no_found_rows so not even a count. A site with 501 icons showed 500 and
+// said nothing: no error, no note, no way to reach the rest. The cap can stay;
+// being silent about it cannot.
+
+$GLOBALS['stored_icons'] = 12;
+$payload = easy_svg_panel_library_payload();
+check( 'BELL: the payload carries the icons', 12 === count( $payload['items'] ) );
+check( 'BELL: and the real total', 12 === $payload['total'] );
+check( 'SILENCE: nothing is truncated when everything fits', false === $payload['truncated'] );
+
+$GLOBALS['stored_icons'] = 812;
+$payload = easy_svg_panel_library_payload();
+check( 'BELL: past the cap only the cap comes back', EASY_SVG_PANEL_LIBRARY_MAX === count( $payload['items'] ) );
+check( 'BELL: but the total is the truth, not the page size', 812 === $payload['total'] );
+check( 'BELL: and it says so', true === $payload['truncated'] );
+check( 'SILENCE: the cap is what was asked for, not a bigger read', EASY_SVG_PANEL_LIBRARY_MAX === $GLOBALS['asked_per_page'] );
+
+// The shape stays readable by a client that only knows the old array: items
+// first, so `response.items ?? response` is the whole migration.
+check( 'BELL: items is a list, not a map', array_keys( $payload['items'] ) === range( 0, count( $payload['items'] ) - 1 ) );
+
+$GLOBALS['stored_icons'] = 0;
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"

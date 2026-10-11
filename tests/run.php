@@ -2075,6 +2075,21 @@ check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (strin
 $theme_js = (string) @file_get_contents( $root . '/src/theme.js' );
 check( 'BELL: the type stack starts at the system face', 1 === preg_match( "/body:\s*\{\s*value:\s*'system-ui/", $theme_js ) );
 
+/*
+ * The library screen says how many icons there really are.
+ *
+ * Five routes answered `easy_svg_icon_page( 1, 500 )`: page one, five hundred,
+ * `no_found_rows` so not even a count. A site with 501 icons saw 500 and was
+ * told nothing -- no error, no note, no way to reach the rest. The cap can
+ * stay; being silent about it cannot.
+ */
+// Stripped, so the docblock that QUOTES the old call is not read as the call.
+$panel_php = (string) php_strip_whitespace( $root . '/includes/panel.php' );
+check( 'SILENCE: no route asks for a hard-coded page of icons any more', 1 !== preg_match( '/easy_svg_icon_page\(\s*1\s*,\s*500\s*\)/', $panel_php ) );
+check( 'BELL: they all go through the one payload', 4 === preg_match_all( '/return new WP_REST_Response\( easy_svg_panel_library_payload\(\) \);/', $panel_php ) );
+$library_jsx = (string) @file_get_contents( $root . '/src/panel/tabs/Library.jsx' );
+check( 'BELL: and the screen says so when it cannot list them all', str_contains( $library_jsx, 'const truncated = total > all.length' ) );
+
 // ─── One place reads an SVG's width and height ───────────────────────────────
 $dim_path = tempnam( sys_get_temp_dir(), 'eswdim' ) . '.svg';
 file_put_contents( $dim_path, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect/></svg>' );

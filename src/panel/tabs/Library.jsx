@@ -99,9 +99,21 @@ function reportSummary(rows) {
   )
 }
 
+// The library routes answer { items, total, truncated }. They used to answer a
+// bare array, and a site with more icons than one response carries was shown
+// the first 500 with nothing said about the rest. Both shapes are accepted so
+// the client never depends on which one arrives.
+function listOf(res) {
+  return Array.isArray(res) ? res : (res && Array.isArray(res.items) ? res.items : [])
+}
+function totalOf(res, fallback) {
+  return res && 'number' === typeof res.total ? res.total : fallback
+}
+
 export default function Library({ ctx }) {
   const api = makeApi(ctx)
   const [icons, setIcons] = useState(null)
+  const [total, setTotal] = useState(0)
   const [err, setErr] = useState('')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -116,6 +128,14 @@ export default function Library({ ctx }) {
   const [editing, setEditing] = useState(null)
   const fileRef = useRef(null)
 
+  // One place unwraps a library response, so a route that still answers the old
+  // bare array keeps working and the total only has to be read once.
+  const take = (res) => {
+    const list = listOf(res)
+    setIcons(list)
+    setTotal(totalOf(res, list.length))
+  }
+
   // Cancelled when the tab goes away, or when the icon library is switched off
   // while a load is in flight. See the note in tabs/Settings.jsx.
   useEffect(() => {
@@ -123,7 +143,7 @@ export default function Library({ ctx }) {
     const ac = new AbortController()
     api
       .get('/library', { signal: ac.signal })
-      .then(setIcons)
+      .then(take)
       .catch((e) => {
         if ('AbortError' !== e.name) {
           setErr(e.message)
@@ -206,7 +226,7 @@ export default function Library({ ctx }) {
       }
     }
     if (fresh) {
-      setIcons(fresh)
+      take(fresh)
     }
     setReport(rows)
     setBusy(false)
@@ -225,7 +245,7 @@ export default function Library({ ctx }) {
     setBusy(true)
     clear()
     try {
-      setIcons(await api.post('/library/add', { label, markup }))
+      take(await api.post('/library/add', { label, markup }))
       setLabel('')
       setMarkup('')
       setPasting(false)
@@ -263,7 +283,7 @@ export default function Library({ ctx }) {
       setErr(e.message)
     } finally {
       if (fresh) {
-        setIcons(fresh)
+        take(fresh)
       }
       setPicked(new Set())
       setBusy(false)
@@ -278,7 +298,7 @@ export default function Library({ ctx }) {
     setBusy(true)
     clear()
     try {
-      setIcons(await api.post('/library/rename', { id, label: next }))
+      take(await api.post('/library/rename', { id, label: next }))
       setEditing(null)
       setStatus(__('Icon renamed.', 'easy-svg'))
     } catch (e) {
@@ -354,11 +374,24 @@ export default function Library({ ctx }) {
     <PasteForm {...{ label, setLabel, markup, setMarkup, addPasted, busy, setPasting }} />
   )
 
+  // Said plainly when the response could not carry everything. The grid used to
+  // show the first 500 and let the reader believe that was all of them.
+  const truncated = total > all.length
   const messages = (
     <>
       {err ? <Notice bad role="alert">{err}</Notice> : null}
       {status ? (
         <Text role="status" aria-live="polite" color="ui.goodInk" fontSize="sm">{status}</Text>
+      ) : null}
+      {truncated ? (
+        <Notice>
+          {sprintf(
+            // translators: 1: how many icons are stored, 2: how many this screen lists.
+            __('This site has %1$d icons and this screen lists %2$d of them. The rest are stored and still work in templates and the Icon block.', 'easy-svg'),
+            total,
+            all.length
+          )}
+        </Notice>
       ) : null}
     </>
   )
