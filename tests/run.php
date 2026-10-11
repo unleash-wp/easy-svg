@@ -1478,6 +1478,24 @@ preg_match( '/Requires at least:\s*([\d.]+)/i', (string) file_get_contents( $roo
 preg_match( '/Requires at least:\s*([\d.]+)/i', $readme, $rmin );
 check( 'BELL: requires WordPress 6.6+ (the panel needs react-jsx-runtime)', version_compare( $hmin[1] ?? '0', '6.6', '>=' ) );
 check( 'BELL: and the readme agrees with the header', ( $hmin[1] ?? 'h' ) === ( $rmin[1] ?? 'r' ) );
+
+/*
+ * And so does the code that REASONS about the floor.
+ *
+ * The header and the readme already had to agree; a docblock did not, and
+ * includes/icons.php said "This plugin declares WordPress 6.0" long after the
+ * floor moved to 6.6 for the panel's react-jsx-runtime. A comment that states
+ * the wrong floor is how the next absent-safety decision gets made against a
+ * version nobody supports any more.
+ */
+$floor_claims = array();
+foreach ( array_merge( glob( $root . '/includes/*.php' ) ?: array(), array( $root . '/easy-svg.php' ) ) as $f ) {
+	if ( 1 === preg_match( '/declares WordPress ([\d.]+)/', (string) file_get_contents( $f ), $claim )
+		&& ( $hmin[1] ?? '' ) !== $claim[1] ) {
+		$floor_claims[] = basename( $f ) . ' says ' . $claim[1];
+	}
+}
+check( 'BELL: no file claims a different WordPress floor than the header: ' . implode( ', ', $floor_claims ), array() === $floor_claims );
 $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade Notice ==' ) );
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
