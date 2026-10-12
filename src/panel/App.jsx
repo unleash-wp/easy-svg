@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Flex, HStack, Heading, Text, Tabs, Image, useBreakpointValue } from '@chakra-ui/react'
+import { Box, Flex, HStack, Heading, Text, Tabs, Image, Separator, useBreakpointValue } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { getRegistry } from './registry.js'
 import Settings from './tabs/Settings.jsx'
@@ -8,6 +8,10 @@ import Upsell from './tabs/Upsell.jsx'
 import { LockedTab } from './parts.jsx'
 import { ProBadge, useDropGuard } from '../ui.jsx'
 import { TabIcon } from './icons.jsx'
+import logo from '../brand/unleashwp-logo-full.svg?raw'
+
+// The XML prolog is legal in a file and illegal inside an inline <svg>.
+const LOGO = logo.replace(/<\?xml[^?]*\?>/, '').trim()
 
 // Free's own tabs, always functional. English msgids, domain 'easy-svg'; the
 // German (and every other) locale ships as a JS translation file.
@@ -182,7 +186,11 @@ export default function App({ config }) {
           bg: 'ui.primary',
           color: 'white',
           fontWeight: '700',
-          '& .uwp-pro-badge': { bg: 'ui.accent', color: 'ui.heading' },
+          '& .uwp-pro-badge': { bg: 'ui.accent', color: 'navy' },
+          // White on the dark ui.primary measures 2.81, under AA. Forge does not
+          // use a coloured row on dark at all, so neither does this: the row
+          // becomes the surface and the text stays ui.heading, at 13.37.
+          _dark: { bg: 'ui.surface', color: 'ui.heading' },
         }}
       >
         <TabIcon name={t.icon} />
@@ -193,30 +201,53 @@ export default function App({ config }) {
   })
 
   return (
-    <Box maxW="1100px" pr={{ base: '3', md: '6' }} pb="10">
+    /*
+      One window, not three cards. Header across the top, sidebar flush against
+      the content well, footer across the bottom, all inside a single surface
+      with one border -- the shape the Forge app has. overflow hidden so the
+      corners cut the sidebar and the well instead of them poking out.
+    */
+    <Box
+      maxW="1100px"
+      mr={{ base: '3', md: '6' }}
+      mb="10"
+      bg="ui.surface"
+      borderWidth="1px"
+      borderColor="ui.border"
+      borderRadius="forge"
+      overflow="hidden"
+    >
       {/*
         The panel's own header bar, the shape the Forge app uses: a white
         surface on the canvas, so the screen opens with something of ours
         rather than straight into wp-admin's grey.
       */}
-      <Box
-        bg="ui.surface"
-        borderWidth="1px"
+      {/*
+        The brand bar, the way the Forge app opens: the UnleashWP wordmark, a
+        rule, then which product this is. The screen's own title is not here --
+        it belongs with the screen, in the well below, which is where Forge puts
+        it too.
+      */}
+      <Flex
+        borderBottomWidth="1px"
         borderColor="ui.border"
-        borderRadius="forge"
         px={{ base: '4', md: '5' }}
-        py="4"
-        mt="2"
-        mb="5"
+        py="3.5"
+        align="center"
+        gap="3.5"
       >
-        <HStack gap="3" align="center">
-          {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-          <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
-        </HStack>
-        <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-          {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+        <Box
+          role="img"
+          aria-label="UnleashWP"
+          css={{ '& svg': { height: '1.75rem', width: 'auto', display: 'block' } }}
+          dangerouslySetInnerHTML={{ __html: LOGO }}
+        />
+        <Separator orientation="vertical" h="1.25rem" borderColor="ui.border" hideBelow="sm" />
+        <Text color="ui.heading" fontWeight="700" fontSize="0.9688rem" hideBelow="sm">
+          {__('Easy SVG', 'easy-svg')}
         </Text>
-      </Box>
+        {config.version ? <Text ml="auto" textStyle="caption">{`v${config.version}`}</Text> : null}
+      </Flex>
 
       {missed ? (
         <Box
@@ -261,7 +292,7 @@ export default function App({ config }) {
           the content column to 244px beside a 240px rail). minW="0" so a wide
           table scrolls inside the column rather than pushing the rail away.
         */}
-        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }} flex="1" minW="0">
+        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap="0" flex="1" minW="0">
           <Tabs.List
             flexWrap="nowrap"
             overflowX={{ base: 'auto', md: 'visible' }}
@@ -269,14 +300,14 @@ export default function App({ config }) {
             flexShrink="0"
             w={{ md: '240px' }}
             minW={{ md: '240px' }}
-            bg={{ md: 'ui.surface' }}
-            borderWidth={{ md: '1px' }}
+            // On dark the rail has no fill of its own: the selected row IS the
+            // surface, raised off the canvas, which is what Forge does there.
+            // On light it is the other way round, a white rail with a navy row.
+            borderRightWidth={{ md: '1px' }}
+            borderBottomWidth={{ base: '1px', md: '0' }}
             borderColor="ui.border"
-            borderRadius={{ md: 'forge' }}
-            p={{ base: '0', md: '2' }}
-            position={{ md: 'sticky' }}
-            top={{ md: '42px' }}
-            alignSelf={{ md: 'flex-start' }}
+            p={{ base: '2', md: '3' }}
+            alignSelf="stretch"
           >
             {rail}
           </Tabs.List>
@@ -284,11 +315,19 @@ export default function App({ config }) {
             flex="1"
             minW="0"
             bg="ui.bg"
-            borderRadius={{ md: 'forge' }}
-            px={{ base: '0', md: '6' }}
+            px={{ base: '4', md: '6' }}
             py={{ base: '5', md: '6' }}
-            mt={{ base: '5', md: '0' }}
           >
+            <Box mb="5">
+              <HStack gap="3" align="center">
+                {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
+                <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
+              </HStack>
+              <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
+                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+              </Text>
+            </Box>
+
             {/*
               _closed hides a panel that is in the DOM but not current.
               lazyMount/unmountOnExit on the Root are a render strategy, not a
@@ -314,8 +353,8 @@ export default function App({ config }) {
         which version is installed.
       */}
       <Flex
-        mt="8"
-        pt="4"
+        px={{ base: '4', md: '5' }}
+        py="3"
         borderTopWidth="1px"
         borderColor="ui.border"
         align="center"
