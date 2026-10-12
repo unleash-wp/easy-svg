@@ -1610,6 +1610,16 @@ foreach ( array( '.git', '.github', 'tests', 'docs', 'scripts', 'composer.json',
  * entry fails here until somebody decides, in one place, whether a customer
  * should have it.
  */
+// A developer's machine-local files live in .git/info/exclude, never in the
+// repository. A CI checkout has neither the files nor the entries, so reading
+// the list here changes nothing about what a release is checked against.
+$local_excludes = array();
+foreach ( (array) @file( $root . '/.git/info/exclude', FILE_IGNORE_NEW_LINES ) as $line ) {
+	$line = trim( (string) $line );
+	if ( '' !== $line && '#' !== $line[0] ) {
+		$local_excludes[] = trim( $line, '/' );
+	}
+}
 $ships = array();
 foreach ( scandir( $root ) ?: array() as $entry ) {
 	if ( '.' === $entry || '..' === $entry || in_array( $entry, $distignore, true ) ) {
@@ -1619,6 +1629,9 @@ foreach ( scandir( $root ) ?: array() as $entry ) {
 	// but an rsync from a laptop would, and that is how a release gets built by
 	// hand on a bad day.
 	if ( in_array( $entry, array( 'node_modules', '.DS_Store', '.git' ), true ) ) {
+		continue;
+	}
+	if ( in_array( $entry, $local_excludes, true ) ) {
 		continue;
 	}
 	$ships[] = $entry;
