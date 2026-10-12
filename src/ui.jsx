@@ -120,7 +120,9 @@ export function FieldRow({ label, description, control, layout = 'inline', htmlF
     return (
       <Field.Root py="4" borderBottomWidth="1px" borderColor="ui.border" gap="0">
         <Box mb="3">{head}</Box>
-        <Box>{control}</Box>
+        {/* Full width: Field.Root does not stretch its children, so a bare Box
+            shrinks to the control's content and a full-width control lies. */}
+        <Box w="full">{control}</Box>
       </Field.Root>
     )
   }

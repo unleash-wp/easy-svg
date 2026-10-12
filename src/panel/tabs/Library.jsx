@@ -944,7 +944,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
         description={__('Optional. The slug is derived from it.', 'easy-svg')}
         htmlFor="esw-icon-name"
         control={
-          <Box maxW="220px">
+          <Box w="320px" maxW="full">
             <TextInput
               id="esw-icon-name"
               placeholder={__('e.g. arrow-right', 'easy-svg')}
@@ -962,10 +962,12 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
         control={
           <Textarea
             id="esw-icon-markup"
-            rows={4}
             placeholder="<svg>…</svg>"
             value={markup}
             onChange={(e) => setMarkup(e.target.value)}
+            w="full"
+            minH="160px"
+            resize="vertical"
             bg="ui.surface"
             borderColor="ui.border"
             borderRadius="forge"
