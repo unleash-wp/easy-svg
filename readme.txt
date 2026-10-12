@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.1.0
+Stable tag: 5.2.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,13 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
+= 5.2.0 =
+* New: add icons from the media library. The SVGs you have already uploaded are two clicks from being icons — pick several at once, and each one is sanitized and hardened on the way in, exactly as an upload is.
+* New: drop SVG files onto the library to add them. The drop area sits where the icons are, instead of being a tile the size of a postage stamp.
+* Fix: a file dropped beside the drop area used to open in the browser and take the Icons screen with it, unsaved settings included. It is caught now, with a line saying where the files go.
+* Fix: saving one setting over the REST API no longer switches off the settings that were not part of the request. The Icons screen was never affected; a script or another plugin writing a single value was.
+* Fix: new text reaches the translation files again. Strings added since 5.0 were English in every language, German included.
+
 = 5.1.0 =
 * New: one Icons screen. SVG uploads, the icon library and everything else now live together under Icons, instead of being split across Settings and Media. The two older screens are gone; nothing you had is lost and no setting changed its meaning.
 * New: the icon library is a grid you can search, and an icon can be renamed without losing the slug a template already writes.
@@ -186,6 +193,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.2.0 =
+Add icons straight from the media library, and drop SVG files onto the library to add them. A dropped file that misses no longer navigates away and loses what you had open. Translations cover the newer strings again.
 
 = 5.1.0 =
 SVG uploads and the icon library now share one screen under Icons. Nothing is lost in the move and no setting changed its meaning. Every path that adds an icon is now bounded the way an upload is. The panel no longer ships a webfont and uses your system type instead.
