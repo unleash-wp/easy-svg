@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-12T16:24:56+00:00\n"
+"POT-Creation-Date: 2026-10-12T16:40:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -107,72 +107,76 @@ msgid "The new visible name. The slug is not touched."
 msgstr ""
 
 #: includes/panel.php:385
-msgid "The sanitiser is unavailable, so nothing was stored."
+msgid "The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to restore it."
 msgstr ""
 
-#: includes/panel.php:388
-msgid "That SVG has no drawing, or could not be stored."
+#: includes/panel.php:387
+msgid "That SVG is empty, so there was nothing to store."
 msgstr ""
 
-#: includes/panel.php:390
+#: includes/panel.php:389
+msgid "That SVG could not be stored: it arrived without a drawing, or the write was refused."
+msgstr ""
+
+#: includes/panel.php:391
 #: build/panel.js
 msgid "Icon added."
 msgstr ""
 
-#: includes/panel.php:392
+#: includes/panel.php:393
 msgid "That file is no longer in the media library."
 msgstr ""
 
-#: includes/panel.php:394
+#: includes/panel.php:395
 msgid "That file is not stored on this server, so it could not be read."
 msgstr ""
 
-#: includes/panel.php:396
+#: includes/panel.php:397
 msgid "That is not an SVG the sanitiser accepts."
 msgstr ""
 
-#: includes/panel.php:398
+#: includes/panel.php:399
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 
-#: includes/panel.php:400
+#: includes/panel.php:401
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr ""
 
-#: includes/panel.php:402
+#: includes/panel.php:403
 msgid "That SVG has too many parts to be read safely."
 msgstr ""
 
-#: includes/panel.php:404
-msgid "The icon could not be added."
+#: includes/panel.php:407
+msgid "The icon could not be added, for a reason this screen has no name for. Try again, or try a different file."
 msgstr ""
 
-#: includes/panel.php:417
-#: includes/panel.php:453
+#: includes/panel.php:420
+#: includes/panel.php:456
 #: build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr ""
 
-#: includes/panel.php:458
+#: includes/panel.php:461
 msgid "Choose at least one SVG from the media library."
 msgstr ""
 
 #. translators: %d: how many media files one request may carry.
-#: includes/panel.php:465
+#: includes/panel.php:468
 #, php-format
 msgid "Choose at most %d files at a time."
 msgstr ""
 
-#: includes/panel.php:530
-#: includes/panel.php:596
+#: includes/panel.php:533
+#: includes/panel.php:599
 msgid "Icon not found."
 msgstr ""
 
-#: includes/panel.php:538
+#: includes/panel.php:541
 msgid "An icon needs a name."
 msgstr ""
 
-#: includes/panel.php:572
+#: includes/panel.php:575
 msgid "The icon could not be renamed."
 msgstr ""
 

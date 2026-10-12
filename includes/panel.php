@@ -382,10 +382,11 @@ function easy_svg_panel_library_get( $request ) {
 function easy_svg_panel_add_message( string $state ): string {
 	switch ( $state ) {
 		case 'no_sanitizer':
-			return __( 'The sanitiser is unavailable, so nothing was stored.', 'easy-svg' );
-		case 'not_saved':
+			return __( 'The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to restore it.', 'easy-svg' );
 		case 'empty':
-			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
+			return __( 'That SVG is empty, so there was nothing to store.', 'easy-svg' );
+		case 'not_saved':
+			return __( 'That SVG could not be stored: it arrived without a drawing, or the write was refused.', 'easy-svg' );
 		case 'added':
 			return __( 'Icon added.', 'easy-svg' );
 		case 'not_found':
@@ -401,7 +402,9 @@ function easy_svg_panel_add_message( string $state ): string {
 		case 'too_complex':
 			return __( 'That SVG has too many parts to be read safely.', 'easy-svg' );
 		default:
-			return __( 'The icon could not be added.', 'easy-svg' );
+			// The catch-all, and the one case with no cause to name. Saying so and
+			// offering a move beats a sentence that ends the conversation.
+			return __( 'The icon could not be added, for a reason this screen has no name for. Try again, or try a different file.', 'easy-svg' );
 	}
 }
 
