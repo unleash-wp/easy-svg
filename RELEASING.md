@@ -36,6 +36,9 @@ To see the release tree without deploying:
 
     git archive --format=tar HEAD | tar -t
 
+Never build a release zip by copying the working tree: untracked local files
+would ride along. The workflow's zip or `git archive` are the only two ways.
+
 ## Assets
 
 Banners, icons and screenshots live in SVN `assets/` and are not managed

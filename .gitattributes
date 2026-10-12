@@ -9,13 +9,8 @@
 /composer.lock export-ignore
 /RELEASING.md export-ignore
 /README.md export-ignore
-/CLAUDE.md export-ignore
-/AGENTS.md export-ignore
 /docs export-ignore
 /tests export-ignore
-/.agents export-ignore
-/.claude export-ignore
-/skills-lock.json export-ignore
 /vendor/enshrined/svg-sanitize/src/svg-scanner.php export-ignore
 /vendor/enshrined/svg-sanitize/README.md export-ignore
 /vendor/enshrined/svg-sanitize/CHANGELOG.md export-ignore

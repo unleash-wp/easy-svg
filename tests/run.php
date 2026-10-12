@@ -1610,6 +1610,16 @@ foreach ( array( '.git', '.github', 'tests', 'docs', 'scripts', 'composer.json',
  * entry fails here until somebody decides, in one place, whether a customer
  * should have it.
  */
+// A developer's machine-local files live in .git/info/exclude, never in the
+// repository. A CI checkout has neither the files nor the entries, so reading
+// the list here changes nothing about what a release is checked against.
+$local_excludes = array();
+foreach ( (array) @file( $root . '/.git/info/exclude', FILE_IGNORE_NEW_LINES ) as $line ) {
+	$line = trim( (string) $line );
+	if ( '' !== $line && '#' !== $line[0] ) {
+		$local_excludes[] = trim( $line, '/' );
+	}
+}
 $ships = array();
 foreach ( scandir( $root ) ?: array() as $entry ) {
 	if ( '.' === $entry || '..' === $entry || in_array( $entry, $distignore, true ) ) {
@@ -1619,6 +1629,9 @@ foreach ( scandir( $root ) ?: array() as $entry ) {
 	// but an rsync from a laptop would, and that is how a release gets built by
 	// hand on a bad day.
 	if ( in_array( $entry, array( 'node_modules', '.DS_Store', '.git' ), true ) ) {
+		continue;
+	}
+	if ( in_array( $entry, $local_excludes, true ) ) {
 		continue;
 	}
 	$ships[] = $entry;
@@ -1702,6 +1715,25 @@ check(
 	'BELL: and a JS placeholder still carries the note that says what it stands for',
 	1 === preg_match( '/^#\. translators:[^\n]*\n#: ' . preg_quote( $panel_src, '/' ) . '$/m', $pot )
 );
+
+/*
+ * Core loads a bundled JSON catalogue BEFORE the wordpress.org language packs,
+ * so bundling an untranslated locale hides the community's pack for it. Only a
+ * locale somebody actually translated may ship.
+ */
+$unexpected_lang_files = array();
+foreach ( scandir( $root . '/languages' ) ?: array() as $lang_file ) {
+	if ( '.' === $lang_file || '..' === $lang_file || '.DS_Store' === $lang_file || 'easy-svg.pot' === $lang_file ) {
+		continue;
+	}
+	if ( 0 !== strpos( $lang_file, 'easy-svg-de_DE.' ) && 0 !== strpos( $lang_file, 'easy-svg-de_DE-' ) ) {
+		$unexpected_lang_files[] = $lang_file;
+	}
+}
+check( 'BELL: only translated locales are bundled (de_DE)', array() === $unexpected_lang_files );
+if ( array() !== $unexpected_lang_files ) {
+	echo '      unerwartet: ' . implode( ', ', $unexpected_lang_files ) . "\n";
+}
 
 // ─── How a release leaves this repository ────────────────────────────────────
 
@@ -1845,6 +1877,9 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	$GLOBALS['icon_posts'][]       = icon_post( 2001, 'page' );
 	$GLOBALS['transients']['easy_svg_icons'] = [ 'version' => 1, 'icons' => [] ];
 	$GLOBALS['options']['easy_svg_icons_version'] = 3;
+	$GLOBALS['options']['easy_svg_settings']      = [ 'svg_uploads' => true ];
+	$GLOBALS['options']['easy_svg_schema']        = 2;
+	$GLOBALS['transients']['easy_svg_5_notice']   = 1;
 
 	define( 'WP_UNINSTALL_PLUGIN', 'easy-svg/easy-svg.php' );
 	include $root . '/uninstall.php';
@@ -1853,6 +1888,7 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	check( 'BELL: uninstalling deletes every icon, past one page of them', ! in_array( 'esw_icon', $left_types, true ) );
 	check( 'SILENCE: and nothing that is not an icon', in_array( 'page', $left_types, true ) );
 	check( 'BELL: and the cached list and its version', ! isset( $GLOBALS['transients']['easy_svg_icons'] ) && ! isset( $GLOBALS['options']['easy_svg_icons_version'] ) );
+	check( 'BELL: and the settings, the schema marker and the update notice', ! isset( $GLOBALS['options']['easy_svg_settings'] ) && ! isset( $GLOBALS['options']['easy_svg_schema'] ) && ! isset( $GLOBALS['transients']['easy_svg_5_notice'] ) );
 	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
 }
 

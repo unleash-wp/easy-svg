@@ -1,11 +1,4 @@
 .DS_Store
 git
 node_modules
-CLAUDE.md
-docs/superpowers/
 node_modules/
-
-# Agent skills, installed per project by `npx skills add`. Local tooling only.
-/.agents/
-/.claude/
-/skills-lock.json
