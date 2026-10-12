@@ -192,7 +192,16 @@ function easy_svg_panel_assets( $hook ): void {
 		. 'src:url(' . esc_url( plugins_url( 'build/fonts/ubuntu-v21-latin-400-normal.woff2', $main ) ) . ') format("woff2")}'
 		. '@font-face{font-family:Ubuntu;font-style:normal;font-weight:700;font-display:swap;'
 		. 'src:url(' . esc_url( plugins_url( 'build/fonts/ubuntu-v21-latin-700-normal.woff2', $main ) ) . ') format("woff2")}'
-		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0;font-family:Ubuntu,system-ui,sans-serif}'
+		// The whole panel, unlayered: core sets its own font on body and the
+		// form elements, Chakra's rules sit in a layer, and a layered rule
+		// loses to an unlayered one however specific -- so the panel kept
+		// rendering wp-admin's system face everywhere the theme token did not
+		// reach a prop. `inherit` on the controls because a button, input or
+		// select takes the browser's font, not the document's.
+		. '.wrap #easy-svg-panel,.wrap #easy-svg-panel :is(div,p,span,h1,h2,h3,h4,label,a,li,td,th,strong,em,small)'
+		. '{font-family:Ubuntu,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}'
+		. '.wrap #easy-svg-panel :is(button,input,textarea,select){font-family:inherit}'
+		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0}'
 		// Same reason as the heading: core's forms.css is unlayered and beats any
 		// layered Chakra rule, so without these the fields sit there in raw
 		// wp-admin grey (#949494, 2px radius). Base and focus repeat ui.sunk,

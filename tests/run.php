@@ -2178,9 +2178,21 @@ check( 'BELL: the UFL text travels beside the faces, in source and in the releas
 check( 'SILENCE: the fonts\' source folder stays out of the release', in_array( 'public', $distignore, true ) );
 check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'panel-fonts.css' ) );
 
-// The panel's type stack must start at a face the machine already has.
-$theme_js = (string) @file_get_contents( $root . '/src/theme.js' );
-check( 'BELL: the type stack starts at the system face', 1 === preg_match( "/body:\s*\{\s*value:\s*'system-ui/", $theme_js ) );
+/*
+ * The panel's type stack starts at the bundled brand face and still falls
+ * through to the system one. Both halves matter: headings over system body
+ * text read as two designs, and a stack without the fallback renders nothing
+ * while the woff2 is in flight or blocked.
+ */
+$theme_js  = (string) @file_get_contents( $root . '/src/theme.js' );
+$panel_css = (string) @file_get_contents( $root . '/includes/panel.php' );
+foreach ( array( 'heading', 'body' ) as $stack ) {
+	check( "BELL: the {$stack} stack starts at Ubuntu", 1 === preg_match( "/{$stack}:\s*\{\s*value:\s*'Ubuntu,/", $theme_js ) );
+	check( "SILENCE: and falls back to the system face ({$stack})", 1 === preg_match( "/{$stack}:\s*\{\s*value:\s*'Ubuntu,\s*system-ui/", $theme_js ) );
+}
+// Chakra's rules live in a layer and lose to core's unlayered ones, so the
+// panel states the family itself or wp-admin's face wins everywhere.
+check( 'BELL: the panel states its font family unlayered, or core wins', 1 === preg_match( '/#easy-svg-panel[^{]*\{font-family:Ubuntu/', $panel_css ) );
 
 // A licensed site does not get a tab selling what it already owns, and an
 // installed-but-unlicensed one is sent to the licence tab, not the shop.

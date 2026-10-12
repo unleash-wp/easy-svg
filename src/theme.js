@@ -42,11 +42,12 @@ const config = defineConfig({
       },
       // Ubuntu -- the same two faces Pro's set editor loads -- ships with the
       // plugin (public/fonts -> build/fonts, UFL 1.0 text beside the files;
-      // panel.php declares them). Only headings, tabs and buttons use it;
-      // body text stays system type on purpose.
+      // panel.php declares them). The whole panel renders it, headings and
+      // body alike: the UnleashWP account app and Forge do, and a screen that
+      // mixed brand headings with system body text read as two designs.
       fonts: {
         heading: { value: 'Ubuntu, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
-        body: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
+        body: { value: 'Ubuntu, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
       },
       radii: {
         forge: { value: '0.3125rem' },
