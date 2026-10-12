@@ -1716,6 +1716,25 @@ check(
 	1 === preg_match( '/^#\. translators:[^\n]*\n#: ' . preg_quote( $panel_src, '/' ) . '$/m', $pot )
 );
 
+/*
+ * Core loads a bundled JSON catalogue BEFORE the wordpress.org language packs,
+ * so bundling an untranslated locale hides the community's pack for it. Only a
+ * locale somebody actually translated may ship.
+ */
+$unexpected_lang_files = array();
+foreach ( scandir( $root . '/languages' ) ?: array() as $lang_file ) {
+	if ( '.' === $lang_file || '..' === $lang_file || 'easy-svg.pot' === $lang_file ) {
+		continue;
+	}
+	if ( 0 !== strpos( $lang_file, 'easy-svg-de_DE.' ) && 0 !== strpos( $lang_file, 'easy-svg-de_DE-' ) ) {
+		$unexpected_lang_files[] = $lang_file;
+	}
+}
+check( 'BELL: only translated locales are bundled (de_DE)', array() === $unexpected_lang_files );
+if ( array() !== $unexpected_lang_files ) {
+	echo '      unerwartet: ' . implode( ', ', $unexpected_lang_files ) . "\n";
+}
+
 // ─── How a release leaves this repository ────────────────────────────────────
 
 /*
