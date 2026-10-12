@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Stack, Box, Switch } from '@chakra-ui/react'
+import { Stack, Box, NumberInput, Switch } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
 import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
@@ -53,6 +53,16 @@ export default function Settings({ ctx }) {
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
+  /*
+   * Bumped after every save, and used as the number field's key.
+   *
+   * NumberInput keeps the text somebody typed separately from its value, and
+   * it does not rewrite that text when the value prop changes underneath it:
+   * typing 0 and saving left "0" standing over a field whose own machine --
+   * and the server -- had already agreed on 1. Remounting re-seeds the text
+   * from the value, so the field shows what was stored.
+   */
+  const [savedSeq, setSavedSeq] = useState(0)
 
   /*
    * The load is cancelled when this tab goes away.
@@ -114,6 +124,7 @@ export default function Settings({ ctx }) {
       const n = normalize(resp)
       setForm(n)
       markSaved(n)
+      setSavedSeq((seq) => seq + 1)
       if (typed !== n.max_mb) {
         setInfo(
           sprintf(
@@ -172,16 +183,27 @@ export default function Settings({ ctx }) {
           )}
           htmlFor="esw-setting-max-mb"
           control={
-            <Box maxW="120px">
-              <TextInput
+            // Chakra's NumberInput: it carries the min and max as a contract
+            // rather than as two attributes the browser may or may not act on,
+            // and it brings the steppers, the scrub handle and the keyboard
+            // arrows a number field is expected to have.
+            <NumberInput.Root
+              key={savedSeq}
+              min={1}
+              max={MAX_MB}
+              value={String(form.max_mb)}
+              onValueChange={(e) => set('max_mb', e.value === '' ? '' : Number(e.value))}
+              w="120px"
+            >
+              <NumberInput.Control />
+              <NumberInput.Input
                 id="esw-setting-max-mb"
-                type="number"
-                min="1"
-                max={String(MAX_MB)}
-                value={form.max_mb}
-                onChange={(e) => set('max_mb', e.target.value === '' ? '' : Number(e.target.value))}
+                bg="ui.sunk"
+                borderColor="ui.border"
+                borderRadius="forge"
+                _focusVisible={{ bg: 'ui.surface', borderColor: 'ui.primary' }}
               />
-            </Box>
+            </NumberInput.Root>
           }
         />
       </Section>

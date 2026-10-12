@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
 import {
+  Alert,
   Button as CButton,
   Input,
   Box,
@@ -9,8 +10,10 @@ import {
   Text,
   Heading,
   Badge,
+  IconButton as CIconButton,
   Skeleton,
   SkeletonText,
+  Tooltip as CTooltip,
   EmptyState as CEmptyState,
   Field,
 } from '@chakra-ui/react'
@@ -20,7 +23,17 @@ import {
 // ghost = outline. The "forge" radius is theirs. Ubuntu ships only 400 and
 // 700, so buttons use 700; 500/600 would render as a faux weight the font
 // never shipped.
-export function Button({ variant = 'ghost', size = 'md', danger, children, ...rest }) {
+/*
+ * forwardRef, because Chakra's `asChild` triggers (Dialog, Tooltip,
+ * FileUpload, Clipboard) clone their child and hand it a ref. A plain
+ * function component drops it, and the trigger then has no element to
+ * anchor, focus or open from -- React says so in a warning and the control
+ * silently does nothing.
+ */
+export const Button = forwardRef(function Button(
+  { variant = 'ghost', size = 'md', danger, children, ...rest },
+  ref
+) {
   const common = {
     size: size === 'sm' ? 'sm' : 'md',
     borderRadius: 'forge',
@@ -40,7 +53,7 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
 
   if (variant === 'accent') {
     return (
-      <CButton {...common} bg="yellow" color="navy" boxShadow="sm"
+      <CButton ref={ref} {...common} bg="yellow" color="navy" boxShadow="sm"
         _hover={{ bg: '#e6ac00' }} _active={{ transform: 'translateY(1px)' }}
         _disabled={{ opacity: 0.55, bg: 'yellow', color: 'navy', cursor: 'default' }} {...rest}>
         {children}
@@ -53,7 +66,7 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
     // swap reads as a state change, and yellow is the brand accent, not a
     // confirmation colour.
     return (
-      <CButton {...common} bg="navy" color="white" boxShadow="sm"
+      <CButton ref={ref} {...common} bg="navy" color="white" boxShadow="sm"
         _hover={{ bg: '#2c4070' }} _active={{ transform: 'translateY(1px)' }}
         _disabled={{ opacity: 0.55, bg: 'navy', color: 'white', cursor: 'default' }} {...rest}>
         {children}
@@ -62,13 +75,13 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
   }
 
   return (
-    <CButton {...common} variant="outline" color="ui.primary" borderColor="ui.border"
+    <CButton ref={ref} {...common} variant="outline" color="ui.primary" borderColor="ui.border"
       _hover={danger ? { color: 'ui.bad', borderColor: 'ui.bad' } : { borderColor: 'ui.primary', bg: 'ui.ghostHover' }}
       _active={{ transform: 'translateY(1px)' }} {...rest}>
       {children}
     </CButton>
   )
-}
+})
 
 export function Card({ children, ...rest }) {
   return (
@@ -79,14 +92,14 @@ export function Card({ children, ...rest }) {
   )
 }
 
-export function TextInput({ type = 'text', ...rest }) {
+export const TextInput = forwardRef(function TextInput({ type = 'text', ...rest }, ref) {
   return (
-    <Input type={type} bg="ui.sunk" borderWidth="1px" borderColor="ui.border" borderRadius="forge"
+    <Input ref={ref} type={type} bg="ui.sunk" borderWidth="1px" borderColor="ui.border" borderRadius="forge"
       color="ui.text"
       _focus={{ bg: 'ui.surface', borderColor: 'ui.primary', boxShadow: '0 0 0 3px var(--chakra-colors-ui\\.ring)' }}
       {...rest} />
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Layout primitives for a Blocksy-grade settings panel. All of these are
@@ -394,5 +407,96 @@ export function ProBadge({ children, ...rest }) {
     <Badge colorPalette="brand" variant="solid" size="sm" fontWeight="700" {...rest}>
       {children}
     </Badge>
+  )
+}
+
+/*
+ * A message about what just happened, or did not.
+ *
+ * Chakra's Alert, not a Box with a border: it brings the status icon, the
+ * title/description structure and the colour per status, which a hand-drawn
+ * panel has to get right again every time somebody adds one.
+ *
+ * `bad` and `role` are the API both plugins' tabs already call this with.
+ * role="alert" is an assertive live region and role="status" a polite one;
+ * aria-live is set to match, because a notice inserted after the first paint
+ * is announced only when the region says how.
+ */
+export function Notice({ bad, role, status, title, children, ...rest }) {
+  const live = role === 'alert' ? 'assertive' : role === 'status' ? 'polite' : undefined
+  const resolved = status || (bad ? 'error' : 'info')
+  return (
+    <Alert.Root
+      role={role}
+      aria-live={live}
+      status={resolved}
+      variant="subtle"
+      // Brand navy for a plain notice: Chakra's info palette is its own blue,
+      // and this panel has exactly one blue.
+      colorPalette={'info' === resolved ? 'brand' : undefined}
+      borderWidth="1px"
+      borderStartWidth="3px"
+      borderStartColor="colorPalette.solid"
+      borderColor="ui.border"
+      borderRadius="forge"
+      alignItems={title ? 'flex-start' : 'center'}
+      fontSize="14px"
+      {...rest}
+    >
+      <Alert.Indicator />
+      {title ? (
+        <Alert.Content>
+          <Alert.Title>{title}</Alert.Title>
+          <Alert.Description>{children}</Alert.Description>
+        </Alert.Content>
+      ) : (
+        <Alert.Title flex="1" fontWeight="400">{children}</Alert.Title>
+      )}
+    </Alert.Root>
+  )
+}
+
+/*
+ * An icon-only button that says what it does on hover and to a screen reader.
+ *
+ * The label is the accessible name AND the tooltip, so the two can never drift
+ * apart. Chakra's Tooltip is portalled by default; this one is not, because
+ * the panel's own styles -- the brand face above all -- are scoped to its
+ * subtree, and a tooltip in document.body would render in wp-admin's type.
+ */
+export function IconAction({ label, danger, children, ...rest }) {
+  return (
+    <CTooltip.Root openDelay={250} closeDelay={80} positioning={{ placement: 'top' }}>
+      <CTooltip.Trigger asChild>
+        <CIconButton
+          aria-label={label}
+          variant="ghost"
+          size="sm"
+          borderRadius="forge"
+          color="ui.muted"
+          _hover={danger ? { color: 'ui.bad', bg: 'ui.badBg' } : { color: 'ui.primary', bg: 'ui.ghostHover' }}
+          _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+          {...rest}
+        >
+          {children}
+        </CIconButton>
+      </CTooltip.Trigger>
+      <CTooltip.Positioner>
+        <CTooltip.Content
+          bg="ui.heading"
+          color="ui.surface"
+          fontSize="12px"
+          fontWeight="400"
+          px="2"
+          py="1"
+          borderRadius="forge"
+        >
+          <CTooltip.Arrow>
+            <CTooltip.ArrowTip />
+          </CTooltip.Arrow>
+          {label}
+        </CTooltip.Content>
+      </CTooltip.Positioner>
+    </CTooltip.Root>
   )
 }

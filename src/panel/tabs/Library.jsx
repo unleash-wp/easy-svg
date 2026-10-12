@@ -1,9 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Stack, HStack, SimpleGrid, Box, Text, Textarea, Checkbox } from '@chakra-ui/react'
+import {
+  ActionBar,
+  Box,
+  Checkbox,
+  Clipboard,
+  Dialog,
+  FileUpload,
+  HStack,
+  InputGroup,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+} from '@chakra-ui/react'
 import DOMPurify from 'dompurify'
 import { __, _n, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, EmptyState, SkeletonRows, Button, TextInput, useDropZone } from '../../ui.jsx'
-import { Notice, SearchField, BulkBar, ReportList } from '../parts.jsx'
+import { Section, FieldRow, EmptyState, SkeletonRows, Button, TextInput, IconAction, useDropZone } from '../../ui.jsx'
+import { Notice, SearchField, ReportList } from '../parts.jsx'
 import { makeApi } from '../api.js'
 
 // Defence in depth for the preview: the stored markup is already server-hardened,
@@ -91,6 +104,11 @@ const AddGlyph = () => (
     <path d="M12 5v14M5 12h14" />
   </Glyph>
 )
+const UploadGlyph = () => (
+  <Glyph>
+    <path d="M12 16V4M7 9l5-5 5 5M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+  </Glyph>
+)
 
 // How many files of how many were kept. The verdict per file is the server's own
 // sentence; only the tally is assembled here.
@@ -135,7 +153,6 @@ export default function Library({ ctx }) {
   const [confirming, setConfirming] = useState(null)
   // The call to copy by hand when there is no clipboard API, dismissable.
   const [copyHelp, setCopyHelp] = useState('')
-  const copyHelpRef = useRef(null)
   const fileRef = useRef(null)
 
   // One place unwraps a library response, so a route that still answers the old
@@ -412,32 +429,6 @@ export default function Library({ ctx }) {
     }
   }
 
-  // The legacy path for exactly the pages the modern API refuses: select the
-  // call, try execCommand, and either way leave it selected for a manual copy.
-  function copyHelpByHand() {
-    const node = copyHelpRef.current
-    if (!node) {
-      return
-    }
-    const range = document.createRange()
-    range.selectNodeContents(node)
-    const selection = window.getSelection()
-    selection.removeAllRanges()
-    selection.addRange(range)
-    let copied = false
-    try {
-      copied = document.execCommand('copy')
-    } catch {
-      copied = false
-    }
-    if (copied) {
-      setCopyHelp('')
-      setStatus(
-        // translators: %s: the PHP call that renders the icon, e.g. easy_svg_icon( 'heart' ).
-        sprintf(__('Copied %s to the clipboard.', 'easy-svg'), node.textContent)
-      )
-    }
-  }
 
   // Two targets, one behaviour: the zone above and the grid below both take a
   // drop, because adding where you are already looking was right -- it was just
@@ -460,6 +451,64 @@ export default function Library({ ctx }) {
   )
   const openChooser = () => fileRef.current && fileRef.current.click()
 
+  // What the dialog is about to delete: a tile's one icon, or the selection.
+  const confirmIds = confirming ? (confirming.bulk ? Array.from(picked) : [confirming.id]) : []
+  const confirmName = confirming && !confirming.bulk
+    ? nameOf(all.find((ic) => ic.id === confirming.id) || { slug: '' })
+    : ''
+  const deleteDialog = (
+    <Dialog.Root
+      open={!!confirming}
+      onOpenChange={(e) => (e.open ? null : setConfirming(null))}
+      role="alertdialog"
+      placement="center"
+      // Not portalled: the panel's type and tokens are scoped to its subtree,
+      // and a dialog in document.body would render in wp-admin's own styles.
+      modal
+    >
+      <Dialog.Backdrop />
+      <Dialog.Positioner>
+        <Dialog.Content borderRadius="forge" bg="ui.surface">
+          <Dialog.Header>
+            <Dialog.Title fontSize="16px" fontWeight="700" color="ui.heading">
+              {confirming && confirming.bulk
+                ? sprintf(
+                    // translators: %d: number of icons selected.
+                    _n('Remove %d icon?', 'Remove %d icons?', confirmIds.length, 'easy-svg'),
+                    confirmIds.length
+                  )
+                : sprintf(
+                    // translators: %s: icon name.
+                    __('Delete %s?', 'easy-svg'),
+                    confirmName
+                  )}
+            </Dialog.Title>
+          </Dialog.Header>
+          <Dialog.Body>
+            <Dialog.Description fontSize="14px" color="ui.muted">
+              {__('This cannot be undone. Templates and blocks that render it will show nothing.', 'easy-svg')}
+            </Dialog.Description>
+          </Dialog.Body>
+          <Dialog.Footer gap="3">
+            <Dialog.ActionTrigger asChild>
+              <Button variant="ghost" disabled={busy}>{__('Cancel', 'easy-svg')}</Button>
+            </Dialog.ActionTrigger>
+            <Button
+              variant="primary"
+              bg="ui.bad"
+              _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+              _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
+              onClick={() => remove(confirmIds)}
+              disabled={busy}
+            >
+              {busy ? __('Removing…', 'easy-svg') : __('Delete', 'easy-svg')}
+            </Button>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  )
+
   /*
    * The add surface, the width of the content and above the grid.
    *
@@ -469,25 +518,73 @@ export default function Library({ ctx }) {
    * as a full button above. The tile stays as a shortcut; it is no longer the
    * only door.
    */
+  /*
+   * Chakra's FileUpload, not a div listening for drop: it owns the hidden
+   * input, the drag state and the keyboard path, and its trigger opens the
+   * chooser without a ref into the DOM. The verdict on a file stays the
+   * server's -- nothing is pre-judged here beyond the accept hint.
+   */
   const addSurface = (
-    <Box {...dashed(zone.isOver)} px="4" py="5" {...zone.props}>
-      <Stack gap="2" align="center" textAlign="center">
-        <Text fontSize="sm" fontWeight="700" color="ui.heading">
-          {__('Drop SVG files here', 'easy-svg')}
-        </Text>
-        <HStack gap="2" flexWrap="wrap" justify="center">
-          <Button variant="primary" size="sm" onClick={openChooser} disabled={busy}>
-            {__('Choose an SVG', 'easy-svg')}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={addFromMedia} disabled={busy}>
-            {__('Choose from the media library', 'easy-svg')}
-          </Button>
-        </HStack>
-        <Button variant="ghost" size="sm" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
-          {pasteLabel}
-        </Button>
-      </Stack>
-    </Box>
+    <FileUpload.Root
+      accept={FILE_ACCEPT}
+      multiple
+      disabled={busy}
+      alignItems="stretch"
+      onFileAccept={(details) => addFiles(details.files)}
+    >
+      <FileUpload.HiddenInput />
+      <FileUpload.Dropzone
+        borderWidth="1px"
+        borderStyle="dashed"
+        borderColor="ui.border"
+        borderRadius="forge"
+        bg="transparent"
+        px="4"
+        py="5"
+        minH="0"
+        gap="2"
+        _hover={{ borderColor: 'ui.primary', bg: 'ui.ghostHover' }}
+        _dragging={{ borderColor: 'ui.primary', bg: 'ui.ghostHover' }}
+      >
+        <Box color="ui.muted"><UploadGlyph /></Box>
+        <FileUpload.DropzoneContent gap="2">
+          <Text fontSize="14px" fontWeight="700" color="ui.heading">
+            {__('Drop SVG files here', 'easy-svg')}
+          </Text>
+          <HStack gap="2" flexWrap="wrap" justify="center">
+            <FileUpload.Trigger asChild>
+              <Button variant="primary" size="sm" disabled={busy}>
+                {__('Choose an SVG', 'easy-svg')}
+              </Button>
+            </FileUpload.Trigger>
+            {/* Not inside the dropzone's click target: the media frame is a
+                different door, and a click on it must not open the chooser. */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                addFromMedia()
+              }}
+              disabled={busy}
+            >
+              {__('Choose from the media library', 'easy-svg')}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPasting((v) => !v)
+              }}
+              aria-expanded={pasting}
+            >
+              {pasteLabel}
+            </Button>
+          </HStack>
+        </FileUpload.DropzoneContent>
+      </FileUpload.Dropzone>
+    </FileUpload.Root>
   )
   const pasteForm = (
     <PasteForm {...{ label, setLabel, markup, setMarkup, addPasted, busy, setPasting }} />
@@ -500,21 +597,32 @@ export default function Library({ ctx }) {
     <>
       {err ? <Notice bad role="alert">{err}</Notice> : null}
       {copyHelp ? (
-        <Notice role="status">
-          <HStack justify="space-between" gap="3" align="center" flexWrap="wrap">
-            <Text as="span" fontSize="sm">
-              {__('The clipboard is not available here. Copy the call by hand:', 'easy-svg')}{' '}
-              <Box as="code" ref={copyHelpRef} fontFamily="mono" userSelect="all">{copyHelp}</Box>
-            </Text>
-            <HStack gap="2">
-              <Button size="sm" variant="ghost" onClick={copyHelpByHand}>
-                {__('Copy', 'easy-svg')}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setCopyHelp('')}>
-                {__('Dismiss', 'easy-svg')}
-              </Button>
-            </HStack>
-          </HStack>
+        <Notice role="status" status="warning" title={__('The clipboard is not available here', 'easy-svg')}>
+          {/*
+            Chakra's Clipboard: it owns the copy attempt and the copied/not
+            state, and its input keeps the call selectable where even that
+            fails -- which is the whole point on a site served over plain HTTP.
+          */}
+          <Clipboard.Root value={copyHelp} timeout={1500} mt="2" maxW="420px">
+            <InputGroup
+              endElement={
+                <Clipboard.Trigger asChild>
+                  <Button variant="ghost" size="sm" me="-2" minH="0" px="2">
+                    <Clipboard.Indicator copied={__('Copied', 'easy-svg')}>
+                      {__('Copy', 'easy-svg')}
+                    </Clipboard.Indicator>
+                  </Button>
+                </Clipboard.Trigger>
+              }
+            >
+              <Clipboard.Input asChild>
+                <TextInput readOnly fontFamily="mono" fontSize="13px" />
+              </Clipboard.Input>
+            </InputGroup>
+          </Clipboard.Root>
+          <Button size="sm" variant="ghost" mt="2" onClick={() => setCopyHelp('')}>
+            {__('Dismiss', 'easy-svg')}
+          </Button>
         </Notice>
       ) : null}
       {status ? (
@@ -590,6 +698,7 @@ export default function Library({ ctx }) {
           {fileInput}
           {pasting ? <Box pt="4">{pasteForm}</Box> : null}
         </Section>
+        {deleteDialog}
       </Stack>
     )
   }
@@ -645,29 +754,55 @@ export default function Library({ ctx }) {
           {reportBox}
           {messages}
 
-          {selecting && picked.size > 0 ? (
-            <BulkBar
-              count={picked.size}
-              busy={busy}
-              label={
-                confirming && confirming.bulk
-                  ? sprintf(
-                      // translators: %d: number of icons selected.
-                      _n('Remove %d icon? This cannot be undone.', 'Remove %d icons? This cannot be undone.', picked.size, 'easy-svg'),
-                      picked.size
-                    )
-                  : sprintf(
-                      // translators: %d: number of icons selected.
-                      _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
-                      picked.size
-                    )
-              }
-              actionLabel={confirming && confirming.bulk ? __('Remove permanently', 'easy-svg') : __('Remove', 'easy-svg')}
-              onAction={() => (confirming && confirming.bulk ? remove(Array.from(picked)) : setConfirming({ bulk: true }))}
-              cancelLabel={confirming && confirming.bulk ? __('Cancel', 'easy-svg') : null}
-              onCancel={() => setConfirming(null)}
-            />
-          ) : null}
+          {/*
+            Chakra's ActionBar: a selection bar belongs over the content it
+            acts on, not in the flow pushing it down. Not portalled, so it
+            keeps the panel's type and tokens.
+          */}
+          <ActionBar.Root open={selecting && picked.size > 0} closeOnInteractOutside={false}>
+            <ActionBar.Positioner>
+              <ActionBar.Content
+                bg="ui.heading"
+                color="ui.surface"
+                borderRadius="forge"
+                boxShadow="lg"
+                px="3"
+                py="2.5"
+                gap="3"
+              >
+                <ActionBar.SelectionTrigger fontSize="14px" fontWeight="700" border="0" color="ui.surface">
+                  {sprintf(
+                    // translators: %d: number of icons selected.
+                    _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
+                    picked.size
+                  )}
+                </ActionBar.SelectionTrigger>
+                <ActionBar.Separator bg="whiteAlpha.400" />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  bg="ui.bad"
+                  _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+                  onClick={() => setConfirming({ bulk: true })}
+                  disabled={busy}
+                >
+                  <TrashGlyph />
+                  {__('Remove', 'easy-svg')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  color="ui.surface"
+                  borderColor="whiteAlpha.500"
+                  _hover={{ color: 'ui.surface', borderColor: 'ui.surface', bg: 'whiteAlpha.200' }}
+                  onClick={stopSelecting}
+                  disabled={busy}
+                >
+                  {__('Done selecting', 'easy-svg')}
+                </Button>
+              </ActionBar.Content>
+            </ActionBar.Positioner>
+          </ActionBar.Root>
 
           {/*
             The grid scrolls inside the card rather than growing it, so the
@@ -708,10 +843,7 @@ export default function Library({ ctx }) {
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
-                  confirmingDelete={!!(confirming && confirming.id === ic.id)}
                   onRemove={() => setConfirming({ id: ic.id })}
-                  onConfirmRemove={() => remove(ic.id)}
-                  onCancelRemove={() => setConfirming(null)}
                 />
               ))}
 
@@ -754,6 +886,7 @@ export default function Library({ ctx }) {
           {fileInput}
         </Stack>
       </Section>
+      {deleteDialog}
     </Stack>
   )
 }
@@ -780,10 +913,7 @@ function IconTile({
   onEditCancel,
   onEditSave,
   onCopy,
-  confirmingDelete,
   onRemove,
-  onConfirmRemove,
-  onCancelRemove,
 }) {
   const name = nameOf(ic)
   const isEditing = null !== editing
@@ -796,7 +926,7 @@ function IconTile({
       px="2"
       py="2.5"
       minH="96px"
-      gridColumn={isEditing || confirmingDelete ? 'span 2' : undefined}
+      gridColumn={isEditing ? 'span 2' : undefined}
       css={{
         // Dimmed, never hidden: fully invisible actions were not found at all
         // until a click landed on one by accident.
@@ -873,69 +1003,46 @@ function IconTile({
               </Button>
             </Stack>
           </Stack>
-        ) : confirmingDelete ? (
-          <Stack gap="2" w="full" pt="1" align="center">
-            <Text fontSize="xs" color="ui.heading" fontWeight="700" textAlign="center">
-              {
-                // translators: %s: icon name.
-                sprintf(__('Delete %s? This cannot be undone.', 'easy-svg'), name)
-              }
-            </Text>
-            <Stack gap="2" w="full">
-              <Button
-                size="sm"
-                variant="primary"
-                bg="ui.bad"
-                w="full"
-                _hover={{ bg: 'ui.bad', opacity: 0.9 }}
-                _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
-                onClick={onConfirmRemove}
-                disabled={busy}
-              >
-                {__('Delete', 'easy-svg')}
-              </Button>
-              <Button size="sm" variant="ghost" w="full" onClick={onCancelRemove} disabled={busy}>
-                {__('Cancel', 'easy-svg')}
-              </Button>
-            </Stack>
-          </Stack>
         ) : (
           <>
             <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={2} w="full" title={name}>
               {name}
             </Text>
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
-              <TileAction
+              <IconAction
                 onClick={onCopy}
                 disabled={busy}
+                {...TILE_ACTION_SIZE}
                 label={
                   // translators: %s: icon name.
                   sprintf(__('Copy the call for %s', 'easy-svg'), name)
                 }
               >
                 <CopyGlyph />
-              </TileAction>
-              <TileAction
+              </IconAction>
+              <IconAction
                 onClick={onEdit}
                 disabled={busy}
+                {...TILE_ACTION_SIZE}
                 label={
                   // translators: %s: icon name.
                   sprintf(__('Rename %s', 'easy-svg'), name)
                 }
               >
                 <RenameGlyph />
-              </TileAction>
-              <TileAction
+              </IconAction>
+              <IconAction
                 onClick={onRemove}
                 disabled={busy}
                 danger
+                {...TILE_ACTION_SIZE}
                 label={
                   // translators: %s: icon name.
                   sprintf(__('Delete %s', 'easy-svg'), name)
                 }
               >
                 <TrashGlyph />
-              </TileAction>
+              </IconAction>
             </HStack>
           </>
         )}
@@ -944,30 +1051,13 @@ function IconTile({
   )
 }
 
-// An icon-only button, so its whole name comes from aria-label: there is no text
-// to read. Narrow enough that three of them fit a tile at seven columns, and
-// borderless until hovered so a tile is not three boxes in a box.
-function TileAction({ label, onClick, disabled, danger, children }) {
-  return (
-    <Button
-      size="sm"
-      variant="ghost"
-      danger={danger}
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      px={{ base: '2', md: '1.5' }}
-      py={{ base: '2', md: '1.5' }}
-      // 44 on a phone, where three of these sit side by side in one tile and a
-      // 28px target between two others is a mis-tap. On md and up it is a mouse,
-      // and the tile goes back to holding three narrow buttons.
-      minW={{ base: '44px', md: '0' }}
-      minH={{ base: '44px', md: '0' }}
-      borderColor="transparent"
-    >
-      {children}
-    </Button>
-  )
+// Three of these sit side by side in one tile, so they are narrower than the
+// 40px raster -- except on a phone, where 44px is the touch target and a 28px
+// one between two others is a mis-tap.
+const TILE_ACTION_SIZE = {
+  px: { base: '2', md: '1.5' },
+  minW: { base: '44px', md: '28px' },
+  minH: { base: '44px', md: '28px' },
 }
 
 // Pasting is still possible, just no longer the default path: it sits behind the

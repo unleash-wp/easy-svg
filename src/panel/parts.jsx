@@ -1,33 +1,10 @@
-import { Box, HStack, Stack, Text, Heading, VisuallyHidden } from '@chakra-ui/react'
+import { Box, HStack, InputGroup, Stack, Text, Heading, VisuallyHidden } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { Button, Card, ProBadge, TextInput } from '../ui.jsx'
 
-// A single-line message panel. `bad` paints the error colours; `role` opts the
-// box into a live region so assistive tech announces it when it mounts. Pass
-// "alert" for an error and "status" for a confirmation. role=alert implies an
-// assertive live region and role=status a polite one; we set aria-live to match
-// so late-inserted notices are still announced.
-export function Notice({ bad, role, children }) {
-  const live = role === 'alert' ? 'assertive' : role === 'status' ? 'polite' : undefined
-  return (
-    <Box
-      role={role}
-      aria-live={live}
-      borderWidth="1px"
-      borderLeftWidth="4px"
-      borderRadius="forge"
-      px="4"
-      py="3"
-      borderColor={bad ? 'ui.bad' : 'ui.border'}
-      borderLeftColor={bad ? 'ui.bad' : 'ui.primary'}
-      bg="ui.surface"
-      color="ui.text"
-      fontSize="sm"
-    >
-      {children}
-    </Box>
-  )
-}
+// The notice lives in the shared layer now, so both plugins' tabs get the same
+// Alert -- with its status icon and colours -- from one definition.
+export { Notice } from '../ui.jsx'
 
 // A filter field that sits directly above the thing it filters. The label is a
 // real <label htmlFor>, hidden visually only: a visible one would be a second
@@ -38,7 +15,19 @@ export function SearchField({ id, label, placeholder, value, onChange, maxW = '3
   return (
     <Box flex="1" maxW={maxW} minW="160px">
       <VisuallyHidden as="label" htmlFor={id}>{label}</VisuallyHidden>
-      <TextInput id={id} type="search" placeholder={placeholder} value={value} onChange={onChange} />
+      {/* The magnifier says what the field is for before the placeholder is
+          read, and it is decorative: the label above names it. */}
+      <InputGroup
+        startElement={
+          <Box as="svg" aria-hidden="true" viewBox="0 0 24 24" boxSize="16px" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" color="ui.muted">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </Box>
+        }
+      >
+        <TextInput id={id} type="search" placeholder={placeholder} value={value} onChange={onChange} />
+      </InputGroup>
     </Box>
   )
 }
