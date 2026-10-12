@@ -84,6 +84,16 @@ const PATHS = {
   ),
 }
 
+// The rail's own collapse control, not a tab icon: exported separately so the
+// brand bar can draw it without going through the keyword map.
+export function BurgerIcon() {
+  return (
+    <svg {...BASE}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}
+
 // An unknown name draws an EMPTY slot, not a fallback glyph. A tab registered
 // by a future plugin should not borrow a meaning it did not ask for, and
 // dropping the element instead would shift that row's label out of line with

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Flex, HStack, Heading, Text, Tabs, Image, Separator, useBreakpointValue } from '@chakra-ui/react'
+import { Box, Flex, HStack, Heading, Text, Tabs, Image, Separator, chakra, useBreakpointValue } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { getRegistry } from './registry.js'
 import Settings from './tabs/Settings.jsx'
@@ -7,7 +7,7 @@ import Library from './tabs/Library.jsx'
 import Upsell from './tabs/Upsell.jsx'
 import { LockedTab } from './parts.jsx'
 import { ProBadge, useDropGuard } from '../ui.jsx'
-import { TabIcon } from './icons.jsx'
+import { TabIcon, BurgerIcon } from './icons.jsx'
 import logo from '../brand/unleashwp-logo-full.svg?raw'
 
 // The XML prolog is legal in a file and illegal inside an inline <svg>.
@@ -31,10 +31,32 @@ const PRO_TABS = [
 
 const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
+const RAIL_KEY = 'easy-svg:rail-collapsed'
+
 export default function App({ config }) {
   const [, force] = useState(0)
   const [active, setActive] = useState('')
   const [missed, setMissed] = useState(false)
+  // Remembered across loads, the way the Forge rail is. localStorage throws in
+  // a private window rather than returning null, so both ends are guarded and
+  // a blocked store just means the rail opens expanded every time.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(RAIL_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleRail = () =>
+    setCollapsed((c) => {
+      const next = !c
+      try {
+        window.localStorage.setItem(RAIL_KEY, next ? '1' : '0')
+      } catch {
+        /* a blocked store is not a reason to refuse the click */
+      }
+      return next
+    })
 
   // Dropping a file next to a zone used to open it in the tab and take the
   // panel with it. The guard swallows those; this says where the file goes, and
@@ -139,21 +161,36 @@ export default function App({ config }) {
   let lastGroup = null
   tabs.forEach((t) => {
     if (t.group !== lastGroup) {
+      // Collapsed there is no room for the word, and dropping it entirely would
+      // run the two groups together, so the break becomes a rule.
       rail.push(
-        <Box
-          key={`eyebrow-${t.group}`}
-          aria-hidden="true"
-          display={{ base: 'none', md: 'block' }}
-          textStyle="caption"
-          textTransform="uppercase"
-          letterSpacing="0.06em"
-          color="ui.muted"
-          px="3"
-          pt={rail.length ? '4' : '1'}
-          pb="1.5"
-        >
-          {groupLabels[t.group] || t.group}
-        </Box>
+        collapsed ? (
+          <Box
+            key={`eyebrow-${t.group}`}
+            aria-hidden="true"
+            display={{ base: 'none', md: 'block' }}
+            mx="2"
+            mt={rail.length ? '3' : '1'}
+            mb="1.5"
+            borderTopWidth={rail.length ? '1px' : '0'}
+            borderColor="ui.border"
+          />
+        ) : (
+          <Box
+            key={`eyebrow-${t.group}`}
+            aria-hidden="true"
+            display={{ base: 'none', md: 'block' }}
+            textStyle="caption"
+            textTransform="uppercase"
+            letterSpacing="0.06em"
+            color="ui.muted"
+            px="3"
+            pt={rail.length ? '4' : '1'}
+            pb="1.5"
+          >
+            {groupLabels[t.group] || t.group}
+          </Box>
+        )
       )
       lastGroup = t.group
     }
@@ -170,7 +207,13 @@ export default function App({ config }) {
         color={t.locked ? 'ui.muted' : 'ui.text'}
         flexShrink="0"
         w={{ md: 'full' }}
-        justifyContent={{ md: 'flex-start' }}
+        // Collapsed the icon is the whole control, so it centres and the name
+        // moves to the tooltip. aria-label keeps it named for a screen reader,
+        // which never sees the label element disappear.
+        justifyContent={{ base: 'flex-start', md: collapsed ? 'center' : 'flex-start' }}
+        px={{ base: '3', md: collapsed ? '0' : '3' }}
+        title={collapsed ? t.label : undefined}
+        aria-label={collapsed ? t.label : undefined}
         // Not _hover: hover and selected carry the same specificity, so hovering
         // the selected row repainted it with the 6% wash while the white text
         // stayed -- white on near-white, the label gone. Measured before it was
@@ -194,8 +237,18 @@ export default function App({ config }) {
         }}
       >
         <TabIcon name={t.icon} />
-        <Text as="span" truncate>{t.label}</Text>
-        {t.locked ? <ProBadge className="uwp-pro-badge" ml="auto">{groupLabels.pro}</ProBadge> : null}
+        <Text as="span" truncate display={{ base: 'inline', md: collapsed ? 'none' : 'inline' }}>
+          {t.label}
+        </Text>
+        {t.locked ? (
+          <ProBadge
+            className="uwp-pro-badge"
+            ml="auto"
+            display={{ base: 'inline-flex', md: collapsed ? 'none' : 'inline-flex' }}
+          >
+            {groupLabels.pro}
+          </ProBadge>
+        ) : null}
       </Tabs.Trigger>
     )
   })
@@ -236,6 +289,29 @@ export default function App({ config }) {
         align="center"
         gap="3.5"
       >
+        {/*
+          Only from md up: below that the rail is a horizontal strip and there is
+          nothing to collapse. Same placement as Forge, left of the wordmark.
+        */}
+        <chakra.button
+          type="button"
+          onClick={toggleRail}
+          hideBelow="md"
+          aria-label={collapsed ? __('Expand menu', 'easy-svg') : __('Collapse menu', 'easy-svg')}
+          aria-expanded={!collapsed}
+          title={collapsed ? __('Expand menu', 'easy-svg') : __('Collapse menu', 'easy-svg')}
+          display="grid"
+          placeItems="center"
+          w="34px"
+          h="34px"
+          ml="-1.5"
+          borderRadius="forge"
+          color="ui.muted"
+          _hover={{ bg: 'ui.ghostHover', color: 'ui.heading' }}
+          _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+        >
+          <BurgerIcon />
+        </chakra.button>
         <Box
           role="img"
           aria-label="UnleashWP"
@@ -243,8 +319,9 @@ export default function App({ config }) {
           dangerouslySetInnerHTML={{ __html: LOGO }}
         />
         <Separator orientation="vertical" h="1.25rem" borderColor="ui.border" hideBelow="sm" />
+        {/* The product name, not a sentence: nothing to translate, so no msgid. */}
         <Text color="ui.heading" fontWeight="700" fontSize="0.9688rem" hideBelow="sm">
-          {__('Easy SVG', 'easy-svg')}
+          Easy SVG
         </Text>
         {config.version ? <Text ml="auto" textStyle="caption">{`v${config.version}`}</Text> : null}
       </Flex>
@@ -298,8 +375,10 @@ export default function App({ config }) {
             overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
             flexShrink="0"
-            w={{ md: '216px' }}
-            minW={{ md: '216px' }}
+            w={{ md: collapsed ? '68px' : '216px' }}
+            minW={{ md: collapsed ? '68px' : '216px' }}
+            transition="width .16s ease"
+            overflow="hidden"
             // On dark the rail has no fill of its own: the selected row IS the
             // surface, raised off the canvas, which is what Forge does there.
             // On light it is the other way round, a white rail with a navy row.

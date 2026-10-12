@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-12T09:56:58+00:00\n"
+"POT-Creation-Date: 2026-10-12T16:24:56+00:00\n"
 "PO-Revision-Date: 2022-05-29 17:50+0000\n"
 "Last-Translator: \n"
 "Language-Team: French (France)\n"
@@ -77,112 +77,114 @@ msgstr ""
 msgid "Icons"
 msgstr ""
 
-#: includes/panel.php:178
+#: includes/panel.php:216
 msgid "The icon post id, as the library listing reports it."
 msgstr ""
 
-#: includes/panel.php:199
+#: includes/panel.php:237
 msgid "Whether editors may upload .svg files."
 msgstr ""
 
-#: includes/panel.php:203
+#: includes/panel.php:241
 msgid "Whether the icon library and the Icon block are registered."
 msgstr ""
 
-#: includes/panel.php:209
+#: includes/panel.php:247
 msgid ""
 "The largest SVG the sanitiser will parse, in megabytes. Always enforced; "
 "only its value is settable."
 msgstr ""
 
-#: includes/panel.php:235
+#: includes/panel.php:273
 msgid "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
 msgstr ""
 
-#: includes/panel.php:239
+#: includes/panel.php:277
 msgid ""
 "The icon name a person reads. The slug is derived from it and never moves "
 "afterwards."
 msgstr ""
 
-#: includes/panel.php:261
+#: includes/panel.php:299
 msgid "Attachment ids of SVGs already in the media library."
 msgstr ""
 
-#: includes/panel.php:278
+#: includes/panel.php:316
 msgid "The new visible name. The slug is not touched."
 msgstr ""
 
-#: includes/panel.php:347
+#: includes/panel.php:385
 msgid "The sanitiser is unavailable, so nothing was stored."
 msgstr ""
 
-#: includes/panel.php:350
+#: includes/panel.php:388
 msgid "That SVG has no drawing, or could not be stored."
 msgstr ""
 
-#: includes/panel.php:352 build/panel.js
+#: includes/panel.php:390 build/panel.js
 msgid "Icon added."
 msgstr ""
 
-#: includes/panel.php:354
+#: includes/panel.php:392
 msgid "That file is no longer in the media library."
 msgstr ""
 
-#: includes/panel.php:356
+#: includes/panel.php:394
 msgid "That file is not stored on this server, so it could not be read."
 msgstr ""
 
-#: includes/panel.php:358
+#: includes/panel.php:396
 msgid "That is not an SVG the sanitiser accepts."
 msgstr ""
 
-#: includes/panel.php:360
+#: includes/panel.php:398
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 
-#: includes/panel.php:362
+#: includes/panel.php:400
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr ""
 
-#: includes/panel.php:364
+#: includes/panel.php:402
 msgid "That SVG has too many parts to be read safely."
 msgstr ""
 
-#: includes/panel.php:366
+#: includes/panel.php:404
 msgid "The icon could not be added."
 msgstr ""
 
-#: includes/panel.php:379 includes/panel.php:415 build/panel.js
+#: includes/panel.php:417 includes/panel.php:453 build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr ""
 
-#: includes/panel.php:420
+#: includes/panel.php:458
 msgid "Choose at least one SVG from the media library."
 msgstr ""
 
 #. translators: %d: how many media files one request may carry.
-#: includes/panel.php:427
+#: includes/panel.php:465
 #, php-format
 msgid "Choose at most %d files at a time."
 msgstr ""
 
-#: includes/panel.php:492 includes/panel.php:558
+#: includes/panel.php:530 includes/panel.php:596
 msgid "Icon not found."
 msgstr ""
 
-#: includes/panel.php:500
+#: includes/panel.php:538
 msgid "An icon needs a name."
 msgstr ""
 
-#: includes/panel.php:534
+#: includes/panel.php:572
 msgid "The icon could not be renamed."
 msgstr ""
 
 #. translators: %s: link to the Icons panel.
 #: includes/settings.php:145
 #, php-format
-msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a settings panel. Manage both under %s."
+msgid ""
+"Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a "
+"settings panel. Manage both under %s."
 msgstr ""
 
 #. translators: %s: link to the Icons panel.
@@ -226,7 +228,9 @@ msgid "Configurator"
 msgstr ""
 
 #: build/panel.js
-msgid "Extend the sanitiser allow-list for special icon libraries. The guard-rails stay."
+msgid ""
+"Extend the sanitiser allow-list for special icon libraries. The guard-rails "
+"stay."
 msgstr ""
 
 #: build/panel.js
@@ -254,13 +258,27 @@ msgid "General"
 msgstr ""
 
 #: build/panel.js
-msgid "SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel."
+msgid "Expand menu"
+msgstr ""
+
+#: build/panel.js
+msgid "Collapse menu"
 msgstr ""
 
 #: build/panel.js
 msgid ""
 "That landed next to the drop area. Drop SVG files on the dashed area in the "
 "Icon Library tab."
+msgstr ""
+
+#: build/panel.js
+msgid ""
+"SVG uploads and the icon library. With Pro: collections, configurator, audit "
+"and licence, in the same panel."
+msgstr ""
+
+#: build/panel.js
+msgid "Easy SVG by UnleashWP"
 msgstr ""
 
 #: build/panel.js
@@ -351,7 +369,9 @@ msgid "Drop your first SVG here"
 msgstr ""
 
 #: build/panel.js
-msgid "Every file is sanitised and hardened on the way in. Same bar as a media upload."
+msgid ""
+"Every file is sanitised and hardened on the way in. Same bar as a media "
+"upload."
 msgstr ""
 
 #: build/panel.js
@@ -479,7 +499,9 @@ msgid "Features"
 msgstr ""
 
 #: build/panel.js
-msgid "Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it."
+msgid ""
+"Both are off by default. The security layer is always on: every SVG is "
+"sanitised and the size cap applies. There is no switch for it."
 msgstr ""
 
 #: build/panel.js
@@ -503,7 +525,9 @@ msgid "Security"
 msgstr ""
 
 #: build/panel.js
-msgid "The cap limits what the sanitiser will parse. It applies whatever the features above are set to."
+msgid ""
+"The cap limits what the sanitiser will parse. It applies whatever the "
+"features above are set to."
 msgstr ""
 
 #: build/panel.js
@@ -535,7 +559,9 @@ msgid "Easy SVG Pro"
 msgstr ""
 
 #: build/panel.js
-msgid "The agency layer for SVG icons. It lives in this panel, once Pro is active and licensed."
+msgid ""
+"The agency layer for SVG icons. It lives in this panel, once Pro is active "
+"and licensed."
 msgstr ""
 
 #~ msgid "Add SVG Support for WordPress."
