@@ -3,6 +3,8 @@ import {
   Alert,
   Button as CButton,
   Input,
+  InputGroup,
+  VisuallyHidden,
   Box,
   Flex,
   HStack,
@@ -498,5 +500,33 @@ export function IconAction({ label, danger, children, ...rest }) {
         </CTooltip.Content>
       </CTooltip.Positioner>
     </CTooltip.Root>
+  )
+}
+
+// A filter field that sits directly above the thing it filters. The label is a
+// real <label htmlFor>, hidden visually only: a visible one would be a second
+// line saying what the placeholder already says, and a bare input says nothing
+// at all to a screen reader. type="search" so the browser offers its own clear
+// affordance and the Escape key empties the field.
+export function SearchField({ id, label, placeholder, value, onChange, maxW = '300px' }) {
+  return (
+    <Box flex="1" maxW={maxW} minW="160px">
+      <VisuallyHidden as="label" htmlFor={id}>{label}</VisuallyHidden>
+      {/* The magnifier says what the field is for before the placeholder is
+          read, and it is decorative: the label above names it. */}
+      <InputGroup
+        startElement={
+          <Box as="svg" aria-hidden="true" viewBox="0 0 24 24" boxSize="16px" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" color="ui.muted">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </Box>
+        }
+      >
+        {/* ps: the start element sits ON the field, so without room for it the
+            magnifier lands on the first letters of the placeholder. */}
+        <TextInput id={id} type="search" ps="9" placeholder={placeholder} value={value} onChange={onChange} />
+      </InputGroup>
+    </Box>
   )
 }

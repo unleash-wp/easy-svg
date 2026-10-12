@@ -1,38 +1,13 @@
-import { Box, HStack, InputGroup, Stack, Text, Heading, VisuallyHidden } from '@chakra-ui/react'
+import { Box, HStack, Stack, Text, Heading } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
-import { Button, Card, ProBadge, TextInput } from '../ui.jsx'
+import { Button, Card, ProBadge } from '../ui.jsx'
 
 // The notice lives in the shared layer now, so both plugins' tabs get the same
 // Alert -- with its status icon and colours -- from one definition.
 export { Notice } from '../ui.jsx'
 
-// A filter field that sits directly above the thing it filters. The label is a
-// real <label htmlFor>, hidden visually only: a visible one would be a second
-// line saying what the placeholder already says, and a bare input says nothing
-// at all to a screen reader. type="search" so the browser offers its own clear
-// affordance and the Escape key empties the field.
-export function SearchField({ id, label, placeholder, value, onChange, maxW = '300px' }) {
-  return (
-    <Box flex="1" maxW={maxW} minW="160px">
-      <VisuallyHidden as="label" htmlFor={id}>{label}</VisuallyHidden>
-      {/* The magnifier says what the field is for before the placeholder is
-          read, and it is decorative: the label above names it. */}
-      <InputGroup
-        startElement={
-          <Box as="svg" aria-hidden="true" viewBox="0 0 24 24" boxSize="16px" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" color="ui.muted">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" />
-          </Box>
-        }
-      >
-        {/* ps: the start element sits ON the field, so without room for it the
-            magnifier lands on the first letters of the placeholder. */}
-        <TextInput id={id} type="search" ps="9" placeholder={placeholder} value={value} onChange={onChange} />
-      </InputGroup>
-    </Box>
-  )
-}
+// The search field lives in the shared layer; both plugins' tabs use it.
+export { SearchField } from '../ui.jsx'
 
 // The bar that appears once a selection exists: how many are picked and the one
 // thing that can be done to them. Navy and full width, so it reads as a mode the
