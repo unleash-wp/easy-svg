@@ -1139,10 +1139,42 @@ check( 'BELL: and the icon feature is still there, unlimited', function_exists( 
  */
 check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === EASY_SVG_API );
 
+/*
+ * The panel contract, pinned the same way and for the same reason.
+ *
+ * Its own number because EASY_SVG_API is the sanitiser alone. Pro gates its
+ * menu entries and its raised size ceiling on this one, and it cannot probe for
+ * either: a filter that nothing registers cannot be asked about, and a site
+ * running an older free plugin would simply see Pro's contributions do nothing.
+ */
+check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
+check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+check( 'BELL: at panel API 1 the panel offers its own tabs', array_keys( easy_svg_panel_menu_tabs() ) === array( 'settings', 'library' ) );
+// Exercised, not grepped for: an add-on's entry has to come back out.
+add_filter(
+	'easy_svg_panel_menu_tabs',
+	static function ( $tabs ) {
+		$tabs['licence'] = 'Licence';
+		return $tabs;
+	}
+);
+check( 'BELL: and an add-on can contribute one', isset( easy_svg_panel_menu_tabs()['licence'] ) );
+$GLOBALS['hooks']['easy_svg_panel_menu_tabs'] = array();
+
+check( 'BELL: the ceiling is filterable at panel API 1', function_exists( 'easy_svg_max_mb_ceiling' ) && 20 === easy_svg_max_mb_ceiling() );
+add_filter( 'easy_svg_max_mb_ceiling', static fn() => 100 );
+check( 'BELL: and an add-on can raise it', 100 === easy_svg_max_mb_ceiling() );
+check( 'BELL: a raised ceiling lets the setting through', 100 === easy_svg_sanitize_settings( array( 'max_mb' => 100 ) )['max_mb'] );
+$GLOBALS['hooks']['easy_svg_max_mb_ceiling'] = array();
+check( 'SILENCE: and without the add-on the same value is clamped again', 20 === easy_svg_sanitize_settings( array( 'max_mb' => 100 ) )['max_mb'] );
+check( 'BELL: and the panel still fires its enqueue hook for add-ons', str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), "'easy_svg_panel_enqueue'" ) );
+
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
+check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
+check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 1\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
 // The cap never shipped. A readme explaining its removal would document,
 // to 40,000 sites, a feature they never had.
 check( 'SILENCE: the readme does not mention the cap that never shipped', false === strpos( $readme_text, 'easy_svg_icon_limit' ) && false === stripos( $readme_text, 'capped' ) && 1 !== preg_match( '/\bAPI 2\b|that 2 introduced/', $readme_text ) );
@@ -1784,6 +1816,35 @@ check( 'BELL: no filter on the plugin update transient', false === strpos( $sour
 check( 'BELL: no plugins_api hook', false === strpos( $source, 'plugins_api' ) );
 check( 'SILENCE: and the file was actually read', '' !== $source );
 
+// ─── Every PHP file parses ───────────────────────────────────────────────────
+
+/*
+ * `php -l` on each file, because being READ is not being LOADED.
+ *
+ * Several files reach this suite only as text -- icon-manager.php is read with
+ * file_get_contents() and its one entry point is stubbed -- so a file of those
+ * could stop parsing and every check here would still pass. That happened: a
+ * careless in-place edit ate an assignment's left-hand side and the suite
+ * stayed green.
+ */
+$php_files = array();
+foreach ( array( '', '/includes', '/includes/blocks' ) as $dir ) {
+	foreach ( (array) glob( $root . $dir . '/*.php' ) as $file ) {
+		$php_files[] = (string) $file;
+	}
+}
+$bad_syntax = array();
+foreach ( $php_files as $file ) {
+	$lint_out    = array();
+	$lint_status = 1;
+	exec( escapeshellarg( PHP_BINARY ) . ' -l ' . escapeshellarg( $file ) . ' 2>&1', $lint_out, $lint_status );
+	if ( 0 !== $lint_status ) {
+		$bad_syntax[] = basename( $file ) . ': ' . ( $lint_out[0] ?? 'no output' );
+	}
+}
+check( 'BELL: there are PHP files to check at all', count( $php_files ) > 5 );
+check( 'BELL: every PHP file parses: ' . implode( '; ', $bad_syntax ), array() === $bad_syntax );
+
 // ─── Where this repository is allowed to run ─────────────────────────────────
 
 $runner_out    = array();
@@ -2214,7 +2275,10 @@ check( 'BELL: the save bar shares the card radius', str_contains( (string) @file
 // Stripped, so the docblock that QUOTES the old call is not read as the call.
 $panel_php = (string) php_strip_whitespace( $root . '/includes/panel.php' );
 check( 'SILENCE: no route asks for a hard-coded page of icons any more', 1 !== preg_match( '/easy_svg_icon_page\(\s*1\s*,\s*500\s*\)/', $panel_php ) );
-check( 'BELL: they all go through the one payload', 4 === preg_match_all( '/return new WP_REST_Response\( easy_svg_panel_library_payload\(\) \);/', $panel_php ) );
+// Counted by the CALL, not by one spelling of the line around it: the GET
+// route hands the payload a search term now, and a guard that only recognises
+// the argument-less form would have called that a missing payload.
+check( 'BELL: they all go through the one payload', 5 === preg_match_all( '/(?<!function )easy_svg_panel_library_payload\(/', $panel_php ) );
 $library_jsx = (string) @file_get_contents( $root . '/src/panel/tabs/Library.jsx' );
 check( 'BELL: and the screen says so when it cannot list them all', str_contains( $library_jsx, 'const truncated = total > all.length' ) );
 

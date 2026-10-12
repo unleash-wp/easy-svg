@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-12T19:52:06+00:00\n"
+"POT-Creation-Date: 2026-10-12T22:02:27+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -65,129 +65,143 @@ msgstr ""
 msgid "Easy SVG"
 msgstr ""
 
-#: includes/panel.php:55
 #: includes/panel.php:56
-#: includes/panel.php:79
+#: includes/panel.php:57
 #: includes/panel.php:80
-#: includes/settings.php:142
+#: includes/panel.php:81
+#: includes/settings.php:155
 #: build/panel.js
 msgid "Icons"
 msgstr ""
 
-#: includes/panel.php:220
+#: includes/panel.php:139
+#: build/panel.js
+msgid "Settings"
+msgstr ""
+
+#: includes/panel.php:140
+#: build/panel.js
+msgid "Icon library"
+msgstr ""
+
+#: includes/panel.php:310
 msgid "The icon post id, as the library listing reports it."
 msgstr ""
 
-#: includes/panel.php:241
+#: includes/panel.php:331
 msgid "Whether editors may upload .svg files."
 msgstr ""
 
-#: includes/panel.php:245
+#: includes/panel.php:335
 msgid "Whether the icon library and the Icon block are registered."
 msgstr ""
 
-#: includes/panel.php:251
+#: includes/panel.php:341
 msgid "The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable."
 msgstr ""
 
-#: includes/panel.php:277
+#: includes/panel.php:358
+msgid "Narrow the list to icons whose name or slug contains this."
+msgstr ""
+
+#: includes/panel.php:374
 msgid "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
 msgstr ""
 
-#: includes/panel.php:281
+#: includes/panel.php:378
 msgid "The icon name a person reads. The slug is derived from it and never moves afterwards."
 msgstr ""
 
-#: includes/panel.php:303
+#: includes/panel.php:400
 msgid "Attachment ids of SVGs already in the media library."
 msgstr ""
 
-#: includes/panel.php:320
+#: includes/panel.php:417
 msgid "The new visible name. The slug is not touched."
 msgstr ""
 
-#: includes/panel.php:389
+#: includes/panel.php:495
 msgid "The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to restore it."
 msgstr ""
 
-#: includes/panel.php:391
+#: includes/panel.php:497
 msgid "That SVG is empty, so there was nothing to store."
 msgstr ""
 
-#: includes/panel.php:393
+#: includes/panel.php:499
 msgid "That SVG could not be stored: it arrived without a drawing, or the write was refused."
 msgstr ""
 
-#: includes/panel.php:395
+#: includes/panel.php:501
 #: build/panel.js
 msgid "Icon added."
 msgstr ""
 
-#: includes/panel.php:397
+#: includes/panel.php:503
 msgid "That file is no longer in the media library."
 msgstr ""
 
-#: includes/panel.php:399
+#: includes/panel.php:505
 msgid "That file is not stored on this server, so it could not be read."
 msgstr ""
 
-#: includes/panel.php:401
+#: includes/panel.php:507
 msgid "That is not an SVG the sanitiser accepts."
 msgstr ""
 
-#: includes/panel.php:403
+#: includes/panel.php:509
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 
-#: includes/panel.php:405
+#: includes/panel.php:511
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr ""
 
-#: includes/panel.php:407
+#: includes/panel.php:513
 msgid "That SVG has too many parts to be read safely."
 msgstr ""
 
-#: includes/panel.php:411
+#: includes/panel.php:517
 msgid "The icon could not be added, for a reason this screen has no name for. Try again, or try a different file."
 msgstr ""
 
-#: includes/panel.php:424
-#: includes/panel.php:460
+#: includes/panel.php:530
+#: includes/panel.php:566
 #: build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr ""
 
-#: includes/panel.php:465
+#: includes/panel.php:571
 msgid "Choose at least one SVG from the media library."
 msgstr ""
 
 #. translators: %d: how many media files one request may carry.
-#: includes/panel.php:472
+#: includes/panel.php:578
 #, php-format
 msgid "Choose at most %d files at a time."
 msgstr ""
 
-#: includes/panel.php:537
-#: includes/panel.php:603
+#: includes/panel.php:643
+#: includes/panel.php:709
 msgid "Icon not found."
 msgstr ""
 
-#: includes/panel.php:545
+#: includes/panel.php:651
 msgid "An icon needs a name."
 msgstr ""
 
-#: includes/panel.php:579
+#: includes/panel.php:685
 msgid "The icon could not be renamed."
 msgstr ""
 
 #. translators: %s: link to the Icons panel.
-#: includes/settings.php:145
+#: includes/settings.php:158
 #, php-format
 msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a settings panel. Manage both under %s."
 msgstr ""
 
 #. translators: %s: link to the Icons panel.
-#: includes/settings.php:148
+#: includes/settings.php:161
 #, php-format
 msgid "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s."
 msgstr ""
@@ -205,15 +219,7 @@ msgid "Save failed (%d)"
 msgstr ""
 
 #: build/panel.js
-msgid "Settings"
-msgstr ""
-
-#: build/panel.js
-msgid "Icon library"
-msgstr ""
-
-#: build/panel.js
-msgid "Icon Sets"
+msgid "Icon sets"
 msgstr ""
 
 #: build/panel.js
@@ -229,7 +235,7 @@ msgid "Extend the sanitiser allow-list for special icon libraries. The guard-rai
 msgstr ""
 
 #: build/panel.js
-msgid "Audit"
+msgid "SVG cleaner"
 msgstr ""
 
 #: build/panel.js
@@ -265,7 +271,7 @@ msgid "That landed next to the drop area. Drop SVG files on the dashed area in t
 msgstr ""
 
 #: build/panel.js
-msgid "SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel."
+msgid "Upload SVGs safely and keep your icons in one place. Every screen for this plugin is in the menu on the left."
 msgstr ""
 
 #: build/panel.js
@@ -326,6 +332,36 @@ msgstr ""
 msgid "Paste markup"
 msgstr ""
 
+#. translators: %d: number of icons selected.
+#: build/panel.js
+#, js-format
+msgid "Remove %d icon?"
+msgid_plural "Remove %d icons?"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: icon name.
+#: build/panel.js
+#, js-format
+msgid "Delete %s?"
+msgstr ""
+
+#: build/panel.js
+msgid "This cannot be undone. Templates and blocks that render it will show nothing."
+msgstr ""
+
+#: build/panel.js
+msgid "Cancel"
+msgstr ""
+
+#: build/panel.js
+msgid "Removing…"
+msgstr ""
+
+#: build/panel.js
+msgid "Delete"
+msgstr ""
+
 #: build/panel.js
 msgid "Drop SVG files here"
 msgstr ""
@@ -339,11 +375,19 @@ msgid "Choose from the media library"
 msgstr ""
 
 #: build/panel.js
-msgid "The clipboard is not available here. Copy the call by hand:"
+msgid "The clipboard is not available here"
+msgstr ""
+
+#: build/panel.js
+msgid "Copied"
 msgstr ""
 
 #: build/panel.js
 msgid "Copy"
+msgstr ""
+
+#: build/panel.js
+msgid "The call to copy into your template"
 msgstr ""
 
 #: build/panel.js
@@ -400,19 +444,23 @@ msgstr ""
 msgid "Select several"
 msgstr ""
 
-#. translators: 1: number of icons matching the search, 2: number of icons in the library.
 #: build/panel.js
-#, js-format
-msgid "Showing %1$d of %2$d icon."
-msgid_plural "Showing %1$d of %2$d icons."
-msgstr[0] ""
-msgstr[1] ""
+msgid "Clear selection"
+msgstr ""
 
-#. translators: %d: number of icons selected.
+#: build/panel.js
+msgid "Select all"
+msgstr ""
+
+#: build/panel.js
+msgid "Searching…"
+msgstr ""
+
+#. translators: %d: number of icons the search found.
 #: build/panel.js
 #, js-format
-msgid "Remove %d icon? This cannot be undone."
-msgid_plural "Remove %d icons? This cannot be undone."
+msgid "%d icon found."
+msgid_plural "%d icons found."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -425,15 +473,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: build/panel.js
-msgid "Remove permanently"
-msgstr ""
-
-#: build/panel.js
 msgid "Remove"
-msgstr ""
-
-#: build/panel.js
-msgid "Cancel"
 msgstr ""
 
 #: build/panel.js
@@ -458,16 +498,6 @@ msgstr ""
 
 #: build/panel.js
 msgid "Save"
-msgstr ""
-
-#. translators: %s: icon name.
-#: build/panel.js
-#, js-format
-msgid "Delete %s? This cannot be undone."
-msgstr ""
-
-#: build/panel.js
-msgid "Delete"
 msgstr ""
 
 #. translators: %s: icon name.
@@ -527,7 +557,7 @@ msgid "The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d).
 msgstr ""
 
 #: build/panel.js
-msgid "Features"
+msgid "What runs"
 msgstr ""
 
 #: build/panel.js
@@ -566,6 +596,19 @@ msgstr ""
 #: build/panel.js
 #, js-format
 msgid "Files larger than this are rejected before the sanitiser runs. Allowed: 1 to %d MB."
+msgstr ""
+
+#: build/panel.js
+msgid "Increase the size cap"
+msgstr ""
+
+#: build/panel.js
+msgid "Decrease the size cap"
+msgstr ""
+
+#: build/panel.js
+#, js-format
+msgid "%d MB"
 msgstr ""
 
 #: build/panel.js

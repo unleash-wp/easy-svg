@@ -154,20 +154,78 @@ function easy_svg_stored_icons() {
  * @param int $per_page How many icons a page holds.
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
-function easy_svg_icon_page( $page, $per_page ) {
-    $posts = get_posts(
-        array(
-            'post_type'              => EASY_SVG_ICON_POST_TYPE,
-            'post_status'            => 'publish',
-            'posts_per_page'         => (int) $per_page,
-            'paged'                  => (int) $page,
-            'orderby'                => 'ID',
-            'order'                  => 'ASC',
-            'no_found_rows'          => true,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
+/**
+ * Icon ids whose SLUG contains a term.
+ *
+ * Its own query because WP_Query cannot ask for it: `search_columns` supports
+ * only post_title, post_excerpt and post_content, and `name` is exact. LIKE
+ * through esc_like() in a prepared statement.
+ *
+ * @param string $term
+ * @return array<int,int>
+ */
+function easy_svg_icon_ids_by_slug_like( $term ) {
+    global $wpdb;
+    $term = trim( (string) $term );
+    if ( '' === $term || ! isset( $wpdb ) ) {
+        return array();
+    }
+
+    return array_map(
+        'intval',
+        (array) $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish' AND post_name LIKE %s",
+                EASY_SVG_ICON_POST_TYPE,
+                '%' . $wpdb->esc_like( $term ) . '%'
+            )
         )
     );
+}
+
+function easy_svg_icon_page( $page, $per_page, $search = '' ) {
+    $args = array(
+        'post_type'              => EASY_SVG_ICON_POST_TYPE,
+        'post_status'            => 'publish',
+        'posts_per_page'         => (int) $per_page,
+        'paged'                  => (int) $page,
+        'orderby'                => 'ID',
+        'order'                  => 'ASC',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    );
+
+    /*
+     * Searching asks the database, not the browser: a library past one page
+     * cannot be filtered by what happens to have been sent. Title and slug
+     * only -- an icon's content is its SVG markup, and a default search would
+     * match every file that happens to contain the letters somebody typed.
+     *
+     * The slug needs its own query. Core intersects `search_columns` with
+     * post_title, post_excerpt and post_content and drops whatever else is in
+     * it, so `post_name` there did nothing: measured on a renamed icon, the
+     * list found it by title and never by the slug it shows in its own tile.
+     * That intersection is also why post_content is genuinely never searched.
+     */
+    $search = trim( (string) $search );
+    if ( '' !== $search ) {
+        $args['s']              = $search;
+        $args['search_columns'] = array( 'post_title' );
+
+        $by_slug = easy_svg_icon_ids_by_slug_like( $search );
+        if ( ! empty( $by_slug ) ) {
+            // Both sets of ids, paged together: a page of results has to be
+            // one page of the whole answer, not one page of half of it.
+            $by_title = get_posts( array_merge( $args, array( 'fields' => 'ids', 'posts_per_page' => -1, 'paged' => 1 ) ) );
+            $ids      = array_values( array_unique( array_map( 'intval', array_merge( (array) $by_title, $by_slug ) ) ) );
+
+            unset( $args['s'], $args['search_columns'] );
+            $args['post__in'] = $ids;
+        }
+    }
+
+    $posts = get_posts( $args );
 
     $icons = array();
 

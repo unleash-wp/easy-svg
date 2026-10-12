@@ -50,8 +50,21 @@ function easy_svg_feature_enabled( string $key ): bool {
  */
 
 /**
- * Booleans are booleans; the size is an integer megabyte in 1..20. A missing
- * key keeps its default, so an unchecked box -- which sends no key -- is off.
+ * The highest cap this site may set, in megabytes.
+ *
+ * 20 by default: past that a single file keeps the sanitiser's DOM parser busy
+ * long enough to matter. An add-on may raise the ceiling through the filter,
+ * which stays the one place the cap is decided.
+ */
+function easy_svg_max_mb_ceiling(): int {
+	$ceiling = (int) apply_filters( 'easy_svg_max_mb_ceiling', 20 );
+	return max( 1, $ceiling );
+}
+
+/**
+ * Booleans are booleans; the size is an integer megabyte up to the ceiling. A
+ * missing key keeps its default, so an unchecked box -- which sends no key --
+ * is off.
  *
  * @param mixed $input
  * @return array
@@ -61,7 +74,7 @@ function easy_svg_sanitize_settings( $input ): array {
 	$defaults = easy_svg_settings_defaults();
 
 	$max_mb = isset( $input['max_mb'] ) ? (int) $input['max_mb'] : $defaults['max_mb'];
-	$max_mb = max( 1, min( 20, $max_mb ) );
+	$max_mb = max( 1, min( easy_svg_max_mb_ceiling(), $max_mb ) );
 
 	return array(
 		'svg_upload' => array_key_exists( 'svg_upload', $input ) ? (bool) $input['svg_upload'] : $defaults['svg_upload'],

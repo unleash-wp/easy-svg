@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Stack, Box, Switch } from '@chakra-ui/react'
+import { Stack, Box, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
 import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
@@ -8,7 +8,9 @@ import { makeApi } from '../api.js'
 // The ceiling the server clamps to (includes/settings.php). Named once here so
 // the field's own `max` and the value sent on save cannot drift apart: typing 999
 // used to pass the field's max silently and come back as 20 from the server.
-const MAX_MB = 20
+// The server's ceiling, sent with the panel: Pro raises it, and a field that
+// offered more than the save accepts would clamp silently.
+const DEFAULT_MAX_MB = 20
 
 // Coerce the server payload to a stable shape. max_mb MUST be a Number: useDirty
 // compares with Object.is, and a string '2' never equals the number 2, so a raw
@@ -47,12 +49,24 @@ function ToggleRow({ id, checked, onChange, label, description }) {
 }
 
 export default function Settings({ ctx }) {
+  const MAX_MB = Number(ctx.maxMbCeiling) > 0 ? Number(ctx.maxMbCeiling) : DEFAULT_MAX_MB
   const api = makeApi(ctx)
   const [form, setForm] = useState(null)
   const snap = useRef(null)
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
+  /*
+   * Bumped whenever the value changes from OUTSIDE the number field, and used
+   * as its key.
+   *
+   * NumberInput keeps the text somebody typed separately from its value and
+   * does not rewrite that text when the value prop changes underneath it, so
+   * dragging the slider -- or a save that clamped 0 to 1 -- left the old
+   * number standing in the field. Remounting re-seeds it. Typing does NOT
+   * bump this, or the field would remount under the caret on every keystroke.
+   */
+  const [fieldSeq, setFieldSeq] = useState(0)
 
   /*
    * The load is cancelled when this tab goes away.
@@ -114,6 +128,7 @@ export default function Settings({ ctx }) {
       const n = normalize(resp)
       setForm(n)
       markSaved(n)
+      setFieldSeq((seq) => seq + 1)
       if (typed !== n.max_mb) {
         setInfo(
           sprintf(
@@ -140,7 +155,7 @@ export default function Settings({ ctx }) {
   return (
     <Stack gap="5" maxW="760px">
       <Section
-        title={__('Features', 'easy-svg')}
+        title={__('What runs', 'easy-svg')}
         description={__('Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it.', 'easy-svg')}
       >
         <ToggleRow
@@ -172,16 +187,68 @@ export default function Settings({ ctx }) {
           )}
           htmlFor="esw-setting-max-mb"
           control={
-            <Box maxW="120px">
-              <TextInput
-                id="esw-setting-max-mb"
-                type="number"
-                min="1"
-                max={String(MAX_MB)}
-                value={form.max_mb}
-                onChange={(e) => set('max_mb', e.target.value === '' ? '' : Number(e.target.value))}
-              />
-            </Box>
+            /*
+             * A slider for the gesture and a number field for the exact value.
+             *
+             * The cap is a quantity with a known, small range, which is what a
+             * slider is for -- but somebody who knows they want 5 should not
+             * have to aim for it, so the field stays and the two share one
+             * value. The slider's own min/max make an out-of-range value
+             * unreachable by dragging at all.
+             */
+            <Stack gap="2" w={{ base: 'full', md: '260px' }}>
+              <HStack gap="3" align="center">
+                <Slider.Root
+                  flex="1"
+                  min={1}
+                  max={MAX_MB}
+                  step={1}
+                  colorPalette="brand"
+                  value={[Number(form.max_mb) || 1]}
+                  onValueChange={(e) => {
+                    set('max_mb', e.value[0])
+                    setFieldSeq((seq) => seq + 1)
+                  }}
+                  aria-label={[__('Maximum SVG size (MB)', 'easy-svg')]}
+                >
+                  <Slider.Control>
+                    <Slider.Track bg="ui.border" h="4px" borderRadius="full">
+                      <Slider.Range bg="ui.primary" />
+                    </Slider.Track>
+                    <Slider.Thumbs borderColor="ui.primary" bg="ui.surface" />
+                  </Slider.Control>
+                </Slider.Root>
+                <NumberInput.Root
+                  key={fieldSeq}
+                  min={1}
+                  max={MAX_MB}
+                  value={String(form.max_mb)}
+                  onValueChange={(e) => set('max_mb', e.value === '' ? '' : Number(e.value))}
+                  w="92px"
+                  flexShrink="0"
+                >
+                  {/* Chakra labels the steppers in English; they are buttons a
+                      screen reader reads out, so they get our strings. */}
+                  <NumberInput.Control>
+                    <NumberInput.IncrementTrigger aria-label={__('Increase the size cap', 'easy-svg')} />
+                    <NumberInput.DecrementTrigger aria-label={__('Decrease the size cap', 'easy-svg')} />
+                  </NumberInput.Control>
+                  <NumberInput.Input
+                    id="esw-setting-max-mb"
+                    bg="ui.sunk"
+                    borderColor="ui.border"
+                    borderRadius="forge"
+                    _focusVisible={{ bg: 'ui.surface', borderColor: 'ui.primary' }}
+                  />
+                </NumberInput.Root>
+              </HStack>
+              {/* The ends of the range, where a slider is read: the numbers
+                  tell you what dragging can reach without a legend. */}
+              <HStack justify="space-between" aria-hidden="true">
+                <Text textStyle="caption">{sprintf(__('%d MB', 'easy-svg'), 1)}</Text>
+                <Text textStyle="caption">{sprintf(__('%d MB', 'easy-svg'), MAX_MB)}</Text>
+              </HStack>
+            </Stack>
           }
         />
       </Section>

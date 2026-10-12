@@ -101,6 +101,8 @@ Exactly one function. Everything else in this plugin is an internal detail that 
 
 `EASY_SVG_API` is an integer that changes only when that surface changes shape. It is 3. Compare against it rather than against the plugin version.
 
+`EASY_SVG_PANEL_API` is a second integer, for the Icons panel's extension points: `easy_svg_panel_enqueue`, `easy_svg_panel_menu_tabs` and `easy_svg_max_mb_ceiling`. It is 1. Its own number because the sanitizer surface and the panel surface move for different reasons, and a filter cannot be asked about — nothing registers one — so an add-on that contributes a menu entry or raises the ceiling has no way to tell an older plugin apart except by this.
+
 The hooks below are part of that surface too, because this plugin's own add-on already depends on two of them. Everything not named here or in those two answers is an internal detail that may be renamed or removed.
 
 = For add-on authors: which hooks are there? =
@@ -108,6 +110,10 @@ The hooks below are part of that surface too, because this plugin's own add-on a
 `easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. Every icon this plugin draws passes through it, whatever asked for it: the Icon block, a shortcode, a page builder, an add-on. Add a class or a `<title>` with it. Return your own string and you own the escaping.
 
 `easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
+
+`easy_svg_panel_menu_tabs` filters which tabs get their own entry in the Icons menu, as `tab id => label`. An add-on that registers a tab adds its entry here, and the entry opens the panel with that tab already open.
+
+`easy_svg_max_mb_ceiling` (20) is the highest cap the Icons screen lets a site set, in megabytes. Raising it widens the field and the slider; the stored value is clamped to it on save.
 
 `easy_svg_max_bytes` is the largest SVG the uploader accepts, in bytes. It defaults to the setting on the Icons screen. A file over it is refused, never truncated.
 

@@ -23,19 +23,35 @@ const FREE_TABS = [
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'audit', icon: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', icon: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', group: 'pro', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'audit', icon: 'audit', group: 'pro', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', group: 'pro', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 95, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
+/*
+ * Which tab the address bar asks for.
+ *
+ * Every tab has its own entry in the WordPress menu, and those entries are
+ * this one screen with `?tab=` on it -- so the parameter, not the first tab,
+ * decides what opens. Read once per load; an id nothing registered falls
+ * through to the default rather than showing an empty well.
+ */
+function tabFromUrl() {
+  try {
+    return new URLSearchParams(window.location.search).get('tab') || ''
+  } catch {
+    return ''
+  }
+}
+
 export default function App({ config }) {
   const [, force] = useState(0)
-  const [active, setActive] = useState('')
+  const [active, setActive] = useState(tabFromUrl)
   const [missed, setMissed] = useState(false)
   // Remembered across loads, the way the Forge rail is. localStorage throws in
   // a private window rather than returning null, so both ends are guarded and
@@ -84,6 +100,7 @@ export default function App({ config }) {
     proActive: !!config.proActive,
     proLicensed: !!config.proLicensed,
     iconsEnabled: !!config.iconsEnabled,
+    maxMbCeiling: config.maxMbCeiling,
     // Set below, once we know Pro registered a licence tab to switch to.
     onActivate: undefined,
   }
@@ -105,7 +122,8 @@ export default function App({ config }) {
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
       // icon is a keyword this rail resolves, so an extra tab can look like
       // the rest without Pro bundling any icon of ours.
-      return { id: t.id, icon: t.icon, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+      const group = ['general', 'pro'].includes(t.group) ? t.group : 'pro'
+      return { id: t.id, icon: t.icon, group, label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
 
   const tabs = [
@@ -152,7 +170,30 @@ export default function App({ config }) {
   // the rail.
   const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
   const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
-  const activeValue = active || tabs[0]?.id
+  // An unknown ?tab= (a stale bookmark, a tab whose feature was switched off)
+  // opens the first one instead of an empty well.
+  const activeValue = tabs.some((t) => t.id === active) ? active : tabs[0]?.id
+
+  /*
+   * The address bar follows the tab, so the menu entry stays highlighted, the
+   * browser's back button works and a link somebody copies opens what they
+   * were looking at. replaceState, not push: a tab is not a page in history.
+   */
+  useEffect(() => {
+    if (!activeValue) {
+      return
+    }
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('tab') === activeValue) {
+        return
+      }
+      url.searchParams.set('tab', activeValue)
+      window.history.replaceState({}, '', url)
+    } catch {
+      /* a blocked history is no reason to break the panel */
+    }
+  }, [activeValue])
 
   // Flatten the rail into triggers with a non-interactive group eyebrow before
   // each new group. The eyebrow is aria-hidden (the tablist stays a clean list
@@ -198,7 +239,9 @@ export default function App({ config }) {
       <Tabs.Trigger
         key={t.id}
         value={t.id}
-        gap="2.5"
+        // Collapsed there is nothing to keep apart: the label is zero wide but
+        // the gap still counted, which pushed every icon 5px off centre.
+        gap={{ base: '2.5', md: collapsed ? '0' : '2.5' }}
         minH="44px"
         px="3"
         fontSize="sm"
@@ -213,6 +256,9 @@ export default function App({ config }) {
         // which never sees the label element disappear.
         justifyContent={{ base: 'flex-start', md: collapsed ? 'center' : 'flex-start' }}
         px={{ base: '3', md: collapsed ? '0' : '3' }}
+        // In step with the rail's own width, or the row jumps to its collapsed
+        // padding while the rail is still sliding.
+        transition="padding .16s ease"
         title={collapsed ? t.label : undefined}
         aria-label={collapsed ? t.label : undefined}
         // Not _hover: hover and selected carry the same specificity, so hovering
@@ -238,7 +284,23 @@ export default function App({ config }) {
         }}
       >
         <TabIcon name={t.icon} />
-        <Text as="span" truncate display={{ base: 'inline', md: collapsed ? 'none' : 'inline' }}>
+        {/*
+          The name narrows and fades with the rail instead of disappearing the
+          moment the click lands. display:none did that -- the labels were gone
+          while the rail was still 216px wide, so the collapse read as two
+          unrelated movements. Width and opacity animate; the element stays in
+          the layout at zero width, and aria-hidden keeps it from being read
+          twice beside the trigger's own aria-label.
+        */}
+        <Text
+          as="span"
+          truncate
+          aria-hidden={collapsed ? 'true' : undefined}
+          overflow="hidden"
+          maxW={{ base: 'none', md: collapsed ? '0' : '12ch' }}
+          opacity={{ base: 1, md: collapsed ? 0 : 1 }}
+          transition="max-width .16s ease, opacity .12s ease"
+        >
           {t.label}
         </Text>
         {t.locked ? (
@@ -247,7 +309,7 @@ export default function App({ config }) {
             ml="auto"
             display={{ base: 'inline-flex', md: collapsed ? 'none' : 'inline-flex' }}
           >
-            {groupLabels.pro}
+            {__('Pro', 'easy-svg')}
           </ProBadge>
         ) : null}
       </Tabs.Trigger>
@@ -269,7 +331,24 @@ export default function App({ config }) {
       borderWidth="1px"
       borderColor="ui.border"
       borderRadius="forge"
-      overflow="hidden"
+      /*
+        NOT overflow:hidden, however much the corners want it: an overflow
+        other than visible makes this box the scroll container for everything
+        inside, and a sticky descendant then sticks to a box that does not
+        scroll -- which is to say it does not stick at all. The header and the
+        footer carry the corner radii instead, and they are the only children
+        that reach a corner.
+      */
+      /*
+        One offset for everything that sticks. wp-admin fixes its bar only
+        above 782px -- its own breakpoint, not a Chakra one -- and below that
+        the bar scrolls away, so keeping its height here pinned the header 46px
+        down with nothing in the gap.
+      */
+      css={{
+        '--esw-admin-bar': 'var(--wp-admin--admin-bar--height, 0px)',
+        '@media screen and (max-width: 782px)': { '--esw-admin-bar': '0px' },
+      }}
     >
       {/*
         The panel's own header bar, the shape the Forge app uses: a white
@@ -285,10 +364,17 @@ export default function App({ config }) {
       <Flex
         borderBottomWidth="1px"
         borderColor="ui.border"
+        borderTopRadius="forge"
         px={{ base: '4', md: '5' }}
         h="65px"
         align="center"
         gap="3.5"
+        // Sticky under wp-admin's bar, which is fixed on desktop. Its own
+        // background, because the content well scrolls underneath it.
+        position="sticky"
+        top="var(--esw-admin-bar)"
+        zIndex="3"
+        bg="ui.surface"
       >
         {/*
           Only from md up: below that the rail is a horizontal strip and there is
@@ -373,21 +459,34 @@ export default function App({ config }) {
         <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap="0" flex="1" minW="0">
           <Tabs.List
             flexWrap="nowrap"
-            overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
             flexShrink="0"
             w={{ md: collapsed ? '68px' : '216px' }}
             minW={{ md: collapsed ? '68px' : '216px' }}
-            transition="width .16s ease"
-            overflow="hidden"
+            // min-width too: it is what actually holds the rail open, so
+            // animating width alone left the rail snapping to its new minimum
+            // and the transition playing against a wall.
+            transition="width .16s ease, min-width .16s ease"
+            css={{ '@media (prefers-reduced-motion: reduce)': { transition: 'none' } }}
+            overflowX={{ base: 'auto', md: 'hidden' }}
+            overflowY={{ base: 'hidden', md: 'auto' }}
+            /*
+              Sticky below the header, so the tabs stay reachable down a long
+              screen. flex-start rather than stretch: a stretched item is as
+              tall as the row and has nowhere to travel. The max height is what
+              is left of the viewport under wp-admin's bar and our header, so a
+              rail longer than that scrolls on its own instead of being cut.
+            */
+            position={{ md: 'sticky' }}
+            top={{ md: 'calc(var(--esw-admin-bar) + 65px)' }}
+            maxH={{ md: 'calc(100vh - var(--esw-admin-bar) - 65px)' }}
             // On dark the rail has no fill of its own: the selected row IS the
             // surface, raised off the canvas, which is what Forge does there.
             // On light it is the other way round, a white rail with a navy row.
-            borderRightWidth={{ md: '1px' }}
             borderBottomWidth={{ base: '1px', md: '0' }}
             borderColor="ui.border"
             p={{ base: '2', md: '3' }}
-            alignSelf="stretch"
+            alignSelf={{ base: 'stretch', md: 'flex-start' }}
           >
             {rail}
           </Tabs.List>
@@ -395,6 +494,11 @@ export default function App({ config }) {
             flex="1"
             minW="0"
             bg="ui.bg"
+            // The rule between rail and well, drawn by the well: the rail is
+            // only as tall as its tabs now, so its own right border would stop
+            // halfway down the screen.
+            borderLeftWidth={{ md: '1px' }}
+            borderColor="ui.border"
             px={{ base: '4', md: '6' }}
             py={{ base: '5', md: '6' }}
           >
@@ -404,7 +508,7 @@ export default function App({ config }) {
                 <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
               </HStack>
               <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+                {__('Upload SVGs safely and keep your icons in one place. Every screen for this plugin is in the menu on the left.', 'easy-svg')}
               </Text>
             </Box>
 
@@ -437,6 +541,8 @@ export default function App({ config }) {
         py="3"
         borderTopWidth="1px"
         borderColor="ui.border"
+        borderBottomRadius="forge"
+        bg="ui.surface"
         align="center"
         justify="space-between"
         gap="3"

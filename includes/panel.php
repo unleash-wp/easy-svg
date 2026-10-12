@@ -47,6 +47,7 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * something this plugin controls.
  */
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
+add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
 
@@ -81,6 +82,63 @@ function easy_svg_panel_menu(): void {
 		'manage_options',
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render'
+	);
+
+	/*
+	 * One menu entry per tab, which is how a WordPress admin expects to reach a
+	 * screen: the panel is one page and the entries are that page with `?tab=`
+	 * on it. Pro adds its own through the same filter rather than this file
+	 * learning which tabs a paid add-on registers.
+	 *
+	 * The slug carries the query argument, so WordPress builds the right URL and
+	 * marks the entry current; the shared callback renders the same panel, and
+	 * the app reads the parameter to decide which tab opens.
+	 */
+	foreach ( easy_svg_panel_menu_tabs() as $tab => $label ) {
+		add_submenu_page(
+			EASY_SVG_PANEL_SLUG,
+			$label,
+			$label,
+			'manage_options',
+			EASY_SVG_PANEL_SLUG . '&tab=' . $tab,
+			'easy_svg_panel_render'
+		);
+	}
+}
+
+/**
+ * Mark the entry for the tab that is actually open.
+ *
+ * WordPress decides which submenu item is current from `$plugin_page` alone,
+ * which for every one of these is the same page -- so without this the parent
+ * entry stays highlighted whichever tab somebody opened.
+ *
+ * @param string|null $submenu_file
+ * @return string|null
+ */
+function easy_svg_panel_current_submenu( $submenu_file ) {
+	if ( ! isset( $_GET['page'], $_GET['tab'] ) || EASY_SVG_PANEL_SLUG !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return $submenu_file;
+	}
+	$tab = sanitize_key( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( ! isset( easy_svg_panel_menu_tabs()[ $tab ] ) ) {
+		return $submenu_file;
+	}
+	return EASY_SVG_PANEL_SLUG . '&tab=' . $tab;
+}
+
+/**
+ * The tabs that get their own entry in the menu, as slug => label.
+ *
+ * @return array<string,string>
+ */
+function easy_svg_panel_menu_tabs(): array {
+	return (array) apply_filters(
+		'easy_svg_panel_menu_tabs',
+		array(
+			'settings' => __( 'Settings', 'easy-svg' ),
+			'library'  => __( 'Icon library', 'easy-svg' ),
+		)
 	);
 }
 
@@ -155,6 +213,10 @@ function easy_svg_panel_assets( $hook ): void {
 			'proActive'    => $pro_active,
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
+			// The cap's ceiling, so the field and the slider end where the
+			// server actually clamps -- Pro raises it, and the panel must not
+			// show a range the save will refuse.
+			'maxMbCeiling' => function_exists( 'easy_svg_max_mb_ceiling' ) ? easy_svg_max_mb_ceiling() : 20,
 		)
 	);
 
@@ -212,6 +274,16 @@ function easy_svg_panel_assets( $hook ): void {
 		. '{background:#f5f7fa;border:1px solid #e3e7f0;border-radius:5px;padding:8px 12px}'
 		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],select){min-height:40px}'
 		. '.wrap #easy-svg-panel :is(input,textarea,select):is(:focus,:focus-visible){background:#fff;border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
+		// A field with an icon in front of it needs room for the icon. The rule
+		// above sets one padding for every field and, being unlayered, beats the
+		// per-field value the component asks for -- so the magnifier landed on
+		// the first letters of the placeholder.
+		. '.wrap #easy-svg-panel [data-scope=input-group] input{padding-inline-start:36px}'
+		// The copy field shows a call to paste into a template, and it reads as
+		// code. It is an <input>, so the `inherit` rule above takes it back to
+		// the brand face whatever the component asks for -- this is the only
+		// place that can put it back.
+		. '.wrap #easy-svg-panel [data-scope=clipboard] input{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.
@@ -279,6 +351,13 @@ function easy_svg_panel_rest(): void {
 			'methods'             => 'GET',
 			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_get',
+			'args'                => array(
+				'search' => array(
+					'type'        => 'string',
+					'required'    => false,
+					'description' => __( 'Narrow the list to icons whose name or slug contains this.', 'easy-svg' ),
+				),
+			),
 		)
 	);
 	register_rest_route(
@@ -372,7 +451,7 @@ const EASY_SVG_PANEL_LIBRARY_MAX = 500;
  *
  * @return array{items:array,total:int,truncated:bool}
  */
-function easy_svg_panel_library_payload() {
+function easy_svg_panel_library_payload( string $search = '' ) {
 	if ( ! function_exists( 'easy_svg_icon_page' ) ) {
 		return array(
 			'items'     => array(),
@@ -381,9 +460,12 @@ function easy_svg_panel_library_payload() {
 		);
 	}
 
-	$items = array_values( (array) easy_svg_icon_page( 1, EASY_SVG_PANEL_LIBRARY_MAX ) );
+	$items = array_values( (array) easy_svg_icon_page( 1, EASY_SVG_PANEL_LIBRARY_MAX, $search ) );
 	$total = count( $items );
-	if ( function_exists( 'wp_count_posts' ) ) {
+	// A search reports what it found. Only the unfiltered list can say how many
+	// icons the site has, and "3 of 400" under a search would describe the
+	// library while pretending to describe the search.
+	if ( '' === $search && function_exists( 'wp_count_posts' ) ) {
 		$counts = wp_count_posts( EASY_SVG_ICON_POST_TYPE );
 		$total  = max( $total, (int) ( $counts->publish ?? 0 ) );
 	}
@@ -391,13 +473,19 @@ function easy_svg_panel_library_payload() {
 	return array(
 		'items'     => $items,
 		'total'     => $total,
-		'truncated' => $total > count( $items ),
+		// Under a search the total IS the match count, so the unfiltered
+		// comparison can never be true there: a full page is then the only
+		// signal left that the cap cut the matches short.
+		'truncated' => '' === $search
+			? $total > count( $items )
+			: count( $items ) >= EASY_SVG_PANEL_LIBRARY_MAX,
 	);
 }
 
 /** GET /library -> the stored icons (id, slug, label, hardened markup). */
 function easy_svg_panel_library_get( $request ) {
-	return new WP_REST_Response( easy_svg_panel_library_payload() );
+	$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
+	return new WP_REST_Response( easy_svg_panel_library_payload( $search ) );
 }
 
 /** A user-readable reason for an add that the store refused. */
