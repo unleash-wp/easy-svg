@@ -155,7 +155,14 @@ export default function App({ config }) {
     ...extras,
     // A licensed site has no use for a tab selling what it already owns.
     ...(config.proLicensed ? [] : [UPSELL_TAB]),
-  ].sort((a, b) => a.order - b.order)
+  ]
+    /*
+     * Tools → Easy SVG is this same panel with a shorter rail: PHP sends the
+     * ids it should carry, and anything else is dropped. An empty list means
+     * the full panel, so the Icons screen does not have to say so.
+     */
+    .filter((t) => !config.only?.length || config.only.includes(t.id))
+    .sort((a, b) => a.order - b.order)
 
   // zag reads `orientation` as a concrete string (it drives arrow-key direction
   // and the data-orientation styling), so resolve the responsive intent to a
@@ -252,6 +259,9 @@ export default function App({ config }) {
         // which never sees the label element disappear.
         justifyContent={{ base: 'flex-start', md: collapsed ? 'center' : 'flex-start' }}
         px={{ base: '3', md: collapsed ? '0' : '3' }}
+        // In step with the rail's own width, or the row jumps to its collapsed
+        // padding while the rail is still sliding.
+        transition="padding .16s ease"
         title={collapsed ? t.label : undefined}
         aria-label={collapsed ? t.label : undefined}
         // Not _hover: hover and selected carry the same specificity, so hovering
@@ -277,7 +287,23 @@ export default function App({ config }) {
         }}
       >
         <TabIcon name={t.icon} />
-        <Text as="span" truncate display={{ base: 'inline', md: collapsed ? 'none' : 'inline' }}>
+        {/*
+          The name narrows and fades with the rail instead of disappearing the
+          moment the click lands. display:none did that -- the labels were gone
+          while the rail was still 216px wide, so the collapse read as two
+          unrelated movements. Width and opacity animate; the element stays in
+          the layout at zero width, and aria-hidden keeps it from being read
+          twice beside the trigger's own aria-label.
+        */}
+        <Text
+          as="span"
+          truncate
+          aria-hidden={collapsed ? 'true' : undefined}
+          overflow="hidden"
+          maxW={{ base: 'none', md: collapsed ? '0' : '12ch' }}
+          opacity={{ base: 1, md: collapsed ? 0 : 1 }}
+          transition="max-width .16s ease, opacity .12s ease"
+        >
           {t.label}
         </Text>
         {t.locked ? (
@@ -440,7 +466,11 @@ export default function App({ config }) {
             flexShrink="0"
             w={{ md: collapsed ? '68px' : '216px' }}
             minW={{ md: collapsed ? '68px' : '216px' }}
-            transition="width .16s ease"
+            // min-width too: it is what actually holds the rail open, so
+            // animating width alone left the rail snapping to its new minimum
+            // and the transition playing against a wall.
+            transition="width .16s ease, min-width .16s ease"
+            css={{ '@media (prefers-reduced-motion: reduce)': { transition: 'none' } }}
             overflowX={{ base: 'auto', md: 'hidden' }}
             overflowY={{ base: 'hidden', md: 'auto' }}
             /*
@@ -478,10 +508,12 @@ export default function App({ config }) {
             <Box mb="5">
               <HStack gap="3" align="center">
                 {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-                <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
+                <Heading as="h1" textStyle="h1">{config.screenTitle || __('Icons', 'easy-svg')}</Heading>
               </HStack>
               <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+                {config.only?.length
+                  ? __('The size cap, the allow-list and the cleaner, where WordPress keeps the tools. The full panel lives under Icons.', 'easy-svg')
+                  : __('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
               </Text>
             </Box>
 

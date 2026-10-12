@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const EASY_SVG_PANEL_SLUG = 'easy-svg-icons';
+const EASY_SVG_TOOLS_SLUG = 'easy-svg-tools';
 
 /**
  * The "Icons" mark: a small set of tiles, one a circle, so it reads as a
@@ -47,6 +48,7 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * something this plugin controls.
  */
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
+add_action( 'admin_menu', 'easy_svg_tools_menu', 9 );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
@@ -142,6 +144,23 @@ function easy_svg_panel_menu_tabs(): array {
 	);
 }
 
+/**
+ * Tools -> Easy SVG: the three screens an administrator reaches for while
+ * fixing something, where WordPress keeps that kind of thing.
+ *
+ * The same panel, told to show only those tabs. A second implementation of
+ * the size cap or the cleaner would be a second thing to keep right.
+ */
+function easy_svg_tools_menu(): void {
+	add_management_page(
+		__( 'Easy SVG', 'easy-svg' ),
+		__( 'Easy SVG', 'easy-svg' ),
+		'manage_options',
+		EASY_SVG_TOOLS_SLUG,
+		'easy_svg_panel_render'
+	);
+}
+
 function easy_svg_panel_render(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
@@ -150,7 +169,8 @@ function easy_svg_panel_render(): void {
 }
 
 function easy_svg_panel_assets( $hook ): void {
-	if ( 'toplevel_page_' . EASY_SVG_PANEL_SLUG !== $hook ) {
+	$tools = 'tools_page_' . EASY_SVG_TOOLS_SLUG === $hook;
+	if ( 'toplevel_page_' . EASY_SVG_PANEL_SLUG !== $hook && ! $tools ) {
 		return;
 	}
 	$main  = dirname( __DIR__ ) . '/easy-svg.php';
@@ -213,6 +233,16 @@ function easy_svg_panel_assets( $hook ): void {
 			'proActive'    => $pro_active,
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
+			/*
+			 * On Tools the same panel shows only what somebody fixing a site
+			 * reaches for: the size cap, the allow-list and the cleaner. The
+			 * list is filterable because the cleaner and the allow-list belong
+			 * to Pro, and this file does not decide what a paid add-on owns.
+			 */
+			'only'         => $tools
+				? array_values( (array) apply_filters( 'easy_svg_tools_tabs', array( 'settings', 'configurator', 'audit' ) ) )
+				: array(),
+			'screenTitle'  => $tools ? __( 'SVG tools', 'easy-svg' ) : __( 'Icons', 'easy-svg' ),
 		)
 	);
 
