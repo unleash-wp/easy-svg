@@ -380,6 +380,8 @@ msgid ""
 "This site has %1$d icons and this screen lists %2$d of them. The rest are "
 "stored and still work in templates and the Icon block."
 msgstr ""
+"Diese Website hat %1$d Icons, diese Ansicht listet %2$d davon. Die übrigen "
+"sind gespeichert und funktionieren weiterhin in Templates und im Icon-Block."
 
 #: build/panel.js
 msgid "Dismiss this report"
