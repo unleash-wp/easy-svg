@@ -361,7 +361,7 @@ export function SkeletonRows({ rows = 4 }) {
 // 700 — so the default renders as a faux weight the browser synthesises.
 export function ProBadge({ children, ...rest }) {
   return (
-    <Badge colorPalette="brand" variant="subtle" size="sm" fontWeight="700" {...rest}>
+    <Badge colorPalette="brand" variant="solid" size="sm" fontWeight="700" {...rest}>
       {children}
     </Badge>
   )
