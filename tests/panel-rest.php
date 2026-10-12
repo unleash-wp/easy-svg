@@ -199,13 +199,109 @@ check( 'BELL: add is refused when the icon store is off', easy_svg_panel_library
 // replaces, or an unsanitised title is stored for later output to choke on.
 if ( ! function_exists( 'easy_svg_add_icon' ) ) {
 	function easy_svg_add_icon( $label, $markup ) {
-		$GLOBALS['added_label'] = $label;
-		return 'added';
+		$GLOBALS['added_label']  = $label;
+		$GLOBALS['added_markup'] = $markup;
+		$GLOBALS['added'][]      = array( $label, $markup );
+		return $GLOBALS['add_result'] ?? 'added';
 	}
 }
 easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => "<script>alert(1)</script>Heart", 'markup' => '<svg/>' ) ) );
 check( 'BELL: the label is sanitised before storage (no markup reaches the title)', ! str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), '<' ) );
 check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), 'Heart' ) );
+
+// ─── library/media: the media library, read on the SERVER ─────────────────────
+// The browser sends attachment ids, never bytes. An offloaded library serves
+// attachments from another origin, so a fetch() in the browser would be blocked
+// by CORS for exactly the sites that asked for this; get_attached_file() either
+// answers with a local path or it does not, and that is a per-file refusal the
+// report can carry.
+$GLOBALS['attachments'] = array();
+function get_post_mime_type( $id ) {
+	return $GLOBALS['attachments'][ $id ]['mime'] ?? false;
+}
+function get_attached_file( $id, $unfiltered = false ) {
+	return $GLOBALS['attachments'][ $id ]['file'] ?? false;
+}
+function get_the_title( $id ) {
+	return $GLOBALS['attachments'][ $id ]['title'] ?? '';
+}
+
+$svg_file = tempnam( sys_get_temp_dir(), 'esw' );
+file_put_contents( $svg_file, '<svg viewBox="0 0 16 16"><path d="M0 0h16v16H0z"/></svg>' );
+$GLOBALS['attachments'][11] = array( 'mime' => 'image/svg+xml', 'file' => $svg_file, 'title' => 'Star' );
+$GLOBALS['attachments'][12] = array( 'mime' => 'image/png', 'file' => $svg_file, 'title' => 'Photo' );
+$GLOBALS['attachments'][13] = array( 'mime' => 'image/svg+xml', 'file' => '/nowhere/gone.svg', 'title' => 'Offloaded' );
+foreach ( array_keys( $GLOBALS['attachments'] ) as $att_id ) {
+	$GLOBALS['posts'][ $att_id ] = (object) array( 'ID' => $att_id, 'post_type' => 'attachment' );
+}
+
+check( 'BELL: no ids is refused', easy_svg_panel_library_media( new WP_REST_Request( array() ) ) instanceof WP_Error );
+check( 'BELL: ids that are not a list are refused', easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => 'all' ) ) ) instanceof WP_Error );
+
+// One click must not be able to ask the server for unbounded work. The picker
+// sends more than the cap in chunks; the server never accepts them in one go.
+check(
+	'BELL: more ids than the cap are refused',
+	easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => range( 1, EASY_SVG_MEDIA_MAX_IDS + 1 ) ) ) ) instanceof WP_Error
+);
+
+$GLOBALS['added'] = array();
+$out              = easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => array( 11 ) ) ) )->get_data();
+check( 'BELL: an SVG attachment is added', 1 === count( $GLOBALS['added'] ) );
+check( 'BELL: the FILE is what gets stored, not the title or the url', str_contains( (string) ( $GLOBALS['added_markup'] ?? '' ), '<path' ) );
+check( 'BELL: the attachment title becomes the label', 'Star' === ( $GLOBALS['added_label'] ?? '' ) );
+check( 'SILENCE: the library payload comes back with the report', isset( $out['items'] ) && isset( $out['report'] ) );
+
+// Each refusal is its own word, because "that is a PNG" and "that file is not on
+// this server" send a person somewhere completely different.
+$GLOBALS['added'] = array();
+$report           = easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => array( 12, 13, 999 ) ) ) )->get_data()['report'];
+$states           = array_column( $report, 'state' );
+check( 'BELL: a PNG is refused as not an SVG', in_array( 'not_svg', $states, true ) );
+check( 'BELL: an attachment with no local file is refused on its own terms', in_array( 'no_file', $states, true ) );
+check( 'BELL: an unknown id is refused as not found', in_array( 'not_found', $states, true ) );
+check( 'BELL: and none of the three was stored', 0 === count( $GLOBALS['added'] ) );
+check( 'SILENCE: every row names the attachment it is about', 3 === count( array_filter( $report, static fn( $r ) => isset( $r['id'] ) ) ) );
+
+// An attachment whose file exists but cannot be read is the one case where
+// is_readable() earns its line: file_get_contents() would answer the same
+// 'no_file', but only after raising a warning that prints the server path on a
+// site with display_errors on.
+$locked = tempnam( sys_get_temp_dir(), 'esw' );
+file_put_contents( $locked, '<svg/>' );
+chmod( $locked, 0000 );
+$GLOBALS['attachments'][14] = array( 'mime' => 'image/svg+xml', 'file' => $locked, 'title' => 'Locked' );
+$GLOBALS['posts'][14]       = (object) array( 'ID' => 14, 'post_type' => 'attachment' );
+if ( is_readable( $locked ) ) {
+	// Running as a user that ignores the mode (root, or a filesystem without
+	// permissions). The case cannot be staged here, so it is not asserted.
+	check( 'SILENCE: skipped -- this user can read a 0000 file', true );
+} else {
+	$warned = '';
+	set_error_handler(
+		static function ( $no, $str ) use ( &$warned ) {
+			$warned = (string) $str;
+			return true;
+		}
+	);
+	$locked_state = easy_svg_panel_media_state( 14 );
+	restore_error_handler();
+	check( 'BELL: an unreadable file is refused WITHOUT raising a warning', 'no_file' === $locked_state && '' === $warned );
+}
+chmod( $locked, 0600 );
+@unlink( $locked );
+
+// A mixed selection is the normal case: the good ones must still land.
+$GLOBALS['added'] = array();
+$mixed            = easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => array( 11, 12 ) ) ) )->get_data()['report'];
+check( 'BELL: one bad file does not stop the good one', 1 === count( $GLOBALS['added'] ) && 2 === count( $mixed ) );
+
+// The sanitiser's own refusal is reported, not swallowed into a success.
+$GLOBALS['add_result'] = 'not_svg';
+$refused               = easy_svg_panel_library_media( new WP_REST_Request( array( 'ids' => array( 11 ) ) ) )->get_data()['report'];
+check( 'BELL: what easy_svg_add_icon refuses is what the row says', 'not_svg' === ( $refused[0]['state'] ?? '' ) );
+unset( $GLOBALS['add_result'] );
+@unlink( $svg_file );
 
 // ─── every route is behind the same capability ────────────────────────────────
 // A new route added without a permission callback -- or with a laxer one -- is a
@@ -213,6 +309,7 @@ check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOB
 // here directly. So the registration itself is read.
 easy_svg_panel_rest();
 check( 'SILENCE: the rename route is registered', isset( $GLOBALS['routes']['easy-svg/v1/library/rename'] ) );
+check( 'SILENCE: the media route is registered', isset( $GLOBALS['routes']['easy-svg/v1/library/media'] ) );
 $perm_ok = array() !== $GLOBALS['routes'];
 foreach ( $GLOBALS['routes'] as $registered ) {
 	// /settings registers a list of definitions; the others register one.
