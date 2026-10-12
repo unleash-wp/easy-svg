@@ -6,7 +6,7 @@ import Settings from './tabs/Settings.jsx'
 import Library from './tabs/Library.jsx'
 import Upsell from './tabs/Upsell.jsx'
 import { LockedTab } from './parts.jsx'
-import { ProBadge } from '../ui.jsx'
+import { ProBadge, useDropGuard } from '../ui.jsx'
 
 // Free's own tabs, always functional. English msgids, domain 'easy-svg'; the
 // German (and every other) locale ships as a JS translation file.
@@ -29,6 +29,16 @@ const UPSELL_TAB = { id: 'upsell', group: 'pro', order: 70, label: __('Pro', 'ea
 export default function App({ config }) {
   const [, force] = useState(0)
   const [active, setActive] = useState('')
+  const [missed, setMissed] = useState(false)
+
+  // Dropping a file next to a zone used to open it in the tab and take the
+  // panel with it. The guard swallows those; this says where the file goes, and
+  // clears itself so it never becomes furniture.
+  useDropGuard(() => {
+    setMissed(true)
+    window.setTimeout(() => setMissed(false), 6000)
+  })
+
   useEffect(() => {
     const reg = getRegistry()
     if (!reg) return undefined
@@ -167,6 +177,24 @@ export default function App({ config }) {
       <Text color="ui.muted" mb="5" fontSize="sm" maxW="72ch">
         {__('SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place.', 'easy-svg')}
       </Text>
+
+      {missed ? (
+        <Box
+          role="status"
+          aria-live="polite"
+          mb="5"
+          px="4"
+          py="3"
+          borderWidth="1px"
+          borderColor="ui.border"
+          borderRadius="forge"
+          bg="ui.ghostHover"
+        >
+          <Text fontSize="sm" color="ui.text">
+            {__('That landed next to the drop area. Drop SVG files on the dashed area in the Icon Library tab.', 'easy-svg')}
+          </Text>
+        </Box>
+      ) : null}
 
       {/*
         lazyMount + unmountOnExit belong on the Root: ark lifts them out with

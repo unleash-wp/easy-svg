@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Stack, HStack, SimpleGrid, Box, Text, Textarea, Checkbox } from '@chakra-ui/react'
 import DOMPurify from 'dompurify'
 import { __, _n, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, EmptyState, SkeletonRows, Button, TextInput } from '../../ui.jsx'
+import { Section, FieldRow, EmptyState, SkeletonRows, Button, TextInput, useDropZone } from '../../ui.jsx'
 import { Notice, SearchField, BulkBar, ReportList } from '../parts.jsx'
 import { makeApi } from '../api.js'
 
@@ -31,6 +31,11 @@ const nameOf = (ic) => ic.label || ic.slug
  * it enforces is the same one the Settings tab shows.
  */
 const FILE_ACCEPT = '.svg,image/svg+xml'
+
+// What /library/media accepts in one request, mirrored here so the picker can
+// send a larger selection as several. The server refuses more than this; it does
+// not silently take the first few.
+const MEDIA_CHUNK = 25
 
 const readText = (file) =>
   new Promise((resolve, reject) => {
@@ -124,7 +129,6 @@ export default function Library({ ctx }) {
   const [markup, setMarkup] = useState('')
   const [selecting, setSelecting] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
-  const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState(null)
   const fileRef = useRef(null)
 
@@ -232,6 +236,68 @@ export default function Library({ ctx }) {
     setBusy(false)
   }
 
+  /*
+   * The media library, by id.
+   *
+   * Only ids travel: the server reads the file with get_attached_file(), so an
+   * offloaded library -- S3, a CDN -- is a clear refusal per file instead of a
+   * CORS error that would fail for exactly the sites that asked for this. The
+   * frame is left to WordPress; wp_enqueue_media() puts it on this screen.
+   */
+  async function addFromMedia() {
+    const media = window.wp && window.wp.media
+    if (!media) {
+      setErr(__('The media library did not load on this screen.', 'easy-svg'))
+      return
+    }
+    const frame = media({
+      title: __('Choose SVGs to add as icons', 'easy-svg'),
+      button: { text: __('Add as icons', 'easy-svg') },
+      library: { type: 'image/svg+xml' },
+      multiple: true,
+    })
+    // On the media library tab, not the upload one. A select frame opens on
+    // "Upload files", and its library collection does not fetch until the other
+    // tab is shown -- so the person asking for files they already have is first
+    // shown an empty uploader.
+    frame.on('open', () => frame.content.mode('browse'))
+
+    frame.on('select', async () => {
+      const ids = frame
+        .state()
+        .get('selection')
+        .map((item) => item.id)
+        .filter((id) => !!id)
+      if (!ids.length) {
+        return
+      }
+      setBusy(true)
+      clear()
+      setReport(null)
+      const rows = []
+      let fresh = null
+      // Sent in chunks the server accepts whole, for the same reason adds are
+      // sequential: each answer carries the fresh page, and the last is true.
+      for (let i = 0; i < ids.length; i += MEDIA_CHUNK) {
+        try {
+          fresh = await api.post('/library/media', { ids: ids.slice(i, i + MEDIA_CHUNK) })
+          for (const row of fresh.report || []) {
+            rows.push({ file: row.label || `#${row.id}`, ok: 'added' === row.state, message: row.message })
+          }
+        } catch (e) {
+          setErr(e.message)
+          break
+        }
+      }
+      if (fresh) {
+        take(fresh)
+      }
+      setReport(rows)
+      setBusy(false)
+    })
+    frame.open()
+  }
+
   function onPick(e) {
     addFiles(e.target.files)
     // So picking the same file twice in a row still fires a change event.
@@ -327,49 +393,56 @@ export default function Library({ ctx }) {
     }
   }
 
-  /*
-   * A drop lands on the GRID, which is also where the chooser tile is: adding
-   * happens where looking already happens. dragleave fires on every child
-   * boundary as well, so the related target decides whether the pointer really
-   * left the region.
-   */
-  const dropProps = {
-    onDragEnter: (e) => {
-      e.preventDefault()
-      setDragOver(true)
-    },
-    onDragOver: (e) => {
-      e.preventDefault()
-      if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = 'copy'
-      }
-      setDragOver(true)
-    },
-    onDragLeave: (e) => {
-      if (!e.currentTarget.contains(e.relatedTarget)) {
-        setDragOver(false)
-      }
-    },
-    onDrop: (e) => {
-      e.preventDefault()
-      setDragOver(false)
-      addFiles(e.dataTransfer && e.dataTransfer.files)
-    },
-  }
+  // Two targets, one behaviour: the zone above and the grid below both take a
+  // drop, because adding where you are already looking was right -- it was just
+  // the only place. ui.jsx owns the handlers so pro's tabs get the same ones.
+  const zone = useDropZone({ onFiles: addFiles, disabled: busy })
+  const grid = useDropZone({ onFiles: addFiles, disabled: busy })
 
-  const dashed = {
+  const dashed = (over) => ({
     borderWidth: '1px',
     borderStyle: 'dashed',
-    borderColor: dragOver ? 'ui.primary' : 'ui.border',
+    borderColor: over ? 'ui.primary' : 'ui.border',
     borderRadius: 'forge',
-    bg: dragOver ? 'ui.ghostHover' : 'transparent',
-  }
+    bg: over ? 'ui.ghostHover' : 'transparent',
+  })
 
   const pasteLabel = __('Paste markup', 'easy-svg')
+
   const fileInput = (
     <input ref={fileRef} type="file" accept={FILE_ACCEPT} multiple hidden tabIndex={-1} onChange={onPick} />
   )
   const openChooser = () => fileRef.current && fileRef.current.click()
+
+  /*
+   * The add surface, the width of the content and above the grid.
+   *
+   * It used to be the last tile IN the grid: 49px wide, a 13px label wrapped
+   * over three lines, the primary action of the screen rendered smaller than
+   * anything else on it -- with "Paste markup", which is a developer's errand,
+   * as a full button above. The tile stays as a shortcut; it is no longer the
+   * only door.
+   */
+  const addSurface = (
+    <Box {...dashed(zone.isOver)} px="4" py="5" {...zone.props}>
+      <Stack gap="2" align="center" textAlign="center">
+        <Text fontSize="sm" fontWeight="700" color="ui.heading">
+          {__('Drop SVG files here', 'easy-svg')}
+        </Text>
+        <HStack gap="2" flexWrap="wrap" justify="center">
+          <Button variant="primary" size="sm" onClick={openChooser} disabled={busy}>
+            {__('Choose an SVG', 'easy-svg')}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={addFromMedia} disabled={busy}>
+            {__('Choose from the media library', 'easy-svg')}
+          </Button>
+        </HStack>
+        <Button variant="ghost" size="sm" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
+          {pasteLabel}
+        </Button>
+      </Stack>
+    </Box>
+  )
   const pasteForm = (
     <PasteForm {...{ label, setLabel, markup, setMarkup, addPasted, busy, setPasting }} />
   )
@@ -426,7 +499,7 @@ export default function Library({ ctx }) {
         {messages}
         {reportBox}
         <Section title={__('Your icons', 'easy-svg')}>
-          <Box {...dashed} px="4" py="8" {...dropProps}>
+          <Box {...dashed(zone.isOver)} px="4" py="8" {...zone.props}>
             <EmptyState
               title={__('Drop your first SVG here', 'easy-svg')}
               description={__('Every file is sanitised and hardened on the way in — the same bar as a media upload.', 'easy-svg')}
@@ -435,6 +508,9 @@ export default function Library({ ctx }) {
                   <HStack gap="3" flexWrap="wrap" justify="center">
                     <Button variant="primary" onClick={openChooser} disabled={busy}>
                       {__('Choose an SVG', 'easy-svg')}
+                    </Button>
+                    <Button variant="ghost" onClick={addFromMedia} disabled={busy}>
+                      {__('Choose from the media library', 'easy-svg')}
                     </Button>
                     <Button variant="ghost" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
                       {pasteLabel}
@@ -479,10 +555,9 @@ export default function Library({ ctx }) {
             >
               {selecting ? __('Done selecting', 'easy-svg') : __('Select several', 'easy-svg')}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
-              {pasteLabel}
-            </Button>
           </HStack>
+
+          {addSurface}
 
           {/*
             The match count, announced: typing tells a sighted person nothing
@@ -532,10 +607,10 @@ export default function Library({ ctx }) {
             borderTopWidth="1px"
             borderColor="ui.border"
             borderRadius="forge"
-            outline={dragOver ? '2px dashed' : undefined}
+            outline={grid.isOver ? '2px dashed' : undefined}
             outlineColor="ui.primary"
             outlineOffset="-2px"
-            {...dropProps}
+            {...grid.props}
           >
             <SimpleGrid columns={{ base: 3, md: 5, lg: 7 }} gap="3">
               {shown.map((ic) => (
@@ -566,7 +641,7 @@ export default function Library({ ctx }) {
                 type="button"
                 onClick={openChooser}
                 disabled={busy}
-                {...dashed}
+                {...dashed(false)}
                 minH="96px"
                 px="2"
                 py="3"

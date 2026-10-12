@@ -112,6 +112,10 @@ function easy_svg_panel_assets( $hook ): void {
 	 * back to on any machine the download failed on anyway.
 	 */
 
+	// The media frame, for picking SVGs that are already in the library. Only on
+	// this screen -- media-views is a large dependency to hand every admin page.
+	wp_enqueue_media();
+
 	// React, ReactDOM and the JSX runtime come from WordPress, not the bundle.
 	// wp-i18n ships the wp.i18n global the bundle externalises for __()/_x().
 	wp_enqueue_script(
@@ -191,6 +195,15 @@ function easy_svg_panel_rest(): void {
 	);
 	register_rest_route(
 		'easy-svg/v1',
+		'/library/media',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'callback'            => 'easy_svg_panel_library_media',
+		)
+	);
+	register_rest_route(
+		'easy-svg/v1',
 		'/library/rename',
 		array(
 			'methods'             => 'POST',
@@ -265,6 +278,12 @@ function easy_svg_panel_add_message( string $state ): string {
 		case 'not_saved':
 		case 'empty':
 			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
+		case 'added':
+			return __( 'Icon added.', 'easy-svg' );
+		case 'not_found':
+			return __( 'That file is no longer in the media library.', 'easy-svg' );
+		case 'no_file':
+			return __( 'That file is not stored on this server, so it could not be read.', 'easy-svg' );
 		case 'not_svg':
 			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
 		case 'bad_name':
@@ -297,6 +316,91 @@ function easy_svg_panel_library_add( $request ) {
 		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result ), array( 'status' => 422 ) );
 	}
 	return new WP_REST_Response( easy_svg_panel_library_payload() );
+}
+
+/**
+ * How many attachments one media request may carry.
+ *
+ * The server reads and sanitises every file in the request, so one click must
+ * not be able to ask for unbounded work. The picker sends more in chunks.
+ */
+const EASY_SVG_MEDIA_MAX_IDS = 25;
+
+/**
+ * POST /library/media -> store the chosen media-library SVGs as icons.
+ *
+ * The browser sends attachment ids, never bytes. An offloaded media library
+ * serves attachments from another origin, so reading them in the browser would
+ * be blocked by CORS on exactly the sites that asked for this; here
+ * get_attached_file() either answers with a local path or it does not, and that
+ * is a refusal the report can name.
+ *
+ * Every file goes through easy_svg_add_icon() -- the same call the upload path
+ * makes, so the same sanitiser, byte cap and complexity bound apply. An SVG that
+ * has sat in the media library since before this plugin may never have been
+ * cleaned, so ingesting it is the only thing that makes it safe.
+ */
+function easy_svg_panel_library_media( $request ) {
+	if ( ! function_exists( 'easy_svg_add_icon' ) ) {
+		return new WP_Error( 'easy_svg_no_store', __( 'The icon library is off. Switch it on under the Settings tab.', 'easy-svg' ), array( 'status' => 409 ) );
+	}
+	$body = (array) $request->get_json_params();
+	$ids  = isset( $body['ids'] ) && is_array( $body['ids'] ) ? array_values( $body['ids'] ) : array();
+	if ( array() === $ids ) {
+		return new WP_Error( 'easy_svg_no_ids', __( 'Choose at least one SVG from the media library.', 'easy-svg' ), array( 'status' => 400 ) );
+	}
+	if ( count( $ids ) > EASY_SVG_MEDIA_MAX_IDS ) {
+		return new WP_Error(
+			'easy_svg_too_many',
+			sprintf(
+				/* translators: %d: how many media files one request may carry. */
+				__( 'Choose at most %d files at a time.', 'easy-svg' ),
+				EASY_SVG_MEDIA_MAX_IDS
+			),
+			array( 'status' => 400 )
+		);
+	}
+
+	$report = array();
+	foreach ( $ids as $raw ) {
+		$id       = max( 0, (int) $raw );
+		$state    = easy_svg_panel_media_state( $id );
+		$report[] = array(
+			'id'      => $id,
+			'label'   => $id > 0 ? (string) get_the_title( $id ) : '',
+			'state'   => $state,
+			'message' => easy_svg_panel_add_message( $state ),
+		);
+	}
+
+	$payload           = easy_svg_panel_library_payload();
+	$payload['report'] = $report;
+	return new WP_REST_Response( $payload );
+}
+
+/**
+ * Store one media-library attachment as an icon, and answer with the word for
+ * what happened -- `easy_svg_panel_add_message()` has a sentence for each.
+ *
+ * The three refusals here are separate words on purpose: "that is a PNG" and
+ * "that file is not on this server" send a person somewhere entirely different.
+ */
+function easy_svg_panel_media_state( int $id ): string {
+	if ( $id <= 0 || ! get_post( $id ) ) {
+		return 'not_found';
+	}
+	if ( 'image/svg+xml' !== strtolower( (string) get_post_mime_type( $id ) ) ) {
+		return 'not_svg';
+	}
+	$path = get_attached_file( $id );
+	if ( ! is_string( $path ) || '' === $path || ! is_readable( $path ) ) {
+		return 'no_file';
+	}
+	$markup = file_get_contents( $path );
+	if ( ! is_string( $markup ) ) {
+		return 'no_file';
+	}
+	return (string) easy_svg_add_icon( sanitize_text_field( (string) get_the_title( $id ) ), $markup );
 }
 
 /**

@@ -36,4 +36,20 @@ wp i18n make-pot . languages/easy-svg.pot \
 perl -pi -e 's{^#: src/[^\s:]*\.jsx?:\d+$}{#: build/panel.js}' languages/easy-svg.pot
 perl -0pi -e 's{(#: build/panel\.js\n)(?:#: build/panel\.js\n)+}{$1}g' languages/easy-svg.pot
 
+# A NEW string reaches a catalogue only through msgmerge: make-mo and make-json
+# read the .po, and a .po does not learn a msgid from the POT by itself. Skip
+# this and new strings are simply English in every language, with a green suite
+# and a freshly built POT to suggest otherwise.
+command -v msgmerge >/dev/null || { echo "msgmerge is missing (brew install gettext)"; exit 1; }
+for po in languages/*.po; do
+  [ -f "$po" ] || continue
+  msgmerge --quiet --no-fuzzy-matching --backup=none --update "$po" languages/easy-svg.pot
+done
+
+wp i18n make-mo languages languages --allow-root
+
+# --no-purge: without it make-json STRIPS the JS strings out of the .po it just
+# read, so the next make-mo would compile a catalogue with the panel missing.
+wp i18n make-json languages languages --no-purge --allow-root
+
 echo "languages/easy-svg.pot rebuilt ($(grep -c '^msgid' languages/easy-svg.pot) msgids, $(grep -c '^#\.' languages/easy-svg.pot) translator notes)"
