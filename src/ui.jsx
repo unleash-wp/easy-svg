@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import {
   Button as CButton,
   Input,
@@ -228,6 +229,81 @@ export function useDirty(current, snapshotRef) {
     snapshotRef.current = saved === undefined ? current : saved
   }
   return { dirty, markSaved }
+}
+
+// A drop target. The caller owns the look, because free's icon grid and pro's
+// set editor do not resemble each other; this only owns the behaviour.
+//
+// The drop stops propagation so useDropGuard below never sees a drop a zone
+// already took. dragleave fires on every child boundary as well, so the related
+// target decides whether the pointer really left the region.
+export function useDropZone({ onFiles, disabled }) {
+  const [isOver, setOver] = useState(false)
+  if (disabled) {
+    return { isOver: false, props: {} }
+  }
+  return {
+    isOver,
+    props: {
+      onDragEnter: (e) => {
+        e.preventDefault()
+        setOver(true)
+      },
+      onDragOver: (e) => {
+        e.preventDefault()
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect = 'copy'
+        }
+        setOver(true)
+      },
+      onDragLeave: (e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setOver(false)
+        }
+      },
+      onDrop: (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setOver(false)
+        onFiles(e.dataTransfer && e.dataTransfer.files)
+      },
+    },
+  }
+}
+
+// A file dropped next to a zone used to take the whole screen with it: nothing
+// here called preventDefault, so the browser did what it always does with a
+// dropped file -- open it, discarding the admin page and anything unsaved on
+// it. This swallows the ones no zone took and tells the reader where they go.
+//
+// A drop something else already handled is left alone. The media frame's own
+// uploader prevents its drops, and complaining over a file that landed exactly
+// where the person aimed it would be worse than saying nothing.
+export function useDropGuard(onMiss) {
+  const miss = useRef(onMiss)
+  miss.current = onMiss
+  useEffect(() => {
+    const over = (e) => {
+      if (!e.defaultPrevented) {
+        e.preventDefault()
+      }
+    }
+    const drop = (e) => {
+      if (e.defaultPrevented) {
+        return
+      }
+      e.preventDefault()
+      if (miss.current) {
+        miss.current()
+      }
+    }
+    window.addEventListener('dragover', over)
+    window.addEventListener('drop', drop)
+    return () => {
+      window.removeEventListener('dragover', over)
+      window.removeEventListener('drop', drop)
+    }
+  }, [])
 }
 
 // Centred empty state: optional icon, a title, a muted line, an optional action
