@@ -1845,6 +1845,9 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	$GLOBALS['icon_posts'][]       = icon_post( 2001, 'page' );
 	$GLOBALS['transients']['easy_svg_icons'] = [ 'version' => 1, 'icons' => [] ];
 	$GLOBALS['options']['easy_svg_icons_version'] = 3;
+	$GLOBALS['options']['easy_svg_settings']      = [ 'svg_uploads' => true ];
+	$GLOBALS['options']['easy_svg_schema']        = 2;
+	$GLOBALS['transients']['easy_svg_5_notice']   = 1;
 
 	define( 'WP_UNINSTALL_PLUGIN', 'easy-svg/easy-svg.php' );
 	include $root . '/uninstall.php';
@@ -1853,6 +1856,7 @@ if ( is_file( $root . '/uninstall.php' ) ) {
 	check( 'BELL: uninstalling deletes every icon, past one page of them', ! in_array( 'esw_icon', $left_types, true ) );
 	check( 'SILENCE: and nothing that is not an icon', in_array( 'page', $left_types, true ) );
 	check( 'BELL: and the cached list and its version', ! isset( $GLOBALS['transients']['easy_svg_icons'] ) && ! isset( $GLOBALS['options']['easy_svg_icons_version'] ) );
+	check( 'BELL: and the settings, the schema marker and the update notice', ! isset( $GLOBALS['options']['easy_svg_settings'] ) && ! isset( $GLOBALS['options']['easy_svg_schema'] ) && ! isset( $GLOBALS['transients']['easy_svg_5_notice'] ) );
 	check( 'BELL: on a network, on every site, switching back each time', [ 1, 'restore', 2, 'restore' ] === $GLOBALS['blog_switches'] );
 }
 
