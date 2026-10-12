@@ -1723,7 +1723,7 @@ check(
  */
 $unexpected_lang_files = array();
 foreach ( scandir( $root . '/languages' ) ?: array() as $lang_file ) {
-	if ( '.' === $lang_file || '..' === $lang_file || 'easy-svg.pot' === $lang_file ) {
+	if ( '.' === $lang_file || '..' === $lang_file || '.DS_Store' === $lang_file || 'easy-svg.pot' === $lang_file ) {
 		continue;
 	}
 	if ( 0 !== strpos( $lang_file, 'easy-svg-de_DE.' ) && 0 !== strpos( $lang_file, 'easy-svg-de_DE-' ) ) {
