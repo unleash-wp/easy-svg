@@ -655,7 +655,11 @@ export default function Library({ ctx }) {
               }
             >
               <Clipboard.Input asChild>
-                <TextInput readOnly fontFamily="mono" fontSize="13px" />
+                <TextInput
+                  readOnly
+                  fontSize="13px"
+                  aria-label={__('The call to copy into your template', 'easy-svg')}
+                />
               </Clipboard.Input>
             </InputGroup>
           </Clipboard.Root>
@@ -826,12 +830,16 @@ export default function Library({ ctx }) {
                 py="2.5"
                 gap="3"
               >
-                <ActionBar.SelectionTrigger fontSize="14px" fontWeight="700" border="0" color="ui.surface">
-                  {sprintf(
-                    // translators: %d: number of icons selected.
-                    _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
-                    picked.size
-                  )}
+                {/* A span: Chakra renders this as a button, and a focusable
+                    button with nothing to do is a stop on the way to Remove. */}
+                <ActionBar.SelectionTrigger asChild>
+                  <Text as="span" fontSize="14px" fontWeight="700" color="ui.surface">
+                    {sprintf(
+                      // translators: %d: number of icons selected.
+                      _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
+                      picked.size
+                    )}
+                  </Text>
                 </ActionBar.SelectionTrigger>
                 <ActionBar.Separator bg="whiteAlpha.400" />
                 <Button

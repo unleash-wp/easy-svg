@@ -279,6 +279,11 @@ function easy_svg_panel_assets( $hook ): void {
 		// per-field value the component asks for -- so the magnifier landed on
 		// the first letters of the placeholder.
 		. '.wrap #easy-svg-panel [data-scope=input-group] input{padding-inline-start:36px}'
+		// The copy field shows a call to paste into a template, and it reads as
+		// code. It is an <input>, so the `inherit` rule above takes it back to
+		// the brand face whatever the component asks for -- this is the only
+		// place that can put it back.
+		. '.wrap #easy-svg-panel [data-scope=clipboard] input{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.

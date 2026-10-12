@@ -9,62 +9,6 @@ export { Notice } from '../ui.jsx'
 // The search field lives in the shared layer; both plugins' tabs use it.
 export { SearchField } from '../ui.jsx'
 
-// The bar that appears once a selection exists: how many are picked and the one
-// thing that can be done to them. Navy and full width, so it reads as a mode the
-// screen is in rather than as another row of the card it sits in. The count is
-// announced, because the thing that changed it (a click on a tile far away) does
-// not announce itself.
-export function BulkBar({ count, label, actionLabel, onAction, busy, cancelLabel, onCancel }) {
-  return (
-    <HStack
-      bg="navy"
-      color="white"
-      borderRadius="forge"
-      px="4"
-      py="2.5"
-      gap="3"
-      justify="space-between"
-      boxShadow="sm"
-    >
-      <Text as="span" role="status" aria-live="polite" fontSize="sm" fontWeight="700">
-        {label}
-      </Text>
-      {/*
-        Red, because the one action here removes things for good. Yellow is the
-        brand accent and must not double as the destructive colour.
-      */}
-      <HStack gap="2">
-        {cancelLabel ? (
-          // White on navy, borderless: the ghost variant's navy-on-navy is
-          // unreadable here, and the accent button must stay the only loud one.
-          <Button
-            size="sm"
-            variant="ghost"
-            color="white"
-            borderColor="whiteAlpha.500"
-            _hover={{ color: 'white', borderColor: 'white', bg: 'whiteAlpha.200' }}
-            onClick={onCancel}
-            disabled={busy}
-          >
-            {cancelLabel}
-          </Button>
-        ) : null}
-        <Button
-          size="sm"
-          variant="primary"
-          bg="ui.bad"
-          _hover={{ bg: 'ui.bad', opacity: 0.9 }}
-          _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
-          onClick={onAction}
-          disabled={busy || !count}
-        >
-          {actionLabel}
-        </Button>
-      </HStack>
-    </HStack>
-  )
-}
-
 // What came of a batch: one row per file, and the verdict in each row is the
 // SERVER's own sentence. There is exactly one place that decides why an icon was
 // refused and it is not the browser, so nothing here phrases a refusal; it only

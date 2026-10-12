@@ -362,10 +362,6 @@ function add_submenu_page( string $parent, string $page_title, string $menu_titl
 	);
 	return $parent . '_page_' . $slug;
 }
-function add_management_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
-	$GLOBALS['tools_pages'][ $slug ] = $callback;
-	return 'tools_page_' . $slug;
-}
 function add_options_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
 	$GLOBALS['options_pages'][] = $slug;
 	return 'settings_page_' . $slug;
