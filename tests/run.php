@@ -1075,6 +1075,21 @@ foreach ( array( 'easy_svg_icon_limit', 'EASY_SVG_ICON_LIMIT', 'limit_reached', 
 $manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
 check( 'BELL: the shipped icon-add asks the gate for the size bound', false !== strpos( $manager, 'easy_svg_max_bytes()' ) );
 check( 'BELL: and for the complexity bound', false !== strpos( $manager, "'easy_svg_svg_too_complex'" ) );
+
+/*
+ * The slug reported is the slug the post really got.
+ *
+ * wp_unique_post_slug() appends `-2` inside wp_insert_post() when the name is
+ * taken, so the name an icon ends up with is knowable only afterwards. A caller
+ * that derives it from the label is right until the first collision and
+ * silently wrong after it -- it hands back a name that resolves to somebody
+ * else's icon, and an icon that renders the wrong drawing looks like no bug at
+ * all. Read from the stored post, never recomputed.
+ */
+$manager_src = (string) php_strip_whitespace( $root . '/includes/icon-manager.php' );
+check( 'BELL: the add result reads the slug off the stored post', str_contains( $manager_src, "'slug'  => (string) \$stored->post_name," ) || str_contains( $manager_src, "'slug' => (string) \$stored->post_name," ) );
+check( 'SILENCE: and does not recompute it from the label', ! preg_match( "/'slug'\s*=>\s*\(string\)\s*easy_svg_icon_slug\(/", $manager_src ) );
+check( 'BELL: the one-word contract still exists for every caller that reads it that way', str_contains( $manager_src, "function easy_svg_add_icon( \$label, \$markup ) { return easy_svg_add_icon_result( \$label, \$markup )['state']; }" ) );
 // The Icons panel (includes/panel.php) is the one intended Pro touchpoint: it
 // detects Pro, draws the locked Pro tabs and the upsell. That is allowed and is
 // the product's design. Everything ELSE free ships must stay free of paid cruft

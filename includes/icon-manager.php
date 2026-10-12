@@ -240,10 +240,40 @@ function easy_svg_boot_icons() {
  * @param string $markup The bytes they uploaded.
  * @return string A state `easy_svg_panel_add_message()` has a sentence for.
  */
+/**
+ * Store one icon and answer with the word for what happened.
+ *
+ * Kept as the whole contract it has always been, because every caller reads it
+ * that way. What it cannot say is which name the icon ENDED UP with, so a
+ * caller that needs that asks easy_svg_add_icon_result() instead.
+ */
 function easy_svg_add_icon( $label, $markup ) {
+    return easy_svg_add_icon_result( $label, $markup )['state'];
+}
+
+/**
+ * The same write, answering with the icon it created.
+ *
+ * `post_name` is decided inside wp_insert_post(): wp_unique_post_slug() appends
+ * `-2` when the name is taken, so the slug an icon ends up with is knowable
+ * only after the insert. A caller that derives it from the label instead is
+ * right until the first collision and silently wrong afterwards -- it hands
+ * back a name that resolves to somebody else's icon.
+ *
+ * @return array{state:string, id:int, slug:string}
+ */
+function easy_svg_add_icon_result( $label, $markup ) {
+    $refused = static function ( string $state ): array {
+        return array(
+            'state' => $state,
+            'id'    => 0,
+            'slug'  => '',
+        );
+    };
+
     $sanitizer = easy_svg_sanitizer();
     if ( null === $sanitizer ) {
-        return 'no_sanitizer';
+        return $refused( 'no_sanitizer' );
     }
 
     /*
@@ -263,7 +293,7 @@ function easy_svg_add_icon( $label, $markup ) {
     );
 
     if ( 'ok' !== $decision['state'] ) {
-        return $decision['state'];
+        return $refused( $decision['state'] );
     }
 
     /*
@@ -310,7 +340,7 @@ function easy_svg_add_icon( $label, $markup ) {
     }
 
     if ( is_wp_error( $id ) || ! $id ) {
-        return 'not_saved';
+        return $refused( 'not_saved' );
     }
 
     // Whatever else may sit on the way in, what was STORED is what the block
@@ -318,8 +348,12 @@ function easy_svg_add_icon( $label, $markup ) {
     $stored = get_post( $id );
     if ( ! $stored || false === stripos( (string) $stored->post_content, '<svg' ) ) {
         wp_delete_post( $id, true );
-        return 'not_saved';
+        return $refused( 'not_saved' );
     }
 
-    return 'added';
+    return array(
+        'state' => 'added',
+        'id'    => (int) $id,
+        'slug'  => (string) $stored->post_name,
+    );
 }
