@@ -135,6 +135,7 @@ export default function Library({ ctx }) {
   const [confirming, setConfirming] = useState(null)
   // The call to copy by hand when there is no clipboard API, dismissable.
   const [copyHelp, setCopyHelp] = useState('')
+  const copyHelpRef = useRef(null)
   const fileRef = useRef(null)
 
   // One place unwraps a library response, so a route that still answers the old
@@ -411,6 +412,33 @@ export default function Library({ ctx }) {
     }
   }
 
+  // The legacy path for exactly the pages the modern API refuses: select the
+  // call, try execCommand, and either way leave it selected for a manual copy.
+  function copyHelpByHand() {
+    const node = copyHelpRef.current
+    if (!node) {
+      return
+    }
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+    if (copied) {
+      setCopyHelp('')
+      setStatus(
+        // translators: %s: the PHP call that renders the icon, e.g. easy_svg_icon( 'heart' ).
+        sprintf(__('Copied %s to the clipboard.', 'easy-svg'), node.textContent)
+      )
+    }
+  }
+
   // Two targets, one behaviour: the zone above and the grid below both take a
   // drop, because adding where you are already looking was right -- it was just
   // the only place. ui.jsx owns the handlers so pro's tabs get the same ones.
@@ -476,11 +504,16 @@ export default function Library({ ctx }) {
           <HStack justify="space-between" gap="3" align="center" flexWrap="wrap">
             <Text as="span" fontSize="sm">
               {__('The clipboard is not available here. Copy the call by hand:', 'easy-svg')}{' '}
-              <Box as="code" fontFamily="mono" userSelect="all">{copyHelp}</Box>
+              <Box as="code" ref={copyHelpRef} fontFamily="mono" userSelect="all">{copyHelp}</Box>
             </Text>
-            <Button size="sm" variant="ghost" onClick={() => setCopyHelp('')}>
-              {__('Dismiss', 'easy-svg')}
-            </Button>
+            <HStack gap="2">
+              <Button size="sm" variant="ghost" onClick={copyHelpByHand}>
+                {__('Copy', 'easy-svg')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setCopyHelp('')}>
+                {__('Dismiss', 'easy-svg')}
+              </Button>
+            </HStack>
           </HStack>
         </Notice>
       ) : null}
@@ -530,20 +563,22 @@ export default function Library({ ctx }) {
         {messages}
         {reportBox}
         <Section title={__('Your icons', 'easy-svg')}>
-          <Box {...dashed(zone.isOver)} px="4" py="8" {...zone.props}>
+          <Box {...dashed(zone.isOver)} px="4" py="5" {...zone.props}>
             <EmptyState
+              py="2"
+              contentProps={{ maxW: 'none', gap: '3' }}
               title={__('Drop your first SVG here', 'easy-svg')}
               description={__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
               action={
                 <Stack gap="3" align="center">
-                  <HStack gap="3" flexWrap="wrap" justify="center">
-                    <Button variant="primary" onClick={openChooser} disabled={busy}>
+                  <HStack gap="2" flexWrap="wrap" justify="center">
+                    <Button variant="primary" size="sm" onClick={openChooser} disabled={busy}>
                       {__('Choose an SVG', 'easy-svg')}
                     </Button>
-                    <Button variant="ghost" onClick={addFromMedia} disabled={busy}>
+                    <Button variant="ghost" size="sm" onClick={addFromMedia} disabled={busy}>
                       {__('Choose from the media library', 'easy-svg')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
+                    <Button variant="ghost" size="sm" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
                       {pasteLabel}
                     </Button>
                   </HStack>

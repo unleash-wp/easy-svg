@@ -331,10 +331,10 @@ export function useDropGuard(onMiss) {
 
 // Centred empty state: optional icon, a title, a muted line, an optional action
 // (pass a <Button>). All copy comes in as props.
-export function EmptyState({ icon, title, description, action }) {
+export function EmptyState({ icon, title, description, action, contentProps, ...rest }) {
   return (
-    <CEmptyState.Root>
-      <CEmptyState.Content>
+    <CEmptyState.Root {...rest}>
+      <CEmptyState.Content {...contentProps}>
         {icon ? <CEmptyState.Indicator>{icon}</CEmptyState.Indicator> : null}
         <VStack textAlign="center" gap="1">
           <CEmptyState.Title fontSize="16px" fontWeight="700" color="ui.heading">
