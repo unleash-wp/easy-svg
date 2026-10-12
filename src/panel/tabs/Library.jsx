@@ -502,7 +502,7 @@ export default function Library({ ctx }) {
           <Box {...dashed(zone.isOver)} px="4" py="8" {...zone.props}>
             <EmptyState
               title={__('Drop your first SVG here', 'easy-svg')}
-              description={__('Every file is sanitised and hardened on the way in — the same bar as a media upload.', 'easy-svg')}
+              description={__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
               action={
                 <Stack gap="3" align="center">
                   <HStack gap="3" flexWrap="wrap" justify="center">
@@ -855,7 +855,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
     <Box borderWidth="1px" borderColor="ui.border" borderRadius="forge" bg="ui.sunk" px="4" pt="1" pb="4">
       <FieldRow
         label={__('Name', 'easy-svg')}
-        description={__('Optional — a slug is derived from it.', 'easy-svg')}
+        description={__('Optional. The slug is derived from it.', 'easy-svg')}
         htmlFor="esw-icon-name"
         control={
           <Box maxW="220px">
