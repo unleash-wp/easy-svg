@@ -26,7 +26,13 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
     borderRadius: 'forge',
     fontWeight: '700',
     h: 'auto',
-    py: size === 'sm' ? '2.5' : '3',
+    // The 40px control raster, 14px label like every other label. minH, not
+    // h: a wrapping label may still grow, and the tile actions pass their own
+    // minH to stay compact inside a tile.
+    fontSize: '14px',
+    lineHeight: '20px',
+    minH: '40px',
+    py: '2',
     _focusVisible: { outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' },
     'data-variant': variant,
   }
@@ -341,7 +347,7 @@ export function EmptyState({ icon, title, description, action, contentProps, ...
             {title}
           </CEmptyState.Title>
           {description ? (
-            <CEmptyState.Description color="ui.muted">{description}</CEmptyState.Description>
+            <CEmptyState.Description fontSize="13px" lineHeight="1.5" color="ui.muted">{description}</CEmptyState.Description>
           ) : null}
         </VStack>
         {action ? <Box pt="2">{action}</Box> : null}

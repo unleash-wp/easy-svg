@@ -135,7 +135,9 @@ const config = defineConfig({
       },
       caption: {
         value: {
-          fontSize: '12px',
+          // 13px, the same step as descriptions: the audit found four body
+          // sizes on one screen, and the raster allows two (13 and 14).
+          fontSize: '13px',
           fontWeight: '400',
           color: 'ui.muted',
         },
