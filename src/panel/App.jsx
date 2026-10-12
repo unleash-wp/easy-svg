@@ -155,12 +155,16 @@ export default function App({ config }) {
         key={t.id}
         value={t.id}
         gap="2"
+        minH="44px"
+        px="3"
+        borderRadius="forge"
         fontWeight="400"
         color={t.locked ? 'ui.muted' : 'ui.text'}
         flexShrink="0"
         w={{ md: 'full' }}
         justifyContent={{ md: 'flex-start' }}
-        _selected={{ fontWeight: '700', color: 'ui.heading' }}
+        _hover={{ bg: 'ui.ghostHover' }}
+        _selected={{ bg: 'brand.100', color: 'ui.heading', fontWeight: '700' }}
       >
         <Text as="span" truncate>{t.label}</Text>
         {t.locked ? <ProBadge ml="auto">{groupLabels.pro}</ProBadge> : null}
@@ -207,7 +211,7 @@ export default function App({ config }) {
         value={activeValue}
         onValueChange={(e) => setActive(e.value)}
         orientation={orientation}
-        variant="line"
+        variant="plain"
         colorPalette="brand"
         lazyMount
         unmountOnExit
@@ -223,7 +227,6 @@ export default function App({ config }) {
         */}
         <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }} flex="1" minW="0">
           <Tabs.List
-            borderColor="ui.border"
             flexWrap="nowrap"
             overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
