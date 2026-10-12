@@ -1816,6 +1816,35 @@ check( 'BELL: no filter on the plugin update transient', false === strpos( $sour
 check( 'BELL: no plugins_api hook', false === strpos( $source, 'plugins_api' ) );
 check( 'SILENCE: and the file was actually read', '' !== $source );
 
+// ─── Every PHP file parses ───────────────────────────────────────────────────
+
+/*
+ * `php -l` on each file, because being READ is not being LOADED.
+ *
+ * Several files reach this suite only as text -- icon-manager.php is read with
+ * file_get_contents() and its one entry point is stubbed -- so a file of those
+ * could stop parsing and every check here would still pass. That happened: a
+ * careless in-place edit ate an assignment's left-hand side and the suite
+ * stayed green.
+ */
+$php_files = array();
+foreach ( array( '', '/includes', '/includes/blocks' ) as $dir ) {
+	foreach ( (array) glob( $root . $dir . '/*.php' ) as $file ) {
+		$php_files[] = (string) $file;
+	}
+}
+$bad_syntax = array();
+foreach ( $php_files as $file ) {
+	$lint_out    = array();
+	$lint_status = 1;
+	exec( escapeshellarg( PHP_BINARY ) . ' -l ' . escapeshellarg( $file ) . ' 2>&1', $lint_out, $lint_status );
+	if ( 0 !== $lint_status ) {
+		$bad_syntax[] = basename( $file ) . ': ' . ( $lint_out[0] ?? 'no output' );
+	}
+}
+check( 'BELL: there are PHP files to check at all', count( $php_files ) > 5 );
+check( 'BELL: every PHP file parses: ' . implode( '; ', $bad_syntax ), array() === $bad_syntax );
+
 // ─── Where this repository is allowed to run ─────────────────────────────────
 
 $runner_out    = array();

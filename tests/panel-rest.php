@@ -458,6 +458,21 @@ $GLOBALS['stored_matches'] = 900;
 $payload                   = easy_svg_panel_library_payload( 'pfeil' );
 check( 'BELL: a capped search says it was cut short', true === $payload['truncated'] );
 
+/*
+ * A decision pinned, not behaviour: `post_name` may not go back into
+ * `search_columns`.
+ *
+ * It looks like it searches the slug and does not. Core intersects that list
+ * with post_title, post_excerpt and post_content and silently drops the rest,
+ * so the construct reads as a working slug search while a renamed icon can only
+ * be found by its new title. Measured against WordPress 7.1: zero results for a
+ * slug-only term. The slug is matched by its own LIKE query instead.
+ */
+$manager_src = (string) file_get_contents( dirname( __DIR__ ) . '/includes/icon-manager.php' );
+check( 'SILENCE: post_name is not handed to search_columns, where core drops it', ! preg_match( '/search_columns.{0,80}post_name/', $manager_src ) );
+check( 'BELL: the slug is matched by its own query', function_exists( 'easy_svg_icon_ids_by_slug_like' ) || str_contains( $manager_src, 'post_name LIKE' ) );
+check( 'BELL: prepared, and the term escaped for LIKE', str_contains( $manager_src, 'esc_like' ) && str_contains( $manager_src, '$wpdb->prepare' ) );
+
 // Without a term the store is asked without one, so the unfiltered count rules.
 $GLOBALS['stored_matches'] = null;
 $payload                   = easy_svg_panel_library_payload();

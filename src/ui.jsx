@@ -412,18 +412,9 @@ export function ProBadge({ children, ...rest }) {
   )
 }
 
-/*
- * A message about what just happened, or did not.
- *
- * Chakra's Alert, not a Box with a border: it brings the status icon, the
- * title/description structure and the colour per status, which a hand-drawn
- * panel has to get right again every time somebody adds one.
- *
- * `bad` and `role` are the API both plugins' tabs already call this with.
- * role="alert" is an assertive live region and role="status" a polite one;
- * aria-live is set to match, because a notice inserted after the first paint
- * is announced only when the region says how.
- */
+// `bad` and `role` are the API both plugins' tabs already call this with.
+// aria-live repeats what the role implies, because a notice inserted after the
+// first paint is announced only when the region says how.
 export function Notice({ bad, role, status, title, children, ...rest }) {
   const live = role === 'alert' ? 'assertive' : role === 'status' ? 'polite' : undefined
   const resolved = status || (bad ? 'error' : 'info')
