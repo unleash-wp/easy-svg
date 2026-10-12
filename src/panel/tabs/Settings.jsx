@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Stack, Box, NumberInput, Switch } from '@chakra-ui/react'
+import { Stack, Box, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
 import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
@@ -54,15 +54,16 @@ export default function Settings({ ctx }) {
   const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
   /*
-   * Bumped after every save, and used as the number field's key.
+   * Bumped whenever the value changes from OUTSIDE the number field, and used
+   * as its key.
    *
-   * NumberInput keeps the text somebody typed separately from its value, and
-   * it does not rewrite that text when the value prop changes underneath it:
-   * typing 0 and saving left "0" standing over a field whose own machine --
-   * and the server -- had already agreed on 1. Remounting re-seeds the text
-   * from the value, so the field shows what was stored.
+   * NumberInput keeps the text somebody typed separately from its value and
+   * does not rewrite that text when the value prop changes underneath it, so
+   * dragging the slider -- or a save that clamped 0 to 1 -- left the old
+   * number standing in the field. Remounting re-seeds it. Typing does NOT
+   * bump this, or the field would remount under the caret on every keystroke.
    */
-  const [savedSeq, setSavedSeq] = useState(0)
+  const [fieldSeq, setFieldSeq] = useState(0)
 
   /*
    * The load is cancelled when this tab goes away.
@@ -124,7 +125,7 @@ export default function Settings({ ctx }) {
       const n = normalize(resp)
       setForm(n)
       markSaved(n)
-      setSavedSeq((seq) => seq + 1)
+      setFieldSeq((seq) => seq + 1)
       if (typed !== n.max_mb) {
         setInfo(
           sprintf(
@@ -183,27 +184,63 @@ export default function Settings({ ctx }) {
           )}
           htmlFor="esw-setting-max-mb"
           control={
-            // Chakra's NumberInput: it carries the min and max as a contract
-            // rather than as two attributes the browser may or may not act on,
-            // and it brings the steppers, the scrub handle and the keyboard
-            // arrows a number field is expected to have.
-            <NumberInput.Root
-              key={savedSeq}
-              min={1}
-              max={MAX_MB}
-              value={String(form.max_mb)}
-              onValueChange={(e) => set('max_mb', e.value === '' ? '' : Number(e.value))}
-              w="120px"
-            >
-              <NumberInput.Control />
-              <NumberInput.Input
-                id="esw-setting-max-mb"
-                bg="ui.sunk"
-                borderColor="ui.border"
-                borderRadius="forge"
-                _focusVisible={{ bg: 'ui.surface', borderColor: 'ui.primary' }}
-              />
-            </NumberInput.Root>
+            /*
+             * A slider for the gesture and a number field for the exact value.
+             *
+             * The cap is a quantity with a known, small range, which is what a
+             * slider is for -- but somebody who knows they want 5 should not
+             * have to aim for it, so the field stays and the two share one
+             * value. The slider's own min/max make an out-of-range value
+             * unreachable by dragging at all.
+             */
+            <Stack gap="2" w={{ base: 'full', md: '260px' }}>
+              <HStack gap="3" align="center">
+                <Slider.Root
+                  flex="1"
+                  min={1}
+                  max={MAX_MB}
+                  step={1}
+                  colorPalette="brand"
+                  value={[Number(form.max_mb) || 1]}
+                  onValueChange={(e) => {
+                    set('max_mb', e.value[0])
+                    setFieldSeq((seq) => seq + 1)
+                  }}
+                  aria-label={[__('Maximum SVG size (MB)', 'easy-svg')]}
+                >
+                  <Slider.Control>
+                    <Slider.Track bg="ui.border" h="4px" borderRadius="full">
+                      <Slider.Range bg="ui.primary" />
+                    </Slider.Track>
+                    <Slider.Thumbs borderColor="ui.primary" bg="ui.surface" />
+                  </Slider.Control>
+                </Slider.Root>
+                <NumberInput.Root
+                  key={fieldSeq}
+                  min={1}
+                  max={MAX_MB}
+                  value={String(form.max_mb)}
+                  onValueChange={(e) => set('max_mb', e.value === '' ? '' : Number(e.value))}
+                  w="92px"
+                  flexShrink="0"
+                >
+                  <NumberInput.Control />
+                  <NumberInput.Input
+                    id="esw-setting-max-mb"
+                    bg="ui.sunk"
+                    borderColor="ui.border"
+                    borderRadius="forge"
+                    _focusVisible={{ bg: 'ui.surface', borderColor: 'ui.primary' }}
+                  />
+                </NumberInput.Root>
+              </HStack>
+              {/* The ends of the range, where a slider is read: the numbers
+                  tell you what dragging can reach without a legend. */}
+              <HStack justify="space-between" aria-hidden="true">
+                <Text textStyle="caption">{sprintf(__('%d MB', 'easy-svg'), 1)}</Text>
+                <Text textStyle="caption">{sprintf(__('%d MB', 'easy-svg'), MAX_MB)}</Text>
+              </HStack>
+            </Stack>
           }
         />
       </Section>

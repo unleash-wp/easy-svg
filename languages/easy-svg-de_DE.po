@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-12T20:38:08+00:00\n"
+"POT-Creation-Date: 2026-10-12T20:53:51+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -267,8 +267,8 @@ msgstr ""
 "Guard-Rails bleiben."
 
 #: build/panel.js
-msgid "Audit"
-msgstr "Audit"
+msgid "SVG cleaner"
+msgstr "SVG-Cleaner"
 
 #: build/panel.js
 msgid "Find and clean up SVGs that did not come through the uploader."
@@ -385,8 +385,8 @@ msgstr "%s löschen?"
 msgid ""
 "This cannot be undone. Templates and blocks that render it will show nothing."
 msgstr ""
-"Das lässt sich nicht rückgängig machen. Templates und Blöcke, die es rendern, "
-"zeigen dann nichts."
+"Das lässt sich nicht rückgängig machen. Templates und Blöcke, die es "
+"rendern, zeigen dann nichts."
 
 #: build/panel.js
 msgid "Cancel"
@@ -639,6 +639,10 @@ msgstr ""
 "%d MB."
 
 #: build/panel.js
+msgid "%d MB"
+msgstr ""
+
+#: build/panel.js
 msgid "Unsaved changes"
 msgstr "Ungespeicherte Änderungen"
 
@@ -665,6 +669,9 @@ msgid ""
 msgstr ""
 "Die Agentur-Schicht für SVG-Icons. Sie liegt in diesem Panel, sobald Pro "
 "aktiv und lizenziert ist."
+
+#~ msgid "Audit"
+#~ msgstr "Audit"
 
 #~ msgid "The clipboard is not available here. Copy the call by hand:"
 #~ msgstr ""
