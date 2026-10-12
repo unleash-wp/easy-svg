@@ -133,6 +133,8 @@ export default function Library({ ctx }) {
   // Deleting is the one unrecoverable act on this screen, so it takes a second
   // click: { id } for one tile, { bulk: true } for the selection bar.
   const [confirming, setConfirming] = useState(null)
+  // The call to copy by hand when there is no clipboard API, dismissable.
+  const [copyHelp, setCopyHelp] = useState('')
   const fileRef = useRef(null)
 
   // One place unwraps a library response, so a route that still answers the old
@@ -197,6 +199,7 @@ export default function Library({ ctx }) {
   const clear = () => {
     setErr('')
     setStatus('')
+    setCopyHelp('')
   }
 
   function stopSelecting() {
@@ -404,10 +407,7 @@ export default function Library({ ctx }) {
     } catch {
       // An admin served over plain HTTP has no clipboard API at all, so hand the
       // text over to be copied by hand rather than leave a dead button.
-      setErr(
-        // translators: %s: the PHP call that renders the icon, e.g. easy_svg_icon( 'heart' ).
-        sprintf(__('The clipboard is not available here. The call is %s.', 'easy-svg'), text)
-      )
+      setCopyHelp(text)
     }
   }
 
@@ -471,6 +471,19 @@ export default function Library({ ctx }) {
   const messages = (
     <>
       {err ? <Notice bad role="alert">{err}</Notice> : null}
+      {copyHelp ? (
+        <Notice role="status">
+          <HStack justify="space-between" gap="3" align="center" flexWrap="wrap">
+            <Text as="span" fontSize="sm">
+              {__('The clipboard is not available here. Copy the call by hand:', 'easy-svg')}{' '}
+              <Box as="code" fontFamily="mono" userSelect="all">{copyHelp}</Box>
+            </Text>
+            <Button size="sm" variant="ghost" onClick={() => setCopyHelp('')}>
+              {__('Dismiss', 'easy-svg')}
+            </Button>
+          </HStack>
+        </Notice>
+      ) : null}
       {status ? (
         <Text role="status" aria-live="polite" color="ui.goodInk" fontSize="sm">{status}</Text>
       ) : null}
@@ -750,7 +763,9 @@ function IconTile({
       minH="96px"
       gridColumn={isEditing || confirmingDelete ? 'span 2' : undefined}
       css={{
-        '& [data-tile-actions]': { opacity: 0, transition: 'opacity .12s ease' },
+        // Dimmed, never hidden: fully invisible actions were not found at all
+        // until a click landed on one by accident.
+        '& [data-tile-actions]': { opacity: 0.5, transition: 'opacity .12s ease' },
         '&:hover [data-tile-actions]': { opacity: 1 },
         '&:focus-within [data-tile-actions]': { opacity: 1 },
         '@media (hover: none)': { '& [data-tile-actions]': { opacity: 1 } },
@@ -806,19 +821,22 @@ function IconTile({
                 }
               }}
             />
-            <HStack gap="2" justify="center">
+            {/* Stacked and full width: side by side the two of them are wider
+                than the tile and get clipped at its edge. */}
+            <Stack gap="2" w="full">
               <Button
                 size="sm"
                 variant="primary"
+                w="full"
                 onClick={() => onEditSave(editing)}
                 disabled={busy || !editing.trim()}
               >
                 {__('Save', 'easy-svg')}
               </Button>
-              <Button size="sm" variant="ghost" onClick={onEditCancel} disabled={busy}>
+              <Button size="sm" variant="ghost" w="full" onClick={onEditCancel} disabled={busy}>
                 {__('Cancel', 'easy-svg')}
               </Button>
-            </HStack>
+            </Stack>
           </Stack>
         ) : confirmingDelete ? (
           <Stack gap="2" w="full" pt="1" align="center">
@@ -828,25 +846,26 @@ function IconTile({
                 sprintf(__('Delete %s? This cannot be undone.', 'easy-svg'), name)
               }
             </Text>
-            <HStack gap="2" justify="center">
+            <Stack gap="2" w="full">
               <Button
                 size="sm"
                 variant="primary"
                 bg="ui.bad"
+                w="full"
                 _hover={{ bg: 'ui.bad', opacity: 0.9 }}
                 onClick={onConfirmRemove}
                 disabled={busy}
               >
                 {__('Delete', 'easy-svg')}
               </Button>
-              <Button size="sm" variant="ghost" onClick={onCancelRemove} disabled={busy}>
+              <Button size="sm" variant="ghost" w="full" onClick={onCancelRemove} disabled={busy}>
                 {__('Cancel', 'easy-svg')}
               </Button>
-            </HStack>
+            </Stack>
           </Stack>
         ) : (
           <>
-            <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={1} w="full" title={name}>
+            <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={2} w="full" title={name}>
               {name}
             </Text>
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
