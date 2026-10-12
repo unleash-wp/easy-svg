@@ -57,26 +57,17 @@ export default function Settings({ ctx }) {
   const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
   /*
-   * Bumped whenever the value changes from OUTSIDE the number field, and used
-   * as its key.
-   *
-   * NumberInput keeps the text somebody typed separately from its value and
-   * does not rewrite that text when the value prop changes underneath it, so
-   * dragging the slider -- or a save that clamped 0 to 1 -- left the old
-   * number standing in the field. Remounting re-seeds it. Typing does NOT
-   * bump this, or the field would remount under the caret on every keystroke.
+   * The number field's key, bumped only when the value changes from outside
+   * it: NumberInput keeps typed text apart from its value and never rewrites
+   * it, so a slider drag or a clamped save left the old number standing.
+   * Bumping it on typing would remount the field under the caret.
    */
   const [fieldSeq, setFieldSeq] = useState(0)
 
   /*
-   * The load is cancelled when this tab goes away.
-   *
-   * A closed tab is unmounted (the panel's Tabs root uses unmountOnExit), so
-   * without this a load started on mount resolves into a component that is
-   * gone -- and two loads of the same resource can resolve out of order, so an
-   * older payload lands last and the form shows pre-save values. AbortError is
-   * what fetch rejects with when we did the cancelling, so it is not an error
-   * to show anybody.
+   * Cancelled when the tab goes away: it is unmounted (unmountOnExit), and two
+   * loads of the same resource can resolve out of order, leaving the form on
+   * pre-save values. AbortError is our own cancelling, so it is not shown.
    */
   useEffect(() => {
     const ac = new AbortController()
@@ -188,13 +179,10 @@ export default function Settings({ ctx }) {
           htmlFor="esw-setting-max-mb"
           control={
             /*
-             * A slider for the gesture and a number field for the exact value.
-             *
-             * The cap is a quantity with a known, small range, which is what a
-             * slider is for -- but somebody who knows they want 5 should not
-             * have to aim for it, so the field stays and the two share one
-             * value. The slider's own min/max make an out-of-range value
-             * unreachable by dragging at all.
+             * A slider for the gesture, a field for the exact value, one value
+             * between them: somebody who knows they want 5 should not have to
+             * aim for it. The slider's min/max also make an out-of-range
+             * number unreachable by dragging.
              */
             <Stack gap="2" w={{ base: 'full', md: '260px' }}>
               <HStack gap="3" align="center">

@@ -34,12 +34,9 @@ const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 95, labe
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
 /*
- * Which tab the address bar asks for.
- *
- * Every tab has its own entry in the WordPress menu, and those entries are
- * this one screen with `?tab=` on it -- so the parameter, not the first tab,
- * decides what opens. Read once per load; an id nothing registered falls
- * through to the default rather than showing an empty well.
+ * Which tab the address bar asks for. The menu entries are this one screen
+ * with `?tab=` on it, so the parameter decides what opens; an id nothing
+ * registered falls through to the default rather than an empty well.
  */
 function tabFromUrl() {
   try {

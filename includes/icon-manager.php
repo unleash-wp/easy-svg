@@ -155,11 +155,9 @@ function easy_svg_stored_icons() {
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
 /**
- * Icon ids whose SLUG contains a term.
- *
- * Its own query because WP_Query cannot ask for it: `search_columns` supports
- * only post_title, post_excerpt and post_content, and `name` is exact. LIKE
- * through esc_like() in a prepared statement.
+ * Icon ids whose SLUG contains a term. Its own query because WP_Query cannot
+ * ask: `search_columns` takes only post_title, post_excerpt and post_content,
+ * and `name` is exact.
  *
  * @param string $term
  * @return array<int,int>
@@ -197,16 +195,11 @@ function easy_svg_icon_page( $page, $per_page, $search = '' ) {
     );
 
     /*
-     * Searching asks the database, not the browser: a library past one page
-     * cannot be filtered by what happens to have been sent. Title and slug
-     * only -- an icon's content is its SVG markup, and a default search would
-     * match every file that happens to contain the letters somebody typed.
-     *
-     * The slug needs its own query. Core intersects `search_columns` with
-     * post_title, post_excerpt and post_content and drops whatever else is in
-     * it, so `post_name` there did nothing: measured on a renamed icon, the
-     * list found it by title and never by the slug it shows in its own tile.
-     * That intersection is also why post_content is genuinely never searched.
+     * The server searches, because a library past one page cannot be filtered
+     * by what one response happened to carry. Title only here, plus a separate
+     * slug query: core narrows `search_columns` to title, excerpt and content,
+     * which drops post_name -- and is also why an icon's SVG markup is never
+     * searched.
      */
     $search = trim( (string) $search );
     if ( '' !== $search ) {

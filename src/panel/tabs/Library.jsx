@@ -194,15 +194,9 @@ export default function Library({ ctx }) {
   }, [pasting])
 
   /*
-   * The search asks the SERVER, debounced.
-   *
-   * A library past one response cannot be searched in the browser: filtering
-   * what happens to have been sent finds nothing in the rest of it, and says
-   * so with a confident "no icon matches". Every keystroke replaces the
-   * in-flight request, so an answer to an older query can never land last.
-   *
-   * Cancelled when the tab goes away, or when the icon library is switched off
-   * while a load is in flight. See the note in tabs/Settings.jsx.
+   * The server searches, debounced: filtering one response would miss the rest
+   * of the library and say "no icon matches" about it. Each keystroke replaces
+   * the request in flight, so an older answer cannot land last.
    */
   useEffect(() => {
     if (!ctx.iconsEnabled) return undefined
@@ -549,19 +543,10 @@ export default function Library({ ctx }) {
   )
 
   /*
-   * The add surface, the width of the content and above the grid.
-   *
-   * It used to be the last tile IN the grid: 49px wide, a 13px label wrapped
-   * over three lines, the primary action of the screen rendered smaller than
-   * anything else on it -- with "Paste markup", which is a developer's errand,
-   * as a full button above. The tile stays as a shortcut; it is no longer the
-   * only door.
-   */
-  /*
-   * Chakra's FileUpload, not a div listening for drop: it owns the hidden
-   * input, the drag state and the keyboard path, and its trigger opens the
-   * chooser without a ref into the DOM. The verdict on a file stays the
-   * server's -- nothing is pre-judged here beyond the accept hint.
+   * Full width above the grid, because the primary action of the screen should
+   * not be the narrowest thing on it. Chakra's FileUpload owns the hidden
+   * input, the drag state and the keyboard path; the verdict on a file stays
+   * the server's, nothing is pre-judged beyond the accept hint.
    */
   const addSurface = (
     <FileUpload.Root
@@ -706,13 +691,10 @@ export default function Library({ ctx }) {
     )
   }
 
-  // Nothing stored yet: the empty state IS the upload surface. Not a sentence
-  // about where to upload, but the place where you do it.
-  //
-  // Only without a search term. The server answers a search with an empty list
-  // the same way it answers an empty library, and this screen carries no search
-  // field -- so a search that matched nothing would say "drop your first SVG"
-  // to somebody with 400 icons, and take away the field they would clear.
+  // Nothing stored yet: the empty state IS the upload surface. Only without a
+  // search term, though -- a search answers empty the same way, and this screen
+  // has no search field, so it would tell somebody with 400 icons they have
+  // none and remove the box they would clear.
   if (all.length === 0 && !query.trim()) {
     return (
       <Stack gap="5" maxW="900px">
