@@ -23,13 +23,13 @@ const FREE_TABS = [
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'audit', icon: 'audit', group: 'pro', order: 50, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', icon: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'general', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', group: 'tools', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'audit', icon: 'audit', group: 'tools', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', group: 'account', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'account', order: 95, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
@@ -121,7 +121,11 @@ export default function App({ config }) {
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
       // icon is a keyword this rail resolves, so an extra tab can look like
       // the rest without Pro bundling any icon of ours.
-      return { id: t.id, icon: t.icon, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+      // The group an add-on asks for, if it is one this rail draws: a tab that
+      // does not say lands with the general ones rather than in a band named
+      // after who sells it.
+      const group = ['general', 'tools', 'account'].includes(t.group) ? t.group : 'general'
+      return { id: t.id, icon: t.icon, group, label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
 
   const tabs = [
@@ -155,14 +159,7 @@ export default function App({ config }) {
     ...extras,
     // A licensed site has no use for a tab selling what it already owns.
     ...(config.proLicensed ? [] : [UPSELL_TAB]),
-  ]
-    /*
-     * Tools → Easy SVG is this same panel with a shorter rail: PHP sends the
-     * ids it should carry, and anything else is dropped. An empty list means
-     * the full panel, so the Icons screen does not have to say so.
-     */
-    .filter((t) => !config.only?.length || config.only.includes(t.id))
-    .sort((a, b) => a.order - b.order)
+  ].sort((a, b) => a.order - b.order)
 
   // zag reads `orientation` as a concrete string (it drives arrow-key direction
   // and the data-orientation styling), so resolve the responsive intent to a
@@ -174,7 +171,18 @@ export default function App({ config }) {
   // on a desktop paints one frame of horizontal tab chrome before flipping to
   // the rail.
   const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
-  const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
+  /*
+   * Three groups, so the rail says what a screen is FOR rather than who sells
+   * it: the ones you set up, the ones you run against a library, and the
+   * account. The paid ones are marked by their own badge, which is a property
+   * of the tab, not a place in the menu -- sorting by vendor put the cleaner
+   * and the licence key next to each other for no reason a reader has.
+   */
+  const groupLabels = {
+    general: __('General', 'easy-svg'),
+    tools: __('Tools', 'easy-svg'),
+    account: __('Account', 'easy-svg'),
+  }
   // An unknown ?tab= (a stale bookmark, a tab whose feature was switched off)
   // opens the first one instead of an empty well.
   const activeValue = tabs.some((t) => t.id === active) ? active : tabs[0]?.id
@@ -312,7 +320,7 @@ export default function App({ config }) {
             ml="auto"
             display={{ base: 'inline-flex', md: collapsed ? 'none' : 'inline-flex' }}
           >
-            {groupLabels.pro}
+            {__('Pro', 'easy-svg')}
           </ProBadge>
         ) : null}
       </Tabs.Trigger>
@@ -508,12 +516,10 @@ export default function App({ config }) {
             <Box mb="5">
               <HStack gap="3" align="center">
                 {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-                <Heading as="h1" textStyle="h1">{config.screenTitle || __('Icons', 'easy-svg')}</Heading>
+                <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
               </HStack>
               <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-                {config.only?.length
-                  ? __('The size cap, the allow-list and the cleaner, where WordPress keeps the tools. The full panel lives under Icons.', 'easy-svg')
-                  : __('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
               </Text>
             </Box>
 
