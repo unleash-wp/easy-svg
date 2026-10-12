@@ -263,6 +263,13 @@ check( 'BELL: an unknown id is refused as not found', in_array( 'not_found', $st
 check( 'BELL: and none of the three was stored', 0 === count( $GLOBALS['added'] ) );
 check( 'SILENCE: every row names the attachment it is about', 3 === count( array_filter( $report, static fn( $r ) => isset( $r['id'] ) ) ) );
 
+// The server owns the verdict AND the sentence for it, as it does on /library/add.
+// A client that invented its own wording would be a second set of strings to
+// translate and a second place for the two to drift apart.
+$sentences = array_column( $report, 'message' );
+check( 'BELL: each row carries the sentence for its state', 3 === count( array_filter( $sentences ) ) );
+check( 'BELL: and the three sentences differ from one another', 3 === count( array_unique( $sentences ) ) );
+
 // An attachment whose file exists but cannot be read is the one case where
 // is_readable() earns its line: file_get_contents() would answer the same
 // 'no_file', but only after raising a warning that prints the server path on a

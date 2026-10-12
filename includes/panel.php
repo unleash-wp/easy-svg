@@ -278,6 +278,12 @@ function easy_svg_panel_add_message( string $state ): string {
 		case 'not_saved':
 		case 'empty':
 			return __( 'That SVG has no drawing, or could not be stored.', 'easy-svg' );
+		case 'added':
+			return __( 'Icon added.', 'easy-svg' );
+		case 'not_found':
+			return __( 'That file is no longer in the media library.', 'easy-svg' );
+		case 'no_file':
+			return __( 'That file is not stored on this server, so it could not be read.', 'easy-svg' );
 		case 'not_svg':
 			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
 		case 'bad_name':
@@ -358,10 +364,12 @@ function easy_svg_panel_library_media( $request ) {
 	$report = array();
 	foreach ( $ids as $raw ) {
 		$id       = max( 0, (int) $raw );
+		$state    = easy_svg_panel_media_state( $id );
 		$report[] = array(
-			'id'    => $id,
-			'label' => $id > 0 ? (string) get_the_title( $id ) : '',
-			'state' => easy_svg_panel_media_state( $id ),
+			'id'      => $id,
+			'label'   => $id > 0 ? (string) get_the_title( $id ) : '',
+			'state'   => $state,
+			'message' => easy_svg_panel_add_message( $state ),
 		);
 	}
 
