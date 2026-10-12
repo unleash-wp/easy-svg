@@ -159,19 +159,56 @@ function easy_svg_panel_assets( $hook ): void {
 }
 
 function easy_svg_panel_rest(): void {
+	$perm = 'easy_svg_panel_rest_permission';
+
+	/*
+	 * Declared arguments, not just hand-checked ones.
+	 *
+	 * Every handler below re-reads and re-sanitises what it is given, and that
+	 * stays: it is what the tests cover, and what protects a caller that is not
+	 * the REST layer -- WP-CLI, another plugin. What the schema adds is the two
+	 * things a hand-check cannot: WordPress refuses a wrong type or a missing
+	 * required field before the callback runs, and OPTIONS on the route finally
+	 * says what the route takes. It answered an empty list until now.
+	 */
+	$id_arg = array(
+		'type'        => 'integer',
+		'required'    => true,
+		'minimum'     => 1,
+		'description' => __( 'The icon post id, as the library listing reports it.', 'easy-svg' ),
+	);
+
 	register_rest_route(
 		'easy-svg/v1',
 		'/settings',
 		array(
 			array(
 				'methods'             => 'GET',
-				'permission_callback' => 'easy_svg_panel_rest_permission',
+				'permission_callback' => $perm,
 				'callback'            => 'easy_svg_panel_settings_get',
 			),
 			array(
 				'methods'             => 'POST',
-				'permission_callback' => 'easy_svg_panel_rest_permission',
+				'permission_callback' => $perm,
 				'callback'            => 'easy_svg_panel_settings_post',
+				// None required: a key that is absent keeps its stored value, which
+				// is the whole contract of this route. See easy_svg_panel_settings_post().
+				'args'                => array(
+					'svg_upload' => array(
+						'type'        => 'boolean',
+						'description' => __( 'Whether editors may upload .svg files.', 'easy-svg' ),
+					),
+					'icons'      => array(
+						'type'        => 'boolean',
+						'description' => __( 'Whether the icon library and the Icon block are registered.', 'easy-svg' ),
+					),
+					'max_mb'     => array(
+						'type'        => 'integer',
+						'minimum'     => 1,
+						'maximum'     => 20,
+						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable.', 'easy-svg' ),
+					),
+				),
 			),
 		)
 	);
@@ -180,7 +217,7 @@ function easy_svg_panel_rest(): void {
 		'/library',
 		array(
 			'methods'             => 'GET',
-			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_get',
 		)
 	);
@@ -189,8 +226,19 @@ function easy_svg_panel_rest(): void {
 		'/library/add',
 		array(
 			'methods'             => 'POST',
-			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_add',
+			'args'                => array(
+				'markup' => array(
+					'type'        => 'string',
+					'required'    => true,
+					'description' => __( 'The SVG markup. Sanitised and hardened on the way in, whatever is sent.', 'easy-svg' ),
+				),
+				'label'  => array(
+					'type'        => 'string',
+					'description' => __( 'The icon name a person reads. The slug is derived from it and never moves afterwards.', 'easy-svg' ),
+				),
+			),
 		)
 	);
 	register_rest_route(
@@ -198,8 +246,21 @@ function easy_svg_panel_rest(): void {
 		'/library/media',
 		array(
 			'methods'             => 'POST',
-			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_media',
+			'args'                => array(
+				'ids' => array(
+					'type'        => 'array',
+					'required'    => true,
+					'items'       => array( 'type' => 'integer' ),
+					'minItems'    => 1,
+					// The same bound the handler enforces, said where a client can
+					// read it. The panel chunks at this number rather than finding
+					// out by being refused.
+					'maxItems'    => EASY_SVG_MEDIA_MAX_IDS,
+					'description' => __( 'Attachment ids of SVGs already in the media library.', 'easy-svg' ),
+				),
+			),
 		)
 	);
 	register_rest_route(
@@ -207,8 +268,16 @@ function easy_svg_panel_rest(): void {
 		'/library/rename',
 		array(
 			'methods'             => 'POST',
-			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_rename',
+			'args'                => array(
+				'id'    => $id_arg,
+				'label' => array(
+					'type'        => 'string',
+					'required'    => true,
+					'description' => __( 'The new visible name. The slug is not touched.', 'easy-svg' ),
+				),
+			),
 		)
 	);
 	register_rest_route(
@@ -216,8 +285,9 @@ function easy_svg_panel_rest(): void {
 		'/library/delete',
 		array(
 			'methods'             => 'POST',
-			'permission_callback' => 'easy_svg_panel_rest_permission',
+			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_delete',
+			'args'                => array( 'id' => $id_arg ),
 		)
 	);
 }
@@ -509,6 +579,16 @@ function easy_svg_panel_settings_get( $request ) {
  */
 function easy_svg_panel_settings_post( $request ) {
 	$body = (array) $request->get_json_params();
-	update_option( EASY_SVG_SETTINGS_OPTION, easy_svg_sanitize_settings( $body ) );
+	/*
+	 * Merged onto what is stored, not onto the defaults.
+	 *
+	 * easy_svg_sanitize_settings() reads a missing key as its default, which is
+	 * what the form it was written for needs -- an unchecked box sends no key
+	 * and means off. A REST body is not a form: it carries the settings the
+	 * caller meant to change, and the rest of a partial write used to be
+	 * switched off without a word, answering 200. An explicit false is still a
+	 * value and still switches a feature off; only an ABSENT key is left alone.
+	 */
+	update_option( EASY_SVG_SETTINGS_OPTION, easy_svg_sanitize_settings( array_merge( easy_svg_settings(), $body ) ) );
 	return new WP_REST_Response( easy_svg_settings() );
 }

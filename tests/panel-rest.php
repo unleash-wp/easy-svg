@@ -172,6 +172,27 @@ check( 'BELL: a truthy toggle becomes a real boolean', true === $out['svg_upload
 check( 'BELL: max_mb is clamped to the ceiling (20)', 20 === $out['max_mb'] );
 check( 'BELL: the STORED option is the sanitised one', 20 === ( $GLOBALS['opt']['easy_svg_settings']['max_mb'] ?? 0 ) );
 
+// ─── a partial write changes only what it was given ───────────────────────────
+// The sanitiser fills a missing key from the DEFAULTS, which is right for the
+// form it was written for -- an unchecked box sends no key and means off. Over
+// REST it meant something else entirely: a body carrying one setting switched
+// the other two off, and answered 200. Measured on a live site, a POST of
+// {max_mb} turned svg_upload from on to off without mentioning it.
+$GLOBALS['opt'][ EASY_SVG_SETTINGS_OPTION ] = array(
+	'svg_upload' => true,
+	'icons'      => true,
+	'max_mb'     => 2,
+);
+$partial = easy_svg_panel_settings_post( new WP_REST_Request( array( 'max_mb' => 5 ) ) )->get_data();
+check( 'BELL: a key that was not sent keeps its stored value', true === $partial['svg_upload'] && true === $partial['icons'] );
+check( 'SILENCE: and the key that WAS sent changes', 5 === $partial['max_mb'] );
+check( 'BELL: the stored option says the same', true === ( $GLOBALS['opt'][ EASY_SVG_SETTINGS_OPTION ]['svg_upload'] ?? false ) );
+
+// Switching a feature OFF must still be possible: the panel sends false, and
+// false is a value, not an absence.
+$off = easy_svg_panel_settings_post( new WP_REST_Request( array( 'svg_upload' => false ) ) )->get_data();
+check( 'BELL: an explicit false still switches a feature off', false === $off['svg_upload'] && true === $off['icons'] );
+
 // ─── GET returns the sanitised settings ───────────────────────────────────────
 $g = easy_svg_panel_settings_get( new WP_REST_Request() )->get_data();
 check( 'BELL: GET returns the stored settings', array_key_exists( 'svg_upload', $g ) && array_key_exists( 'max_mb', $g ) );
@@ -327,6 +348,41 @@ foreach ( $GLOBALS['routes'] as $registered ) {
 	}
 }
 check( 'BELL: every panel REST route is behind the same capability check', $perm_ok );
+
+// ─── every parameter a handler reads is declared ──────────────────────────────
+// The handlers re-read and re-sanitise what they are given and that stays -- it
+// is what covers a caller who is not the REST layer. What the schema adds is
+// the two things a hand-check cannot: WordPress refuses a wrong type or an
+// absent required field before the callback runs, and OPTIONS finally answers
+// what the route takes. It answered an empty list for every route until now.
+//
+// Pinned by name, so a parameter added to a handler without a schema fails here
+// rather than silently reaching the callback unvalidated.
+$declared = array();
+foreach ( $GLOBALS['routes'] as $route => $registered ) {
+	foreach ( isset( $registered['methods'] ) ? array( $registered ) : $registered as $definition ) {
+		if ( 'POST' !== ( $definition['methods'] ?? '' ) ) {
+			continue;
+		}
+		$declared[ $route ] = array_keys( (array) ( $definition['args'] ?? array() ) );
+	}
+}
+check( 'BELL: /settings declares its three, none of them required', array( 'svg_upload', 'icons', 'max_mb' ) === ( $declared['easy-svg/v1/settings'] ?? array() ) );
+check( 'BELL: /library/add declares markup and label', array( 'markup', 'label' ) === ( $declared['easy-svg/v1/library/add'] ?? array() ) );
+check( 'BELL: /library/media declares ids', array( 'ids' ) === ( $declared['easy-svg/v1/library/media'] ?? array() ) );
+check( 'BELL: /library/rename declares id and label', array( 'id', 'label' ) === ( $declared['easy-svg/v1/library/rename'] ?? array() ) );
+check( 'BELL: /library/delete declares id', array( 'id' ) === ( $declared['easy-svg/v1/library/delete'] ?? array() ) );
+
+$settings_args = $GLOBALS['routes']['easy-svg/v1/settings'][1]['args'] ?? array();
+check(
+	'BELL: no settings key is required, because an absent one must keep its stored value',
+	array() === array_filter( $settings_args, static fn( $a ) => ! empty( $a['required'] ) )
+);
+check( 'BELL: max_mb carries the same ceiling the sanitiser clamps to', 20 === ( $settings_args['max_mb']['maximum'] ?? 0 ) );
+
+$media_args = $GLOBALS['routes']['easy-svg/v1/library/media']['args'] ?? array();
+check( 'BELL: the ids cap is declared where a client can read it', EASY_SVG_MEDIA_MAX_IDS === ( $media_args['ids']['maxItems'] ?? 0 ) );
+check( 'SILENCE: and ids is an array of integers', 'array' === ( $media_args['ids']['type'] ?? '' ) && 'integer' === ( $media_args['ids']['items']['type'] ?? '' ) );
 
 // ─── library/rename renames, and ONLY renames ─────────────────────────────────
 /*
