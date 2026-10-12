@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.2.1
+Stable tag: 5.3.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,12 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
+= 5.3.0 =
+* New: the Icons screen has a header, a footer and a sidebar you can collapse, with an icon for each section.
+* Fix: screen readers now read the description of each setting, not only its name.
+* Fix: text fields show the plugin's own focus ring instead of the WordPress default.
+* Fix: an empty SVG and an SVG that could not be saved now get two different messages, each saying what happened.
+
 = 5.2.1 =
 * Housekeeping: three developer scripts were being packaged with the plugin. They never ran on your site and are gone from the download. Nothing else changed.
 
@@ -196,6 +202,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.3.0 =
+A new layout for the Icons screen and clearer messages when an SVG cannot be added. No settings change on update.
 
 = 5.2.1 =
 Packaging only — three developer files no longer ship with the plugin. No behaviour changed.
