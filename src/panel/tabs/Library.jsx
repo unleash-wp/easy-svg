@@ -141,6 +141,7 @@ export default function Library({ ctx }) {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
   const [report, setReport] = useState(null)
   const [pasting, setPasting] = useState(false)
   const [label, setLabel] = useState('')
@@ -176,37 +177,53 @@ export default function Library({ ctx }) {
     }
   }, [pasting])
 
-  // Cancelled when the tab goes away, or when the icon library is switched off
-  // while a load is in flight. See the note in tabs/Settings.jsx.
+  /*
+   * The search asks the SERVER, debounced.
+   *
+   * A library past one response cannot be searched in the browser: filtering
+   * what happens to have been sent finds nothing in the rest of it, and says
+   * so with a confident "no icon matches". Every keystroke replaces the
+   * in-flight request, so an answer to an older query can never land last.
+   *
+   * Cancelled when the tab goes away, or when the icon library is switched off
+   * while a load is in flight. See the note in tabs/Settings.jsx.
+   */
   useEffect(() => {
     if (!ctx.iconsEnabled) return undefined
     const ac = new AbortController()
-    api
-      .get('/library', { signal: ac.signal })
-      .then(take)
-      .catch((e) => {
-        if ('AbortError' !== e.name) {
-          setErr(e.message)
-        }
-      })
-    return () => ac.abort()
+    const term = query.trim()
+    const run = () => {
+      setSearching(!!term)
+      api
+        .get(term ? `/library?search=${encodeURIComponent(term)}` : '/library', { signal: ac.signal })
+        .then((res) => {
+          take(res)
+          setSearching(false)
+        })
+        .catch((e) => {
+          if ('AbortError' !== e.name) {
+            setErr(e.message)
+            setSearching(false)
+          }
+        })
+    }
+    // No wait for the first load, and a short one for typing.
+    const timer = window.setTimeout(run, query === '' ? 0 : 250)
+    return () => {
+      window.clearTimeout(timer)
+      ac.abort()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx.iconsEnabled])
+  }, [ctx.iconsEnabled, query])
 
   const all = icons || []
 
   // Above the early return below, because a hook may not be skipped: this tab
   // re-renders with iconsEnabled flipped the moment the Settings tab is saved.
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) {
-      return all
-    }
-    // Name AND slug: the slug is what a template writes, so somebody searching
-    // for "arrow-right" has to find the icon they named "Pfeil nach rechts".
-    return all.filter((ic) => `${ic.label} ${ic.slug}`.toLowerCase().includes(q))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [icons, query])
+  // What the server answered IS the list: it searched name and slug across the
+  // whole library, which is the part a browser-side filter could not reach.
+  const shown = all
+  const allPicked = shown.length > 0 && picked.size >= shown.length
 
   // Every control on this screen depends on the Icon-library toggle, so nothing
   // is revealed while the feature is off; point back to Settings instead.
@@ -224,6 +241,10 @@ export default function Library({ ctx }) {
     setSelecting(false)
     setPicked(new Set())
     setConfirming(null)
+  }
+
+  function toggleAll() {
+    setPicked((prev) => (prev.size >= shown.length ? new Set() : new Set(shown.map((ic) => ic.id))))
   }
 
   function togglePicked(id, on) {
@@ -730,6 +751,17 @@ export default function Library({ ctx }) {
             >
               {selecting ? __('Done selecting', 'easy-svg') : __('Select several', 'easy-svg')}
             </Button>
+            {/*
+              One click for the whole list, which is what somebody clearing a
+              library after a bad import needs. It takes what is SHOWN: under a
+              search that is the matches, so "select all" never reaches past
+              what the person can see.
+            */}
+            {selecting ? (
+              <Button size="sm" variant="ghost" onClick={toggleAll} disabled={busy || !shown.length}>
+                {allPicked ? __('Clear selection', 'easy-svg') : __('Select all', 'easy-svg')}
+              </Button>
+            ) : null}
           </HStack>
 
           {addSurface}
@@ -741,12 +773,13 @@ export default function Library({ ctx }) {
           */}
           {query.trim() ? (
             <Text role="status" aria-live="polite" textStyle="caption">
-              {sprintf(
-                // translators: 1: number of icons matching the search, 2: number of icons in the library.
-                _n('Showing %1$d of %2$d icon.', 'Showing %1$d of %2$d icons.', all.length, 'easy-svg'),
-                shown.length,
-                all.length
-              )}
+              {searching
+                ? __('Searching…', 'easy-svg')
+                : sprintf(
+                    // translators: %d: number of icons the search found.
+                    _n('%d icon found.', '%d icons found.', shown.length, 'easy-svg'),
+                    shown.length
+                  )}
             </Text>
           ) : null}
 

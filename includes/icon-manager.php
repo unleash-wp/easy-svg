@@ -154,20 +154,32 @@ function easy_svg_stored_icons() {
  * @param int $per_page How many icons a page holds.
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
-function easy_svg_icon_page( $page, $per_page ) {
-    $posts = get_posts(
-        array(
-            'post_type'              => EASY_SVG_ICON_POST_TYPE,
-            'post_status'            => 'publish',
-            'posts_per_page'         => (int) $per_page,
-            'paged'                  => (int) $page,
-            'orderby'                => 'ID',
-            'order'                  => 'ASC',
-            'no_found_rows'          => true,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
-        )
+function easy_svg_icon_page( $page, $per_page, $search = '' ) {
+    $args = array(
+        'post_type'              => EASY_SVG_ICON_POST_TYPE,
+        'post_status'            => 'publish',
+        'posts_per_page'         => (int) $per_page,
+        'paged'                  => (int) $page,
+        'orderby'                => 'ID',
+        'order'                  => 'ASC',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
     );
+
+    /*
+     * Searching asks the database, not the browser: a library past one page
+     * cannot be filtered by what happens to have been sent. Title and slug
+     * only -- an icon's content is its SVG markup, and a default search would
+     * match every file that happens to contain the letters somebody typed.
+     */
+    $search = trim( (string) $search );
+    if ( '' !== $search ) {
+        $args['s']              = $search;
+        $args['search_columns'] = array( 'post_title', 'post_name' );
+    }
+
+    $posts = get_posts( $args );
 
     $icons = array();
 

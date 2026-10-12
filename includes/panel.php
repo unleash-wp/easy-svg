@@ -367,6 +367,13 @@ function easy_svg_panel_rest(): void {
 			'methods'             => 'GET',
 			'permission_callback' => $perm,
 			'callback'            => 'easy_svg_panel_library_get',
+			'args'                => array(
+				'search' => array(
+					'type'        => 'string',
+					'required'    => false,
+					'description' => __( 'Narrow the list to icons whose name or slug contains this.', 'easy-svg' ),
+				),
+			),
 		)
 	);
 	register_rest_route(
@@ -460,7 +467,7 @@ const EASY_SVG_PANEL_LIBRARY_MAX = 500;
  *
  * @return array{items:array,total:int,truncated:bool}
  */
-function easy_svg_panel_library_payload() {
+function easy_svg_panel_library_payload( string $search = '' ) {
 	if ( ! function_exists( 'easy_svg_icon_page' ) ) {
 		return array(
 			'items'     => array(),
@@ -469,9 +476,12 @@ function easy_svg_panel_library_payload() {
 		);
 	}
 
-	$items = array_values( (array) easy_svg_icon_page( 1, EASY_SVG_PANEL_LIBRARY_MAX ) );
+	$items = array_values( (array) easy_svg_icon_page( 1, EASY_SVG_PANEL_LIBRARY_MAX, $search ) );
 	$total = count( $items );
-	if ( function_exists( 'wp_count_posts' ) ) {
+	// A search reports what it found. Only the unfiltered list can say how many
+	// icons the site has, and "3 of 400" under a search would describe the
+	// library while pretending to describe the search.
+	if ( '' === $search && function_exists( 'wp_count_posts' ) ) {
 		$counts = wp_count_posts( EASY_SVG_ICON_POST_TYPE );
 		$total  = max( $total, (int) ( $counts->publish ?? 0 ) );
 	}
@@ -485,7 +495,8 @@ function easy_svg_panel_library_payload() {
 
 /** GET /library -> the stored icons (id, slug, label, hardened markup). */
 function easy_svg_panel_library_get( $request ) {
-	return new WP_REST_Response( easy_svg_panel_library_payload() );
+	$search = sanitize_text_field( (string) $request->get_param( 'search' ) );
+	return new WP_REST_Response( easy_svg_panel_library_payload( $search ) );
 }
 
 /** A user-readable reason for an add that the store refused. */
