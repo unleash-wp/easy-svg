@@ -64,9 +64,8 @@ export function BulkBar({ count, label, actionLabel, onAction, busy, cancelLabel
         {label}
       </Text>
       {/*
-        accent, not ghost: the ghost variant draws navy text on a navy border,
-        which on this bar is navy on navy. Yellow on navy is the only pairing in
-        the system that reads here, and the bar is a mode with one action in it.
+        Red, because the one action here removes things for good. Yellow is the
+        brand accent and must not double as the destructive colour.
       */}
       <HStack gap="2">
         {cancelLabel ? (
@@ -86,7 +85,10 @@ export function BulkBar({ count, label, actionLabel, onAction, busy, cancelLabel
         ) : null}
         <Button
           size="sm"
-          variant="accent"
+          variant="primary"
+          bg="ui.bad"
+          _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+          _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
           onClick={onAction}
           disabled={busy || !count}
         >

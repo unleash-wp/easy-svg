@@ -42,9 +42,12 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
   }
 
   if (variant === 'primary') {
+    // Hover lightens the navy instead of flipping to yellow: a full colour
+    // swap reads as a state change, and yellow is the brand accent, not a
+    // confirmation colour.
     return (
       <CButton {...common} bg="navy" color="white" boxShadow="sm"
-        _hover={{ bg: 'yellow', color: 'navy' }} _active={{ transform: 'translateY(1px)' }}
+        _hover={{ bg: '#2c4070' }} _active={{ transform: 'translateY(1px)' }}
         _disabled={{ opacity: 0.55, bg: 'navy', color: 'white', cursor: 'default' }} {...rest}>
         {children}
       </CButton>

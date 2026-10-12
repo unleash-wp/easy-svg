@@ -853,6 +853,7 @@ function IconTile({
                 bg="ui.bad"
                 w="full"
                 _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+                _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
                 onClick={onConfirmRemove}
                 disabled={busy}
               >
