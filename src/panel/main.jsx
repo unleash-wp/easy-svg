@@ -12,6 +12,10 @@ installRegistry()
 
 const el = document.getElementById('easy-svg-panel')
 if (el) {
+  // StrictMode stays. With SCRIPT_DEBUG on, WordPress serves the development
+  // React, which runs every effect twice: the panel then shows two /settings
+  // requests, the first aborted at once and carrying no bytes. A customer site
+  // serves the production build and makes one. Measured, not assumed.
   createRoot(el).render(
     <React.StrictMode>
       <ChakraProvider value={system}>
