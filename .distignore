@@ -36,6 +36,11 @@
 # A mac writes these without being asked.
 .DS_Store
 
+# How this plugin is built, checked and translated. None of it runs on a
+# customer's site, and a shell script in a plugin directory is a question a
+# wordpress.org reviewer should never have to ask.
+/scripts
+
 # The panel build toolchain. The compiled build/ ships; the toolchain does not.
 /src
 /node_modules
