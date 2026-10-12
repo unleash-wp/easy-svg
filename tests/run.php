@@ -1596,9 +1596,42 @@ $read_list = static function ( string $file, bool $attributes ): array {
 $distignore = $read_list( $root . '/.distignore', false );
 $exportign  = $read_list( $root . '/.gitattributes', true );
 
-foreach ( array( '.git', '.github', 'tests', 'docs', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', 'README.md', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
+foreach ( array( '.git', '.github', 'tests', 'docs', 'scripts', 'composer.json', 'composer.lock', '.distignore', '.gitattributes', '.gitignore', 'README.md', '.DS_Store', 'vendor/enshrined/svg-sanitize/src/svg-scanner.php', 'vendor/enshrined/svg-sanitize/README.md', 'vendor/enshrined/svg-sanitize/CHANGELOG.md', 'vendor/enshrined/svg-sanitize/composer.json' ) as $kept_out ) {
 	check( "BELL: .distignore keeps {$kept_out} out of the release", in_array( $kept_out, $distignore, true ) );
 }
+
+/*
+ * What SHIPS, named -- not what is kept out.
+ *
+ * The list above is a denylist of things already known to be wrong, so it can
+ * never catch the next one: `scripts/` was added to this repository long after
+ * it was written and would have gone to forty thousand sites unnoticed, because
+ * nothing asked what the release actually contains. This asks. A new top-level
+ * entry fails here until somebody decides, in one place, whether a customer
+ * should have it.
+ */
+$ships = array();
+foreach ( scandir( $root ) ?: array() as $entry ) {
+	if ( '.' === $entry || '..' === $entry || in_array( $entry, $distignore, true ) ) {
+		continue;
+	}
+	// The dev-only folders are git-ignored, so a CI checkout never has them --
+	// but an rsync from a laptop would, and that is how a release gets built by
+	// hand on a bad day.
+	if ( in_array( $entry, array( 'node_modules', '.DS_Store', '.git' ), true ) ) {
+		continue;
+	}
+	$ships[] = $entry;
+}
+sort( $ships );
+$expected = array( 'build', 'easy-svg.php', 'includes', 'index.php', 'languages', 'license.txt', 'readme.txt', 'uninstall.php', 'vendor' );
+if ( $expected !== $ships ) {
+	// Named, because "the release is wrong" without the difference sends the
+	// reader back to rebuild the tree by hand to find out what changed.
+	echo '      unerwartet: ' . implode( ', ', array_diff( $ships, $expected ) ) . "\n";
+	echo '      fehlt:      ' . implode( ', ', array_diff( $expected, $ships ) ) . "\n";
+}
+check( 'BELL: the release contains exactly what it is meant to contain', $expected === $ships );
 check(
 	'BELL: and .gitattributes export-ignores exactly the same set',
 	array_values( array_diff( $distignore, array( '.git' ) ) ) === $exportign
