@@ -191,12 +191,8 @@ msgstr "Das Icon konnte nicht umbenannt werden."
 #. translators: %s: link to the Icons panel.
 #: includes/settings.php:145
 #, php-format
-msgid ""
-"Easy SVG 5.0: your SVG uploads stay on. New in 5.0 — an icon library and a "
-"settings panel. Manage both under %s."
-msgstr ""
-"Easy SVG 5.0: Deine SVG-Uploads bleiben an. Neu in 5.0 — eine Icon-Library "
-"und ein Einstellungs-Panel. Beides findest du unter %s."
+msgid "Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a settings panel. Manage both under %s."
+msgstr "Easy SVG 5.0: Deine SVG-Uploads bleiben an. Neu in 5.0: eine Icon-Library und ein Einstellungs-Panel. Beides findest du unter %s."
 
 #. translators: %s: link to the Icons panel.
 #: includes/settings.php:148
@@ -243,12 +239,8 @@ msgid "Configurator"
 msgstr "Configurator"
 
 #: build/panel.js
-msgid ""
-"Extend the sanitiser allow-list for special icon libraries — with guard-"
-"rails."
-msgstr ""
-"Erweitere die Sanitizer-Allow-Liste für spezielle Icon-Bibliotheken — mit "
-"Guard-Rails."
+msgid "Extend the sanitiser allow-list for special icon libraries. The guard-rails stay."
+msgstr "Erweitere die Sanitizer-Allow-Liste für spezielle Icon-Bibliotheken. Die Guard-Rails bleiben."
 
 #: build/panel.js
 msgid "Audit"
@@ -275,12 +267,8 @@ msgid "General"
 msgstr "Allgemein"
 
 #: build/panel.js
-msgid ""
-"SVG uploads, the icon library and — with Pro — collections, configurator, "
-"audit and licence, all in one place."
-msgstr ""
-"SVG-Uploads, Icon-Library und — mit Pro — Collections, Configurator, Audit "
-"und Lizenz, alles an einem Ort."
+msgid "SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel."
+msgstr "SVG-Uploads und Icon-Library. Mit Pro: Collections, Configurator, Audit und Lizenz, im selben Panel."
 
 #: build/panel.js
 msgid ""
@@ -378,12 +366,8 @@ msgid "Drop your first SVG here"
 msgstr "Leg dein erstes SVG hier ab"
 
 #: build/panel.js
-msgid ""
-"Every file is sanitised and hardened on the way in — the same bar as a media "
-"upload."
-msgstr ""
-"Jede Datei wird beim Hereinkommen bereinigt und gehärtet — dieselbe "
-"Messlatte wie ein Medien-Upload."
+msgid "Every file is sanitised and hardened on the way in. Same bar as a media upload."
+msgstr "Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe Messlatte wie ein Medien-Upload."
 
 #: build/panel.js
 msgid "There is no limit on how many icons you keep."
@@ -476,8 +460,8 @@ msgid "Name"
 msgstr "Name"
 
 #: build/panel.js
-msgid "Optional — a slug is derived from it."
-msgstr "Optional — daraus wird ein Slug abgeleitet."
+msgid "Optional. The slug is derived from it."
+msgstr "Optional. Daraus wird der Slug abgeleitet."
 
 #: build/panel.js
 msgid "e.g. arrow-right"
@@ -491,9 +475,7 @@ msgstr "SVG-Markup"
 msgid ""
 "Paste the <svg>…</svg>. It is sanitised and hardened before it is stored, "
 "exactly like a dropped file."
-msgstr ""
-"Füge das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es "
-"gespeichert wird — genau wie eine abgelegte Datei."
+msgstr "Füge das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es gespeichert wird, genau wie eine abgelegte Datei."
 
 #: build/panel.js
 msgid "Preview"
@@ -512,13 +494,8 @@ msgid "Features"
 msgstr "Features"
 
 #: build/panel.js
-msgid ""
-"Both are off by default. The security layer (every SVG is sanitised, plus "
-"the size cap) is always on — there is no switch for it."
-msgstr ""
-"Beide sind standardmäßig aus. Die Sicherheitsschicht (jede SVG wird "
-"bereinigt, plus das Größen-Limit) ist immer aktiv — dafür gibt es keinen "
-"Schalter."
+msgid "Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it."
+msgstr "Beide sind standardmäßig aus. Die Sicherheitsschicht ist immer aktiv: jede SVG wird bereinigt, und das Größen-Limit greift. Dafür gibt es keinen Schalter."
 
 #: build/panel.js
 msgid "Allow SVG uploads in the media library"
@@ -542,12 +519,8 @@ msgid "Security"
 msgstr "Sicherheit"
 
 #: build/panel.js
-msgid ""
-"The cap limits what the sanitiser will parse — always on, regardless of the "
-"features above."
-msgstr ""
-"Das Limit begrenzt, was der Sanitizer parst — immer aktiv, unabhängig von "
-"den Features oben."
+msgid "The cap limits what the sanitiser will parse. It applies whatever the features above are set to."
+msgstr "Das Limit begrenzt, was der Sanitizer parst. Es greift unabhängig davon, wie die Features oben stehen."
 
 #: build/panel.js
 msgid "Maximum SVG size (MB)"
@@ -578,9 +551,5 @@ msgid "Easy SVG Pro"
 msgstr "Easy SVG Pro"
 
 #: build/panel.js
-msgid ""
-"The agency layer for SVG icons — all right here in the panel, once Pro is "
-"active and licensed."
-msgstr ""
-"Die Agentur-Schicht für SVG-Icons — alles direkt hier im Panel, sobald Pro "
-"aktiv und lizenziert ist."
+msgid "The agency layer for SVG icons. It lives in this panel, once Pro is active and licensed."
+msgstr "Die Agentur-Schicht für SVG-Icons. Sie liegt in diesem Panel, sobald Pro aktiv und lizenziert ist."
