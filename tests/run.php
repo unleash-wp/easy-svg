@@ -1139,10 +1139,42 @@ check( 'BELL: and the icon feature is still there, unlimited', function_exists( 
  */
 check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === EASY_SVG_API );
 
+/*
+ * The panel contract, pinned the same way and for the same reason.
+ *
+ * Its own number because EASY_SVG_API is the sanitiser alone. Pro gates its
+ * menu entries and its raised size ceiling on this one, and it cannot probe for
+ * either: a filter that nothing registers cannot be asked about, and a site
+ * running an older free plugin would simply see Pro's contributions do nothing.
+ */
+check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
+check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+check( 'BELL: at panel API 1 the panel offers its own tabs', array_keys( easy_svg_panel_menu_tabs() ) === array( 'settings', 'library' ) );
+// Exercised, not grepped for: an add-on's entry has to come back out.
+add_filter(
+	'easy_svg_panel_menu_tabs',
+	static function ( $tabs ) {
+		$tabs['licence'] = 'Licence';
+		return $tabs;
+	}
+);
+check( 'BELL: and an add-on can contribute one', isset( easy_svg_panel_menu_tabs()['licence'] ) );
+$GLOBALS['hooks']['easy_svg_panel_menu_tabs'] = array();
+
+check( 'BELL: the ceiling is filterable at panel API 1', function_exists( 'easy_svg_max_mb_ceiling' ) && 20 === easy_svg_max_mb_ceiling() );
+add_filter( 'easy_svg_max_mb_ceiling', static fn() => 100 );
+check( 'BELL: and an add-on can raise it', 100 === easy_svg_max_mb_ceiling() );
+check( 'BELL: a raised ceiling lets the setting through', 100 === easy_svg_sanitize_settings( array( 'max_mb' => 100 ) )['max_mb'] );
+$GLOBALS['hooks']['easy_svg_max_mb_ceiling'] = array();
+check( 'SILENCE: and without the add-on the same value is clamped again', 20 === easy_svg_sanitize_settings( array( 'max_mb' => 100 ) )['max_mb'] );
+check( 'BELL: and the panel still fires its enqueue hook for add-ons', str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), "'easy_svg_panel_enqueue'" ) );
+
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
+check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
+check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 1\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
 // The cap never shipped. A readme explaining its removal would document,
 // to 40,000 sites, a feature they never had.
 check( 'SILENCE: the readme does not mention the cap that never shipped', false === strpos( $readme_text, 'easy_svg_icon_limit' ) && false === stripos( $readme_text, 'capped' ) && 1 !== preg_match( '/\bAPI 2\b|that 2 introduced/', $readme_text ) );
