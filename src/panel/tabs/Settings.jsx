@@ -8,7 +8,9 @@ import { makeApi } from '../api.js'
 // The ceiling the server clamps to (includes/settings.php). Named once here so
 // the field's own `max` and the value sent on save cannot drift apart: typing 999
 // used to pass the field's max silently and come back as 20 from the server.
-const MAX_MB = 20
+// The server's ceiling, sent with the panel: Pro raises it, and a field that
+// offered more than the save accepts would clamp silently.
+const DEFAULT_MAX_MB = 20
 
 // Coerce the server payload to a stable shape. max_mb MUST be a Number: useDirty
 // compares with Object.is, and a string '2' never equals the number 2, so a raw
@@ -47,6 +49,7 @@ function ToggleRow({ id, checked, onChange, label, description }) {
 }
 
 export default function Settings({ ctx }) {
+  const MAX_MB = Number(ctx.maxMbCeiling) > 0 ? Number(ctx.maxMbCeiling) : DEFAULT_MAX_MB
   const api = makeApi(ctx)
   const [form, setForm] = useState(null)
   const snap = useRef(null)

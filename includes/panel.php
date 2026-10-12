@@ -213,6 +213,10 @@ function easy_svg_panel_assets( $hook ): void {
 			'proActive'    => $pro_active,
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
+			// The cap's ceiling, so the field and the slider end where the
+			// server actually clamps -- Pro raises it, and the panel must not
+			// show a range the save will refuse.
+			'maxMbCeiling' => function_exists( 'easy_svg_max_mb_ceiling' ) ? easy_svg_max_mb_ceiling() : 20,
 		)
 	);
 
@@ -270,6 +274,11 @@ function easy_svg_panel_assets( $hook ): void {
 		. '{background:#f5f7fa;border:1px solid #e3e7f0;border-radius:5px;padding:8px 12px}'
 		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],select){min-height:40px}'
 		. '.wrap #easy-svg-panel :is(input,textarea,select):is(:focus,:focus-visible){background:#fff;border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
+		// A field with an icon in front of it needs room for the icon. The rule
+		// above sets one padding for every field and, being unlayered, beats the
+		// per-field value the component asks for -- so the magnifier landed on
+		// the first letters of the placeholder.
+		. '.wrap #easy-svg-panel [data-scope=input-group] input{padding-inline-start:36px}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.

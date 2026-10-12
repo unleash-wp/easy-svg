@@ -56,12 +56,25 @@ function easy_svg_feature_enabled( string $key ): bool {
  * @param mixed $input
  * @return array
  */
+/**
+ * The highest cap this site may set, in megabytes.
+ *
+ * 20 by default: past that a single file keeps the sanitiser's DOM parser busy
+ * long enough to matter, and an SVG that large is an embedded photograph rather
+ * than an icon. An add-on may raise the ceiling through the filter, and that
+ * stays the ONE place the cap is decided -- one number, one field.
+ */
+function easy_svg_max_mb_ceiling(): int {
+	$ceiling = (int) apply_filters( 'easy_svg_max_mb_ceiling', 20 );
+	return max( 1, $ceiling );
+}
+
 function easy_svg_sanitize_settings( $input ): array {
 	$input    = is_array( $input ) ? $input : array();
 	$defaults = easy_svg_settings_defaults();
 
 	$max_mb = isset( $input['max_mb'] ) ? (int) $input['max_mb'] : $defaults['max_mb'];
-	$max_mb = max( 1, min( 20, $max_mb ) );
+	$max_mb = max( 1, min( easy_svg_max_mb_ceiling(), $max_mb ) );
 
 	return array(
 		'svg_upload' => array_key_exists( 'svg_upload', $input ) ? (bool) $input['svg_upload'] : $defaults['svg_upload'],

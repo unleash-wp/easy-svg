@@ -26,7 +26,9 @@ export function SearchField({ id, label, placeholder, value, onChange, maxW = '3
           </Box>
         }
       >
-        <TextInput id={id} type="search" placeholder={placeholder} value={value} onChange={onChange} />
+        {/* ps: the start element sits ON the field, so without room for it the
+            magnifier lands on the first letters of the placeholder. */}
+        <TextInput id={id} type="search" ps="9" placeholder={placeholder} value={value} onChange={onChange} />
       </InputGroup>
     </Box>
   )

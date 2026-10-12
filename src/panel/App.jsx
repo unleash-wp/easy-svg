@@ -23,13 +23,13 @@ const FREE_TABS = [
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', icon: 'sets', group: 'general', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', group: 'tools', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'audit', icon: 'audit', group: 'tools', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', icon: 'licence', group: 'account', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', group: 'pro', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'audit', icon: 'audit', group: 'pro', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', group: 'pro', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'account', order: 95, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 95, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
@@ -100,6 +100,7 @@ export default function App({ config }) {
     proActive: !!config.proActive,
     proLicensed: !!config.proLicensed,
     iconsEnabled: !!config.iconsEnabled,
+    maxMbCeiling: config.maxMbCeiling,
     // Set below, once we know Pro registered a licence tab to switch to.
     onActivate: undefined,
   }
@@ -121,10 +122,7 @@ export default function App({ config }) {
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
       // icon is a keyword this rail resolves, so an extra tab can look like
       // the rest without Pro bundling any icon of ours.
-      // The group an add-on asks for, if it is one this rail draws: a tab that
-      // does not say lands with the general ones rather than in a band named
-      // after who sells it.
-      const group = ['general', 'tools', 'account'].includes(t.group) ? t.group : 'general'
+      const group = ['general', 'pro'].includes(t.group) ? t.group : 'pro'
       return { id: t.id, icon: t.icon, group, label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
 
@@ -171,18 +169,7 @@ export default function App({ config }) {
   // on a desktop paints one frame of horizontal tab chrome before flipping to
   // the rail.
   const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
-  /*
-   * Three groups, so the rail says what a screen is FOR rather than who sells
-   * it: the ones you set up, the ones you run against a library, and the
-   * account. The paid ones are marked by their own badge, which is a property
-   * of the tab, not a place in the menu -- sorting by vendor put the cleaner
-   * and the licence key next to each other for no reason a reader has.
-   */
-  const groupLabels = {
-    general: __('General', 'easy-svg'),
-    tools: __('Tools', 'easy-svg'),
-    account: __('Account', 'easy-svg'),
-  }
+  const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
   // An unknown ?tab= (a stale bookmark, a tab whose feature was switched off)
   // opens the first one instead of an empty well.
   const activeValue = tabs.some((t) => t.id === active) ? active : tabs[0]?.id
@@ -252,7 +239,9 @@ export default function App({ config }) {
       <Tabs.Trigger
         key={t.id}
         value={t.id}
-        gap="2.5"
+        // Collapsed there is nothing to keep apart: the label is zero wide but
+        // the gap still counted, which pushed every icon 5px off centre.
+        gap={{ base: '2.5', md: collapsed ? '0' : '2.5' }}
         minH="44px"
         px="3"
         fontSize="sm"
