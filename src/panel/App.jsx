@@ -7,24 +7,25 @@ import Library from './tabs/Library.jsx'
 import Upsell from './tabs/Upsell.jsx'
 import { LockedTab } from './parts.jsx'
 import { ProBadge, useDropGuard } from '../ui.jsx'
+import { TabIcon } from './icons.jsx'
 
 // Free's own tabs, always functional. English msgids, domain 'easy-svg'; the
 // German (and every other) locale ships as a JS translation file.
 const FREE_TABS = [
-  { id: 'settings', group: 'general', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
-  { id: 'library', group: 'general', order: 20, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
+  { id: 'settings', icon: 'settings', group: 'general', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
+  { id: 'library', icon: 'library', group: 'general', order: 20, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
 ]
 
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'audit', icon: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 export default function App({ config }) {
   const [, force] = useState(0)
@@ -76,7 +77,9 @@ export default function App({ config }) {
     .map((t) => {
       const asked = Number(t.order)
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
-      return { id: t.id, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+      // icon is a keyword this rail resolves, so an extra tab can look like
+      // the rest without Pro bundling any icon of ours.
+      return { id: t.id, icon: t.icon, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
 
   const tabs = [
@@ -154,20 +157,37 @@ export default function App({ config }) {
       <Tabs.Trigger
         key={t.id}
         value={t.id}
-        gap="2"
+        gap="2.5"
         minH="44px"
         px="3"
+        fontSize="sm"
         borderRadius="forge"
         fontWeight="400"
         color={t.locked ? 'ui.muted' : 'ui.text'}
         flexShrink="0"
         w={{ md: 'full' }}
         justifyContent={{ md: 'flex-start' }}
-        _hover={{ bg: 'ui.ghostHover' }}
-        _selected={{ bg: 'brand.100', color: 'ui.heading', fontWeight: '700' }}
+        // Not _hover: hover and selected carry the same specificity, so hovering
+        // the selected row repainted it with the 6% wash while the white text
+        // stayed -- white on near-white, the label gone. Measured before it was
+        // written this way.
+        css={{ '&:hover:not([data-selected])': { bg: 'ui.ghostHover' } }}
+        /*
+         * Selected is the solid navy row the Forge sidebar uses. The Pro chip
+         * inside it is navy too, so on this row it flips to the yellow accent:
+         * only one row can be selected, so the screen still carries exactly one
+         * yellow.
+         */
+        _selected={{
+          bg: 'ui.primary',
+          color: 'white',
+          fontWeight: '700',
+          '& .uwp-pro-badge': { bg: 'ui.accent', color: 'ui.heading' },
+        }}
       >
+        <TabIcon name={t.icon} />
         <Text as="span" truncate>{t.label}</Text>
-        {t.locked ? <ProBadge ml="auto">{groupLabels.pro}</ProBadge> : null}
+        {t.locked ? <ProBadge className="uwp-pro-badge" ml="auto">{groupLabels.pro}</ProBadge> : null}
       </Tabs.Trigger>
     )
   })
@@ -233,8 +253,11 @@ export default function App({ config }) {
             flexShrink="0"
             w={{ md: '240px' }}
             minW={{ md: '240px' }}
-            py={{ md: '2' }}
-            pr={{ md: '3' }}
+            bg={{ md: 'ui.surface' }}
+            borderWidth={{ md: '1px' }}
+            borderColor="ui.border"
+            borderRadius={{ md: 'forge' }}
+            p={{ base: '0', md: '2' }}
             position={{ md: 'sticky' }}
             top={{ md: '42px' }}
             alignSelf={{ md: 'flex-start' }}
