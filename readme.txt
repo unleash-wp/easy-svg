@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.2.0
+Stable tag: 5.2.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
+= 5.2.1 =
+* Housekeeping: three developer scripts were being packaged with the plugin. They never ran on your site and are gone from the download. Nothing else changed.
+
 = 5.2.0 =
 * New: add icons from the media library. The SVGs you have already uploaded are two clicks from being icons — pick several at once, and each one is sanitized and hardened on the way in, exactly as an upload is.
 * New: drop SVG files onto the library to add them. The drop area sits where the icons are, instead of being a tile the size of a postage stamp.
@@ -193,6 +196,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.2.1 =
+Packaging only — three developer files no longer ship with the plugin. No behaviour changed.
 
 = 5.2.0 =
 Add icons straight from the media library, and drop SVG files onto the library to add them. A dropped file that misses no longer navigates away and loses what you had open. Translations cover the newer strings again.
