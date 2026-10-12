@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Stack, Box, Switch } from '@chakra-ui/react'
-import { __ } from '@wordpress/i18n'
+import { __, sprintf } from '@wordpress/i18n'
 import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
@@ -51,6 +51,7 @@ export default function Settings({ ctx }) {
   const [form, setForm] = useState(null)
   const snap = useRef(null)
   const [err, setErr] = useState('')
+  const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
 
   /*
@@ -99,15 +100,30 @@ export default function Settings({ ctx }) {
   async function save() {
     setSaving(true)
     setErr('')
+    setInfo('')
+    // Nearest allowed value, not the default: 0 used to come back as 2 with
+    // nothing said. An empty field still means "the default".
+    const typed = form.max_mb === '' ? NaN : Number(form.max_mb)
+    const sent = Number.isFinite(typed) ? Math.min(MAX_MB, Math.max(1, Math.round(typed))) : 2
     try {
       const resp = await api.post('/settings', {
         svg_upload: !!form.svg_upload,
         icons: !!form.icons,
-        max_mb: Math.min(MAX_MB, Math.max(1, Number(form.max_mb) || 2)),
+        max_mb: sent,
       })
       const n = normalize(resp)
       setForm(n)
       markSaved(n)
+      if (typed !== n.max_mb) {
+        setInfo(
+          sprintf(
+            // translators: 1: the saved cap in MB, 2: the highest allowed cap in MB.
+            __('The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d).', 'easy-svg'),
+            n.max_mb,
+            MAX_MB
+          )
+        )
+      }
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -118,6 +134,7 @@ export default function Settings({ ctx }) {
   function reset() {
     setForm(snap.current)
     setErr('')
+    setInfo('')
   }
 
   return (
@@ -148,7 +165,11 @@ export default function Settings({ ctx }) {
       >
         <FieldRow
           label={__('Maximum SVG size (MB)', 'easy-svg')}
-          description={__('Files larger than this are rejected before the sanitiser runs.', 'easy-svg')}
+          description={sprintf(
+            // translators: %d: the highest allowed cap in MB.
+            __('Files larger than this are rejected before the sanitiser runs. Allowed: 1 to %d MB.', 'easy-svg'),
+            MAX_MB
+          )}
           htmlFor="esw-setting-max-mb"
           control={
             <Box maxW="120px">
@@ -166,6 +187,7 @@ export default function Settings({ ctx }) {
       </Section>
 
       {err ? <Notice bad role="alert">{err}</Notice> : null}
+      {info ? <Notice role="status">{info}</Notice> : null}
 
       <SaveBar
         dirty={dirty}

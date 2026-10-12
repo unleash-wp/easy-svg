@@ -130,6 +130,9 @@ export default function Library({ ctx }) {
   const [selecting, setSelecting] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
   const [editing, setEditing] = useState(null)
+  // Deleting is the one unrecoverable act on this screen, so it takes a second
+  // click: { id } for one tile, { bulk: true } for the selection bar.
+  const [confirming, setConfirming] = useState(null)
   const fileRef = useRef(null)
 
   // One place unwraps a library response, so a route that still answers the old
@@ -139,6 +142,19 @@ export default function Library({ ctx }) {
     setIcons(list)
     setTotal(totalOf(res, list.length))
   }
+
+  // Opening the paste form used to look like a dead click: it rendered below
+  // the fold with nothing focused. Focus pulls it into view.
+  useEffect(() => {
+    if (!pasting) {
+      return
+    }
+    const el = document.getElementById('esw-icon-name')
+    if (el) {
+      el.focus()
+      el.scrollIntoView({ block: 'center' })
+    }
+  }, [pasting])
 
   // Cancelled when the tab goes away, or when the icon library is switched off
   // while a load is in flight. See the note in tabs/Settings.jsx.
@@ -186,6 +202,7 @@ export default function Library({ ctx }) {
   function stopSelecting() {
     setSelecting(false)
     setPicked(new Set())
+    setConfirming(null)
   }
 
   function togglePicked(id, on) {
@@ -352,6 +369,7 @@ export default function Library({ ctx }) {
         take(fresh)
       }
       setPicked(new Set())
+      setConfirming(null)
       setBusy(false)
     }
   }
@@ -583,13 +601,23 @@ export default function Library({ ctx }) {
             <BulkBar
               count={picked.size}
               busy={busy}
-              label={sprintf(
-                // translators: %d: number of icons selected.
-                _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
-                picked.size
-              )}
-              actionLabel={__('Remove', 'easy-svg')}
-              onAction={() => remove(Array.from(picked))}
+              label={
+                confirming && confirming.bulk
+                  ? sprintf(
+                      // translators: %d: number of icons selected.
+                      _n('Remove %d icon? This cannot be undone.', 'Remove %d icons? This cannot be undone.', picked.size, 'easy-svg'),
+                      picked.size
+                    )
+                  : sprintf(
+                      // translators: %d: number of icons selected.
+                      _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
+                      picked.size
+                    )
+              }
+              actionLabel={confirming && confirming.bulk ? __('Remove permanently', 'easy-svg') : __('Remove', 'easy-svg')}
+              onAction={() => (confirming && confirming.bulk ? remove(Array.from(picked)) : setConfirming({ bulk: true }))}
+              cancelLabel={confirming && confirming.bulk ? __('Cancel', 'easy-svg') : null}
+              onCancel={() => setConfirming(null)}
             />
           ) : null}
 
@@ -632,7 +660,10 @@ export default function Library({ ctx }) {
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
-                  onRemove={() => remove(ic.id)}
+                  confirmingDelete={!!(confirming && confirming.id === ic.id)}
+                  onRemove={() => setConfirming({ id: ic.id })}
+                  onConfirmRemove={() => remove(ic.id)}
+                  onCancelRemove={() => setConfirming(null)}
                 />
               ))}
 
@@ -701,7 +732,10 @@ function IconTile({
   onEditCancel,
   onEditSave,
   onCopy,
+  confirmingDelete,
   onRemove,
+  onConfirmRemove,
+  onCancelRemove,
 }) {
   const name = nameOf(ic)
   const isEditing = null !== editing
@@ -714,7 +748,7 @@ function IconTile({
       px="2"
       py="2.5"
       minH="96px"
-      gridColumn={isEditing ? 'span 2' : undefined}
+      gridColumn={isEditing || confirmingDelete ? 'span 2' : undefined}
       css={{
         '& [data-tile-actions]': { opacity: 0, transition: 'opacity .12s ease' },
         '&:hover [data-tile-actions]': { opacity: 1 },
@@ -782,6 +816,30 @@ function IconTile({
                 {__('Save', 'easy-svg')}
               </Button>
               <Button size="sm" variant="ghost" onClick={onEditCancel} disabled={busy}>
+                {__('Cancel', 'easy-svg')}
+              </Button>
+            </HStack>
+          </Stack>
+        ) : confirmingDelete ? (
+          <Stack gap="2" w="full" pt="1" align="center">
+            <Text fontSize="xs" color="ui.heading" fontWeight="700" textAlign="center">
+              {
+                // translators: %s: icon name.
+                sprintf(__('Delete %s? This cannot be undone.', 'easy-svg'), name)
+              }
+            </Text>
+            <HStack gap="2" justify="center">
+              <Button
+                size="sm"
+                variant="primary"
+                bg="ui.bad"
+                _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+                onClick={onConfirmRemove}
+                disabled={busy}
+              >
+                {__('Delete', 'easy-svg')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onCancelRemove} disabled={busy}>
                 {__('Cancel', 'easy-svg')}
               </Button>
             </HStack>
