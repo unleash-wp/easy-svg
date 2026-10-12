@@ -33,9 +33,25 @@ const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, labe
 
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
+/*
+ * Which tab the address bar asks for.
+ *
+ * Every tab has its own entry in the WordPress menu, and those entries are
+ * this one screen with `?tab=` on it -- so the parameter, not the first tab,
+ * decides what opens. Read once per load; an id nothing registered falls
+ * through to the default rather than showing an empty well.
+ */
+function tabFromUrl() {
+  try {
+    return new URLSearchParams(window.location.search).get('tab') || ''
+  } catch {
+    return ''
+  }
+}
+
 export default function App({ config }) {
   const [, force] = useState(0)
-  const [active, setActive] = useState('')
+  const [active, setActive] = useState(tabFromUrl)
   const [missed, setMissed] = useState(false)
   // Remembered across loads, the way the Forge rail is. localStorage throws in
   // a private window rather than returning null, so both ends are guarded and
@@ -152,7 +168,30 @@ export default function App({ config }) {
   // the rail.
   const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
   const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
-  const activeValue = active || tabs[0]?.id
+  // An unknown ?tab= (a stale bookmark, a tab whose feature was switched off)
+  // opens the first one instead of an empty well.
+  const activeValue = tabs.some((t) => t.id === active) ? active : tabs[0]?.id
+
+  /*
+   * The address bar follows the tab, so the menu entry stays highlighted, the
+   * browser's back button works and a link somebody copies opens what they
+   * were looking at. replaceState, not push: a tab is not a page in history.
+   */
+  useEffect(() => {
+    if (!activeValue) {
+      return
+    }
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('tab') === activeValue) {
+        return
+      }
+      url.searchParams.set('tab', activeValue)
+      window.history.replaceState({}, '', url)
+    } catch {
+      /* a blocked history is no reason to break the panel */
+    }
+  }, [activeValue])
 
   // Flatten the rail into triggers with a non-interactive group eyebrow before
   // each new group. The eyebrow is aria-hidden (the tablist stays a clean list

@@ -47,6 +47,7 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * something this plugin controls.
  */
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
+add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
 
@@ -81,6 +82,63 @@ function easy_svg_panel_menu(): void {
 		'manage_options',
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render'
+	);
+
+	/*
+	 * One menu entry per tab, which is how a WordPress admin expects to reach a
+	 * screen: the panel is one page and the entries are that page with `?tab=`
+	 * on it. Pro adds its own through the same filter rather than this file
+	 * learning which tabs a paid add-on registers.
+	 *
+	 * The slug carries the query argument, so WordPress builds the right URL and
+	 * marks the entry current; the shared callback renders the same panel, and
+	 * the app reads the parameter to decide which tab opens.
+	 */
+	foreach ( easy_svg_panel_menu_tabs() as $tab => $label ) {
+		add_submenu_page(
+			EASY_SVG_PANEL_SLUG,
+			$label,
+			$label,
+			'manage_options',
+			EASY_SVG_PANEL_SLUG . '&tab=' . $tab,
+			'easy_svg_panel_render'
+		);
+	}
+}
+
+/**
+ * Mark the entry for the tab that is actually open.
+ *
+ * WordPress decides which submenu item is current from `$plugin_page` alone,
+ * which for every one of these is the same page -- so without this the parent
+ * entry stays highlighted whichever tab somebody opened.
+ *
+ * @param string|null $submenu_file
+ * @return string|null
+ */
+function easy_svg_panel_current_submenu( $submenu_file ) {
+	if ( ! isset( $_GET['page'], $_GET['tab'] ) || EASY_SVG_PANEL_SLUG !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return $submenu_file;
+	}
+	$tab = sanitize_key( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( ! isset( easy_svg_panel_menu_tabs()[ $tab ] ) ) {
+		return $submenu_file;
+	}
+	return EASY_SVG_PANEL_SLUG . '&tab=' . $tab;
+}
+
+/**
+ * The tabs that get their own entry in the menu, as slug => label.
+ *
+ * @return array<string,string>
+ */
+function easy_svg_panel_menu_tabs(): array {
+	return (array) apply_filters(
+		'easy_svg_panel_menu_tabs',
+		array(
+			'settings' => __( 'Settings', 'easy-svg' ),
+			'library'  => __( 'Icon library', 'easy-svg' ),
+		)
 	);
 }
 

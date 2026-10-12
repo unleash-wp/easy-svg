@@ -109,6 +109,8 @@ The hooks below are part of that surface too, because this plugin's own add-on a
 
 `easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
 
+`easy_svg_panel_menu_tabs` filters which tabs get their own entry in the Icons menu, as `tab id => label`. An add-on that registers a tab adds its entry here, and the entry opens the panel with that tab already open.
+
 `easy_svg_max_bytes` is the largest SVG the uploader accepts, in bytes. It defaults to the setting on the Icons screen. A file over it is refused, never truncated.
 
 `easy_svg_max_php_tags` (10) and `easy_svg_max_use_tags` (1000) are two structural bounds checked before sanitizing. They are not about size: the sanitizer rescans the whole document once per nested PHP processing instruction, and once per `<use>` for every element with an id, so a file well under the byte cap can hold a worker for minutes. Raising them raises that ceiling. No icon and no ordinary drawing comes near either.
