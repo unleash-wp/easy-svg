@@ -154,6 +154,28 @@ function easy_svg_panel_assets( $hook ): void {
 		)
 	);
 
+	/*
+	 * Take the page title back from wp-admin.
+	 *
+	 * The panel renders inside `<div class="wrap">`, and core styles `.wrap h1`
+	 * at 23px/400. Chakra emits its own rules inside a CSS layer, and a layered
+	 * rule loses to ANY unlayered one no matter how specific it is -- so the
+	 * design system's h1 token silently lost and the biggest text on the screen
+	 * was neither the right size nor bold. Measured: 23px/400 inside .wrap,
+	 * 24px/700 the moment the class is removed.
+	 *
+	 * This rule is unlayered and carries an id, so it wins. It repeats the two
+	 * numbers from the h1 textStyle in src/theme.js; change them in both or the
+	 * heading drifts. Only size and weight: colour and letter-spacing already
+	 * come through.
+	 */
+	wp_register_style( 'easy-svg-panel', false, array(), (string) filemtime( $build ) );
+	wp_enqueue_style( 'easy-svg-panel' );
+	wp_add_inline_style(
+		'easy-svg-panel',
+		'.wrap #easy-svg-panel h1{font-size:24px;font-weight:700;margin:0;padding:0}'
+	);
+
 	// Let Pro enqueue its extension bundle with ours as a dependency.
 	do_action( 'easy_svg_panel_enqueue', 'easy-svg-panel' );
 }
