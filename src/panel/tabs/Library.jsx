@@ -162,6 +162,22 @@ export default function Library({ ctx }) {
     const list = listOf(res)
     setIcons(list)
     setTotal(totalOf(res, list.length))
+    // A selection may not outlive the list it was made in. Select all with 400
+    // loaded, then search: without this the 397 off-screen ids stay picked, the
+    // bar still counts them, and Remove deletes what nobody can see.
+    setPicked((prev) => {
+      if (0 === prev.size) {
+        return prev
+      }
+      const live = new Set(list.map((ic) => ic.id))
+      const next = new Set()
+      prev.forEach((id) => {
+        if (live.has(id)) {
+          next.add(id)
+        }
+      })
+      return next.size === prev.size ? prev : next
+    })
   }
 
   // Opening the paste form used to look like a dead click: it rendered below
@@ -223,7 +239,9 @@ export default function Library({ ctx }) {
   // What the server answered IS the list: it searched name and slug across the
   // whole library, which is the part a browser-side filter could not reach.
   const shown = all
-  const allPicked = shown.length > 0 && picked.size >= shown.length
+  // Every shown id, not a size comparison: a count can read "all" while the
+  // picked ids belong to a list that is no longer on screen.
+  const allPicked = shown.length > 0 && shown.every((ic) => picked.has(ic.id))
 
   // Every control on this screen depends on the Icon-library toggle, so nothing
   // is revealed while the feature is off; point back to Settings instead.
@@ -244,7 +262,7 @@ export default function Library({ ctx }) {
   }
 
   function toggleAll() {
-    setPicked((prev) => (prev.size >= shown.length ? new Set() : new Set(shown.map((ic) => ic.id))))
+    setPicked((prev) => (shown.every((ic) => prev.has(ic.id)) ? new Set() : new Set(shown.map((ic) => ic.id))))
   }
 
   function togglePicked(id, on) {
@@ -686,7 +704,12 @@ export default function Library({ ctx }) {
 
   // Nothing stored yet: the empty state IS the upload surface. Not a sentence
   // about where to upload, but the place where you do it.
-  if (all.length === 0) {
+  //
+  // Only without a search term. The server answers a search with an empty list
+  // the same way it answers an empty library, and this screen carries no search
+  // field -- so a search that matched nothing would say "drop your first SVG"
+  // to somebody with 400 icons, and take away the field they would clear.
+  if (all.length === 0 && !query.trim()) {
     return (
       <Stack gap="5" maxW="900px">
         {messages}
