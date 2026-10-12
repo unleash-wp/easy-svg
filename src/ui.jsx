@@ -18,7 +18,7 @@ import {
 // The UnleashWP buttons, same rules as the account app:
 // primary = navy, hover turns it yellow; accent = the one yellow call to action;
 // ghost = outline. The "forge" radius is theirs. Ubuntu ships only 400 and
-// 700, so buttons use 700 — 500/600 would render as a faux weight the font
+// 700, so buttons use 700; 500/600 would render as a faux weight the font
 // never shipped.
 export function Button({ variant = 'ghost', size = 'md', danger, children, ...rest }) {
   const common = {
@@ -146,7 +146,7 @@ export function FieldRow({ label, description, control, layout = 'inline', htmlF
   )
 }
 
-// A titled group of settings in ONE Card — the replacement for a stack of
+// A titled group of settings in ONE Card, replacing a stack of
 // identical cards. Put FieldRows (or anything) as children; their dividers do
 // the visual separation.
 export function Section({ title, description, children }) {
@@ -169,7 +169,7 @@ export function Section({ title, description, children }) {
 
 // A sticky action bar for a settings pane: status on the left (announced to
 // screen readers), Reset + Save on the right. Props-only and context-free, so a
-// pro tab in its own ChakraProvider can render it. `dirty` drives everything —
+// pro tab in its own ChakraProvider can render it. `dirty` drives everything:
 // Save is disabled when clean or while `saving`, Reset only shows when dirty.
 export function SaveBar({
   dirty,
@@ -371,12 +371,12 @@ export function SkeletonRows({ rows = 4 }) {
   )
 }
 
-// Small brand badge — the designed replacement for the literal ' 🔒' on pro
+// Small brand badge, the designed replacement for the literal ' 🔒' on pro
 // tabs. The text (e.g. "Pro") is passed in so the tabs localise it.
 //
 // fontWeight is set explicitly: Chakra's badge recipe bases it on `medium`
 // (500), which it emits inside `@layer recipes`, and Ubuntu ships only 400 and
-// 700 — so the default renders as a faux weight the browser synthesises.
+// 700, so the default renders as a faux weight the browser synthesises.
 export function ProBadge({ children, ...rest }) {
   return (
     <Badge colorPalette="brand" variant="solid" size="sm" fontWeight="700" {...rest}>

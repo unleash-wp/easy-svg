@@ -831,7 +831,7 @@ function IconTile({
   )
 }
 
-// An icon-only button, so its whole name comes from aria-label — there is no text
+// An icon-only button, so its whole name comes from aria-label: there is no text
 // to read. Narrow enough that three of them fit a tile at seven columns, and
 // borderless until hovered so a tile is not three boxes in a box.
 function TileAction({ label, onClick, disabled, danger, children }) {

@@ -3,7 +3,7 @@ import { __ } from '@wordpress/i18n'
 import { Button, Card, ProBadge, TextInput } from '../ui.jsx'
 
 // A single-line message panel. `bad` paints the error colours; `role` opts the
-// box into a live region so assistive tech announces it when it mounts — pass
+// box into a live region so assistive tech announces it when it mounts. Pass
 // "alert" for an error and "status" for a confirmation. role=alert implies an
 // assertive live region and role=status a polite one; we set aria-live to match
 // so late-inserted notices are still announced.
@@ -84,7 +84,7 @@ export function BulkBar({ count, label, actionLabel, onAction, busy }) {
 
 // What came of a batch: one row per file, and the verdict in each row is the
 // SERVER's own sentence. There is exactly one place that decides why an icon was
-// refused and it is not the browser, so nothing here phrases a refusal — it only
+// refused and it is not the browser, so nothing here phrases a refusal; it only
 // puts the sentence next to the file that provoked it.
 //
 // role="status" on the box: the batch finished somewhere else on the screen (a
