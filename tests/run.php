@@ -2142,7 +2142,7 @@ foreach ( array( 'react', 'react-dom' ) as $dep ) {
  * 5.1.0 removed the previous pair because their stylesheet called them "SIL
  * OFL" when they are UFL-1.0 -- a wrong licence claim on every deploy. The
  * owner's call is to bundle the face again, declared correctly: these two
- * Ubuntu Sans weights, the UFL text in the same folder, sourced from public/
+ * Ubuntu weights, the UFL text in the same folder, sourced from public/
  * (never shipped) and copied into build/fonts (shipped). A third font file
  * anywhere in the tree fails here until somebody decides it belongs.
  */
@@ -2168,12 +2168,12 @@ foreach ( $walk_all( $root ) as $f ) {
 }
 sort( $font_files );
 $expected_fonts = array(
-	'build/fonts/UbuntuSans-Bold.woff2',
-	'build/fonts/UbuntuSans-Medium.woff2',
-	'public/fonts/UbuntuSans-Bold.woff2',
-	'public/fonts/UbuntuSans-Medium.woff2',
+	'build/fonts/ubuntu-v21-latin-400-normal.woff2',
+	'build/fonts/ubuntu-v21-latin-700-normal.woff2',
+	'public/fonts/ubuntu-v21-latin-400-normal.woff2',
+	'public/fonts/ubuntu-v21-latin-700-normal.woff2',
 );
-check( 'BELL: the two Ubuntu Sans faces and nothing else: ' . implode( ', ', $font_files ), $expected_fonts === $font_files );
+check( 'BELL: the two Ubuntu faces and nothing else: ' . implode( ', ', $font_files ), $expected_fonts === $font_files );
 check( 'BELL: the UFL text travels beside the faces, in source and in the release', is_file( $root . '/public/fonts/LICENCE.txt' ) && is_file( $root . '/build/fonts/LICENCE.txt' ) );
 check( 'SILENCE: the fonts\' source folder stays out of the release', in_array( 'public', $distignore, true ) );
 check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'panel-fonts.css' ) );

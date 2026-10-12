@@ -40,11 +40,12 @@ const config = defineConfig({
           950: { value: '#0f131f' },
         },
       },
-      // Ubuntu Sans ships with the plugin (public/fonts -> build/fonts, UFL 1.0
-      // text beside the files; panel.php declares the faces). Only headings,
-      // tabs and buttons use it -- body text stays system type on purpose.
+      // Ubuntu -- the same two faces Pro's set editor loads -- ships with the
+      // plugin (public/fonts -> build/fonts, UFL 1.0 text beside the files;
+      // panel.php declares them). Only headings, tabs and buttons use it;
+      // body text stays system type on purpose.
       fonts: {
-        heading: { value: '"Ubuntu Sans", Ubuntu, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
+        heading: { value: 'Ubuntu, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
         body: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
       },
       radii: {
