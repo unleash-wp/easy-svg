@@ -12,6 +12,7 @@ import {
   Skeleton,
   SkeletonText,
   EmptyState as CEmptyState,
+  Field,
 } from '@chakra-ui/react'
 
 // The UnleashWP buttons, same rules as the account app:
@@ -72,7 +73,7 @@ export function TextInput({ type = 'text', ...rest }) {
   return (
     <Input type={type} bg="ui.sunk" borderWidth="1px" borderColor="ui.border" borderRadius="forge"
       color="ui.text"
-      _focus={{ bg: 'ui.surface', borderColor: 'ui.primary', boxShadow: '0 0 0 3px var(--chakra-colors-ui-ring)' }}
+      _focus={{ bg: 'ui.surface', borderColor: 'ui.primary', boxShadow: '0 0 0 3px var(--chakra-colors-ui\\.ring)' }}
       {...rest} />
   )
 }
@@ -90,11 +91,15 @@ export function TextInput({ type = 'text', ...rest }) {
 // under it. `control` is the input on the right (inline) or full-width (stack).
 // Every row draws its own bottom divider, so a column of FieldRows reads as a
 // list inside a single Section/Card.
+// Field.Root, not a bare label and a Text: the description was not announced.
+// The label was wired by hand and read correctly, but nothing pointed the
+// control at its explanation, so a screen reader said "Allow SVG uploads,
+// switch" and stopped. Field.HelperText owns an id and Field.Root hands it to
+// the control as aria-describedby, which is the whole reason to use it here.
 export function FieldRow({ label, description, control, layout = 'inline', htmlFor }) {
   const head = (
     <VStack align="start" gap="1">
-      <Text
-        as="label"
+      <Field.Label
         htmlFor={htmlFor}
         fontSize="14px"
         fontWeight="700"
@@ -102,29 +107,42 @@ export function FieldRow({ label, description, control, layout = 'inline', htmlF
         cursor={htmlFor ? 'pointer' : undefined}
       >
         {label}
-      </Text>
+      </Field.Label>
       {description ? (
-        <Text fontSize="13px" fontWeight="400" lineHeight="1.5" color="ui.muted" maxW="52ch">
+        <Field.HelperText fontSize="13px" fontWeight="400" lineHeight="1.5" color="ui.muted" maxW="52ch" mt="0">
           {description}
-        </Text>
+        </Field.HelperText>
       ) : null}
     </VStack>
   )
 
   if (layout === 'stack') {
     return (
-      <Box py="4" borderBottomWidth="1px" borderColor="ui.border">
+      <Field.Root py="4" borderBottomWidth="1px" borderColor="ui.border" gap="0">
         <Box mb="3">{head}</Box>
         <Box>{control}</Box>
-      </Box>
+      </Field.Root>
     )
   }
 
+  // The flex props, not orientation="horizontal": that variant lays the helper
+  // text out under the whole row, which moved the description out from under its
+  // own label. This keeps the row as it was and changes only what the control is
+  // told about itself.
   return (
-    <Flex align="center" justify="space-between" gap="6" py="4" borderBottomWidth="1px" borderColor="ui.border">
+    <Field.Root
+      display="flex"
+      flexDirection="row"
+      alignItems="center"
+      justifyContent="space-between"
+      gap="6"
+      py="4"
+      borderBottomWidth="1px"
+      borderColor="ui.border"
+    >
       {head}
       <Box flexShrink="0">{control}</Box>
-    </Flex>
+    </Field.Root>
   )
 }
 
@@ -361,7 +379,7 @@ export function SkeletonRows({ rows = 4 }) {
 // 700 — so the default renders as a faux weight the browser synthesises.
 export function ProBadge({ children, ...rest }) {
   return (
-    <Badge colorPalette="brand" variant="subtle" size="sm" fontWeight="700" {...rest}>
+    <Badge colorPalette="brand" variant="solid" size="sm" fontWeight="700" {...rest}>
       {children}
     </Badge>
   )

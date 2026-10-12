@@ -5,7 +5,11 @@ import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'
 
 const config = defineConfig({
   globalCss: {
-    '#easy-svg-panel': { fontFamily: 'body', color: 'ui.text' },
+    // colorPalette makes navy the default for every Chakra component that
+    // resolves colorPalette.* (badges, tab indicators, switches). Without it
+    // they fall back to Chakra's zinc and the panel stops looking like ours.
+    // Scoped to the panel root, never html: wp-admin is not ours to restyle.
+    '#easy-svg-panel': { fontFamily: 'body', color: 'ui.text', colorPalette: 'brand' },
     '#easy-svg-panel *:focus-visible': {
       outline: '2px solid',
       outlineColor: 'ui.primary',
@@ -50,37 +54,46 @@ const config = defineConfig({
     },
     semanticTokens: {
       colors: {
+        // Every semantic token carries both surfaces. The dark column is the one
+        // the Forge app ships, copied value for value so the two products are
+        // the same screen in two places. The panel mounts under a `dark` class,
+        // so dark is what renders; the base column stays because it is what the
+        // tokens mean and what any future light switch would use.
         brand: {
-          solid: { value: '{colors.brand.700}' },
+          solid: { value: { base: '{colors.brand.700}', _dark: '{colors.brand.400}' } },
           contrast: { value: '#ffffff' },
-          fg: { value: '{colors.brand.700}' },
-          muted: { value: '{colors.brand.100}' },
-          subtle: { value: '{colors.brand.50}' },
-          emphasized: { value: '{colors.brand.200}' },
-          focusRing: { value: '{colors.brand.600}' },
+          fg: { value: { base: '{colors.brand.700}', _dark: '{colors.brand.300}' } },
+          muted: { value: { base: '{colors.brand.100}', _dark: '{colors.brand.900}' } },
+          subtle: { value: { base: '{colors.brand.50}', _dark: '{colors.brand.950}' } },
+          emphasized: { value: { base: '{colors.brand.200}', _dark: '{colors.brand.800}' } },
+          focusRing: { value: { base: '{colors.brand.600}', _dark: '{colors.brand.400}' } },
         },
-        'ui.bg': { value: '#eef1f6' },
-        'ui.surface': { value: '#ffffff' },
-        'ui.sunk': { value: '#f5f7fa' },
-        'ui.border': { value: '#e3e7f0' },
-        'ui.heading': { value: '{colors.navy}' },
-        'ui.text': { value: '#2b3242' },
-        'ui.muted': { value: '#55607a' },
-        'ui.primary': { value: '{colors.navy}' },
+        'ui.bg': { value: { base: '#eef1f6', _dark: '#0a0e16' } },
+        'ui.surface': { value: { base: '#ffffff', _dark: '#141a27' } },
+        'ui.sunk': { value: { base: '#f5f7fa', _dark: '#1b2231' } },
+        'ui.border': { value: { base: '#e3e7f0', _dark: '#2b3446' } },
+        'ui.heading': { value: { base: '{colors.navy}', _dark: '#eaf0ff' } },
+        'ui.text': { value: { base: '#2b3242', _dark: '#dbe2ef' } },
+        'ui.muted': { value: { base: '#55607a', _dark: '#94a1bd' } },
+        'ui.primary': { value: { base: '{colors.navy}', _dark: '#7c93ff' } },
         'ui.accent': { value: '{colors.yellow}' },
-        'ui.tagbg': { value: '#eceef5' },
-        'ui.tagfg': { value: '{colors.navy}' },
+        'ui.tagbg': { value: { base: '#eceef5', _dark: '#232b40' } },
+        'ui.tagfg': { value: { base: '{colors.navy}', _dark: '#b9c7ff' } },
         'ui.good': { value: '#1a8f57' },
-        'ui.goodInk': { value: '#157a45' },
+        'ui.goodInk': { value: { base: '#157a45', _dark: '#4bd08a' } },
         'ui.bad': { value: '#c0392b' },
-        'ui.goodBg': { value: '#e3f3ea' },
-        'ui.badBg': { value: '#fbe7e4' },
-        'ui.badInk': { value: '#a5342a' },
-        'ui.ghostHover': { value: 'rgba(32,49,89,.06)' },
-        'ui.ring': { value: 'rgba(32,49,89,.26)' },
-        'ui.rangeFill': { value: '#e7ebf5' },
+        'ui.goodBg': { value: { base: '#e3f3ea', _dark: '#13301f' } },
+        'ui.badBg': { value: { base: '#fbe7e4', _dark: '#331a17' } },
+        'ui.badInk': { value: { base: '#a5342a', _dark: '#ff9c8f' } },
+        'ui.ghostHover': { value: { base: 'rgba(32,49,89,.06)', _dark: 'rgba(124,147,255,.12)' } },
+        'ui.ring': { value: { base: 'rgba(32,49,89,.26)', _dark: 'rgba(124,147,255,.42)' } },
+        'ui.rangeFill': { value: { base: '#e7ebf5', _dark: '#26314d' } },
       },
       shadows: {
+        // Plain values, not { base, _dark }: the conditional form on these three
+        // names silently lost to Chakra's own shadows.sm/md/lg and the panel
+        // rendered its zinc default. Measured --chakra-shadows-sm at
+        // color-mix(#18181b ...) until this went back.
         sm: { value: '0 1px 2px rgba(32,49,89,.06)' },
         md: { value: '0 6px 24px rgba(32,49,89,.09)' },
         lg: { value: '0 18px 48px rgba(32,49,89,.16)' },
@@ -92,7 +105,7 @@ const config = defineConfig({
     textStyles: {
       h1: {
         value: {
-          fontSize: '24px',
+          fontSize: '28px',
           fontWeight: '700',
           letterSpacing: '-0.01em',
           color: 'ui.heading',

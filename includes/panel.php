@@ -148,10 +148,48 @@ function easy_svg_panel_assets( $hook ): void {
 			'restRoot'     => esc_url_raw( trailingslashit( rest_url() ) ),
 			'nonce'        => wp_create_nonce( 'wp_rest' ),
 			'icon'         => easy_svg_panel_icon_uri( '#203159' ),
+			// Shown in the panel's footer, the way Forge shows its own. Read from
+			// the plugin header rather than a constant, because the header is the
+			// single version source this plugin has.
+			'version'      => (string) ( get_file_data( $main, array( 'Version' => 'Version' ) )['Version'] ?? '' ),
 			'proActive'    => $pro_active,
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
 		)
+	);
+
+	/*
+	 * Take the page title back from wp-admin.
+	 *
+	 * The panel renders inside `<div class="wrap">`, and core styles `.wrap h1`
+	 * at 23px/400. Chakra emits its own rules inside a CSS layer, and a layered
+	 * rule loses to ANY unlayered one no matter how specific it is -- so the
+	 * design system's h1 token silently lost and the biggest text on the screen
+	 * was neither the right size nor bold. Measured: 23px/400 inside .wrap,
+	 * 24px/700 the moment the class is removed.
+	 *
+	 * This rule is unlayered and carries an id, so it wins. It repeats the two
+	 * numbers from the h1 textStyle in src/theme.js; change them in both or the
+	 * heading drifts. Only size and weight: colour and letter-spacing already
+	 * come through.
+	 */
+	wp_register_style( 'easy-svg-panel', false, array(), (string) filemtime( $build ) );
+	wp_enqueue_style( 'easy-svg-panel' );
+	wp_add_inline_style(
+		'easy-svg-panel',
+		// The panel paints its own canvas. wp-admin's body is #f0f0f0, a neutral
+		// grey; ours is the cool ui.bg the rest of UnleashWP uses, so the white
+		// header, rail and cards sit on the same ground they do in the account app
+		// and in Forge. Scoped to this screen's body class, so no other admin page
+		// changes colour.
+		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
+		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0}'
+		// Same reason as the heading: core styles input:focus with its own blue
+		// ring, unlayered, and a layered Chakra rule cannot beat it however
+		// specific. Measured: the field focused to #3858e9 at 1.5px, which is
+		// WordPress's accent, not ours. These two values repeat ui.primary and
+		// ui.ring from src/theme.js; change them in both.
+		. '.wrap #easy-svg-panel :is(input,textarea,select):focus{border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.

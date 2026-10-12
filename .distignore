@@ -25,6 +25,11 @@
 /AGENTS.md
 /docs
 /tests
+# Agent skills, installed per project by `npx skills add`. Tooling for whoever
+# changes this code, and a customer is neither.
+/.agents
+/.claude
+/skills-lock.json
 
 # Non-runtime files inside the bundled library. Its LICENSE stays.
 # svg-scanner.php is a command-line tool, not part of the sanitiser.

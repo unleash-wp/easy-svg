@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Flex, HStack, Heading, Text, Tabs, Image, useBreakpointValue } from '@chakra-ui/react'
+import { Box, Flex, HStack, Heading, Text, Tabs, Image, Separator, chakra, useBreakpointValue } from '@chakra-ui/react'
 import { __ } from '@wordpress/i18n'
 import { getRegistry } from './registry.js'
 import Settings from './tabs/Settings.jsx'
@@ -7,29 +7,56 @@ import Library from './tabs/Library.jsx'
 import Upsell from './tabs/Upsell.jsx'
 import { LockedTab } from './parts.jsx'
 import { ProBadge, useDropGuard } from '../ui.jsx'
+import { TabIcon, BurgerIcon } from './icons.jsx'
+import logo from '../brand/unleashwp-logo-full.svg?raw'
+
+// The XML prolog is legal in a file and illegal inside an inline <svg>.
+const LOGO = logo.replace(/<\?xml[^?]*\?>/, '').trim()
 
 // Free's own tabs, always functional. English msgids, domain 'easy-svg'; the
 // German (and every other) locale ships as a JS translation file.
 const FREE_TABS = [
-  { id: 'settings', group: 'general', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
-  { id: 'library', group: 'general', order: 20, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
+  { id: 'settings', icon: 'settings', group: 'general', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
+  { id: 'library', icon: 'library', group: 'general', order: 20, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
 ]
 
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries — with guard-rails.', 'easy-svg') },
-  { id: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'audit', icon: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 70, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+
+const RAIL_KEY = 'easy-svg:rail-collapsed'
 
 export default function App({ config }) {
   const [, force] = useState(0)
   const [active, setActive] = useState('')
   const [missed, setMissed] = useState(false)
+  // Remembered across loads, the way the Forge rail is. localStorage throws in
+  // a private window rather than returning null, so both ends are guarded and
+  // a blocked store just means the rail opens expanded every time.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(RAIL_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleRail = () =>
+    setCollapsed((c) => {
+      const next = !c
+      try {
+        window.localStorage.setItem(RAIL_KEY, next ? '1' : '0')
+      } catch {
+        /* a blocked store is not a reason to refuse the click */
+      }
+      return next
+    })
 
   // Dropping a file next to a zone used to open it in the tab and take the
   // panel with it. The guard swallows those; this says where the file goes, and
@@ -76,7 +103,9 @@ export default function App({ config }) {
     .map((t) => {
       const asked = Number(t.order)
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
-      return { id: t.id, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+      // icon is a keyword this rail resolves, so an extra tab can look like
+      // the rest without Pro bundling any icon of ours.
+      return { id: t.id, icon: t.icon, group: 'pro', label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
 
   const tabs = [
@@ -132,21 +161,36 @@ export default function App({ config }) {
   let lastGroup = null
   tabs.forEach((t) => {
     if (t.group !== lastGroup) {
+      // Collapsed there is no room for the word, and dropping it entirely would
+      // run the two groups together, so the break becomes a rule.
       rail.push(
-        <Box
-          key={`eyebrow-${t.group}`}
-          aria-hidden="true"
-          display={{ base: 'none', md: 'block' }}
-          textStyle="caption"
-          textTransform="uppercase"
-          letterSpacing="0.06em"
-          color="ui.muted"
-          px="3"
-          pt={rail.length ? '4' : '1'}
-          pb="1.5"
-        >
-          {groupLabels[t.group] || t.group}
-        </Box>
+        collapsed ? (
+          <Box
+            key={`eyebrow-${t.group}`}
+            aria-hidden="true"
+            display={{ base: 'none', md: 'block' }}
+            mx="2"
+            mt={rail.length ? '3' : '1'}
+            mb="1.5"
+            borderTopWidth={rail.length ? '1px' : '0'}
+            borderColor="ui.border"
+          />
+        ) : (
+          <Box
+            key={`eyebrow-${t.group}`}
+            aria-hidden="true"
+            display={{ base: 'none', md: 'block' }}
+            textStyle="caption"
+            textTransform="uppercase"
+            letterSpacing="0.06em"
+            color="ui.muted"
+            px="3"
+            pt={rail.length ? '4' : '1'}
+            pb="1.5"
+          >
+            {groupLabels[t.group] || t.group}
+          </Box>
+        )
       )
       lastGroup = t.group
     }
@@ -154,29 +198,133 @@ export default function App({ config }) {
       <Tabs.Trigger
         key={t.id}
         value={t.id}
-        gap="2"
+        gap="2.5"
+        minH="44px"
+        px="3"
+        fontSize="sm"
+        borderRadius="forge"
         fontWeight="400"
         color={t.locked ? 'ui.muted' : 'ui.text'}
         flexShrink="0"
         w={{ md: 'full' }}
-        justifyContent={{ md: 'flex-start' }}
-        _selected={{ fontWeight: '700', color: 'ui.heading' }}
+        // Collapsed the icon is the whole control, so it centres and the name
+        // moves to the tooltip. aria-label keeps it named for a screen reader,
+        // which never sees the label element disappear.
+        justifyContent={{ base: 'flex-start', md: collapsed ? 'center' : 'flex-start' }}
+        px={{ base: '3', md: collapsed ? '0' : '3' }}
+        title={collapsed ? t.label : undefined}
+        aria-label={collapsed ? t.label : undefined}
+        // Not _hover: hover and selected carry the same specificity, so hovering
+        // the selected row repainted it with the 6% wash while the white text
+        // stayed -- white on near-white, the label gone. Measured before it was
+        // written this way.
+        css={{ '&:hover:not([data-selected])': { bg: 'ui.ghostHover' } }}
+        /*
+         * Selected is the solid navy row the Forge sidebar uses. The Pro chip
+         * inside it is navy too, so on this row it flips to the yellow accent:
+         * only one row can be selected, so the screen still carries exactly one
+         * yellow.
+         */
+        _selected={{
+          bg: 'ui.primary',
+          color: 'white',
+          fontWeight: '700',
+          '& .uwp-pro-badge': { bg: 'ui.accent', color: 'navy' },
+          // White on the dark ui.primary measures 2.81, under AA. Forge does not
+          // use a coloured row on dark at all, so neither does this: the row
+          // becomes the surface and the text stays ui.heading, at 13.37.
+          _dark: { bg: 'ui.surface', color: 'ui.heading' },
+        }}
       >
-        <Text as="span" truncate>{t.label}</Text>
-        {t.locked ? <ProBadge ml="auto">{groupLabels.pro}</ProBadge> : null}
+        <TabIcon name={t.icon} />
+        <Text as="span" truncate display={{ base: 'inline', md: collapsed ? 'none' : 'inline' }}>
+          {t.label}
+        </Text>
+        {t.locked ? (
+          <ProBadge
+            className="uwp-pro-badge"
+            ml="auto"
+            display={{ base: 'inline-flex', md: collapsed ? 'none' : 'inline-flex' }}
+          >
+            {groupLabels.pro}
+          </ProBadge>
+        ) : null}
       </Tabs.Trigger>
     )
   })
 
   return (
-    <Box maxW="1100px" pr={{ base: '3', md: '6' }} pb="10">
-      <HStack gap="3" align="center" mb="1" mt="2">
-        {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-        <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
-      </HStack>
-      <Text color="ui.muted" mb="5" fontSize="sm" maxW="72ch">
-        {__('SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place.', 'easy-svg')}
-      </Text>
+    /*
+      One window, not three cards. Header across the top, sidebar flush against
+      the content well, footer across the bottom, all inside a single surface
+      with one border -- the shape the Forge app has. overflow hidden so the
+      corners cut the sidebar and the well instead of them poking out.
+    */
+    <Box
+      maxW="1100px"
+      mr={{ base: '3', md: '6' }}
+      mb="10"
+      bg="ui.surface"
+      borderWidth="1px"
+      borderColor="ui.border"
+      borderRadius="forge"
+      overflow="hidden"
+    >
+      {/*
+        The panel's own header bar, the shape the Forge app uses: a white
+        surface on the canvas, so the screen opens with something of ours
+        rather than straight into wp-admin's grey.
+      */}
+      {/*
+        The brand bar, the way the Forge app opens: the UnleashWP wordmark, a
+        rule, then which product this is. The screen's own title is not here --
+        it belongs with the screen, in the well below, which is where Forge puts
+        it too.
+      */}
+      <Flex
+        borderBottomWidth="1px"
+        borderColor="ui.border"
+        px={{ base: '4', md: '5' }}
+        h="65px"
+        align="center"
+        gap="3.5"
+      >
+        {/*
+          Only from md up: below that the rail is a horizontal strip and there is
+          nothing to collapse. Same placement as Forge, left of the wordmark.
+        */}
+        <chakra.button
+          type="button"
+          onClick={toggleRail}
+          hideBelow="md"
+          aria-label={collapsed ? __('Expand menu', 'easy-svg') : __('Collapse menu', 'easy-svg')}
+          aria-expanded={!collapsed}
+          title={collapsed ? __('Expand menu', 'easy-svg') : __('Collapse menu', 'easy-svg')}
+          display="grid"
+          placeItems="center"
+          w="34px"
+          h="34px"
+          ml="-1.5"
+          borderRadius="forge"
+          color="ui.muted"
+          _hover={{ bg: 'ui.ghostHover', color: 'ui.heading' }}
+          _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+        >
+          <BurgerIcon />
+        </chakra.button>
+        <Box
+          role="img"
+          aria-label="UnleashWP"
+          css={{ '& svg': { height: '1.75rem', width: 'auto', display: 'block' } }}
+          dangerouslySetInnerHTML={{ __html: LOGO }}
+        />
+        <Separator orientation="vertical" h="1.25rem" borderColor="ui.border" hideBelow="sm" />
+        {/* The product name, not a sentence: nothing to translate, so no msgid. */}
+        <Text color="ui.heading" fontWeight="700" fontSize="0.9688rem" hideBelow="sm">
+          Easy SVG
+        </Text>
+        {config.version ? <Text ml="auto" textStyle="caption">{`v${config.version}`}</Text> : null}
+      </Flex>
 
       {missed ? (
         <Box
@@ -207,7 +355,7 @@ export default function App({ config }) {
         value={activeValue}
         onValueChange={(e) => setActive(e.value)}
         orientation={orientation}
-        variant="line"
+        variant="plain"
         colorPalette="brand"
         lazyMount
         unmountOnExit
@@ -221,20 +369,24 @@ export default function App({ config }) {
           the content column to 244px beside a 240px rail). minW="0" so a wide
           table scrolls inside the column rather than pushing the rail away.
         */}
-        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap={{ base: '0', md: '6' }} flex="1" minW="0">
+        <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap="0" flex="1" minW="0">
           <Tabs.List
-            borderColor="ui.border"
             flexWrap="nowrap"
             overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
             flexShrink="0"
-            w={{ md: '240px' }}
-            minW={{ md: '240px' }}
-            py={{ md: '2' }}
-            pr={{ md: '3' }}
-            position={{ md: 'sticky' }}
-            top={{ md: '42px' }}
-            alignSelf={{ md: 'flex-start' }}
+            w={{ md: collapsed ? '68px' : '216px' }}
+            minW={{ md: collapsed ? '68px' : '216px' }}
+            transition="width .16s ease"
+            overflow="hidden"
+            // On dark the rail has no fill of its own: the selected row IS the
+            // surface, raised off the canvas, which is what Forge does there.
+            // On light it is the other way round, a white rail with a navy row.
+            borderRightWidth={{ md: '1px' }}
+            borderBottomWidth={{ base: '1px', md: '0' }}
+            borderColor="ui.border"
+            p={{ base: '2', md: '3' }}
+            alignSelf="stretch"
           >
             {rail}
           </Tabs.List>
@@ -242,11 +394,19 @@ export default function App({ config }) {
             flex="1"
             minW="0"
             bg="ui.bg"
-            borderRadius={{ md: 'forge' }}
-            px={{ base: '0', md: '6' }}
+            px={{ base: '4', md: '6' }}
             py={{ base: '5', md: '6' }}
-            mt={{ base: '5', md: '0' }}
           >
+            <Box mb="5">
+              <HStack gap="3" align="center">
+                {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
+                <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
+              </HStack>
+              <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
+                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+              </Text>
+            </Box>
+
             {/*
               _closed hides a panel that is in the DOM but not current.
               lazyMount/unmountOnExit on the Root are a render strategy, not a
@@ -265,6 +425,25 @@ export default function App({ config }) {
           </Box>
         </Flex>
       </Tabs.Root>
+
+      {/*
+        The footer Forge has and this panel did not. It closes the canvas, and
+        it answers the first question a support mail has to answer anyway:
+        which version is installed.
+      */}
+      <Flex
+        px={{ base: '4', md: '5' }}
+        py="3"
+        borderTopWidth="1px"
+        borderColor="ui.border"
+        align="center"
+        justify="space-between"
+        gap="3"
+        wrap="wrap"
+      >
+        <Text textStyle="caption">{__('Easy SVG by UnleashWP', 'easy-svg')}</Text>
+        {config.version ? <Text textStyle="caption">{`v${config.version}`}</Text> : null}
+      </Flex>
     </Box>
   )
 }

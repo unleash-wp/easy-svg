@@ -9,7 +9,7 @@ export default function Upsell({ proTabs = [], onActivate }) {
     <Stack gap="5" maxW="720px">
       <Section
         title={__('Easy SVG Pro', 'easy-svg')}
-        description={__('The agency layer for SVG icons — all right here in the panel, once Pro is active and licensed.', 'easy-svg')}
+        description={__('The agency layer for SVG icons. It lives in this panel, once Pro is active and licensed.', 'easy-svg')}
       >
         <Stack gap="4" pt="1">
           {proTabs.map((t) => (

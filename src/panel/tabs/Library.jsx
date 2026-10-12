@@ -502,7 +502,7 @@ export default function Library({ ctx }) {
           <Box {...dashed(zone.isOver)} px="4" py="8" {...zone.props}>
             <EmptyState
               title={__('Drop your first SVG here', 'easy-svg')}
-              description={__('Every file is sanitised and hardened on the way in — the same bar as a media upload.', 'easy-svg')}
+              description={__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
               action={
                 <Stack gap="3" align="center">
                   <HStack gap="3" flexWrap="wrap" justify="center">
@@ -612,7 +612,12 @@ export default function Library({ ctx }) {
             outlineOffset="-2px"
             {...grid.props}
           >
-            <SimpleGrid columns={{ base: 3, md: 5, lg: 7 }} gap="3">
+            {/*
+              Two columns on a phone, not three: a tile has to be wide enough
+              for its three actions at a real touch size, and at three columns
+              it is about 100px, which forces them down to 28px side by side.
+            */}
+            <SimpleGrid columns={{ base: 2, md: 5, lg: 7 }} gap="3">
               {shown.map((ic) => (
                 <IconTile
                   key={ic.id}
@@ -838,9 +843,13 @@ function TileAction({ label, onClick, disabled, danger, children }) {
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      px="1.5"
-      py="1.5"
-      minW="0"
+      px={{ base: '2', md: '1.5' }}
+      py={{ base: '2', md: '1.5' }}
+      // 44 on a phone, where three of these sit side by side in one tile and a
+      // 28px target between two others is a mis-tap. On md and up it is a mouse,
+      // and the tile goes back to holding three narrow buttons.
+      minW={{ base: '44px', md: '0' }}
+      minH={{ base: '44px', md: '0' }}
       borderColor="transparent"
     >
       {children}
@@ -855,7 +864,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
     <Box borderWidth="1px" borderColor="ui.border" borderRadius="forge" bg="ui.sunk" px="4" pt="1" pb="4">
       <FieldRow
         label={__('Name', 'easy-svg')}
-        description={__('Optional — a slug is derived from it.', 'easy-svg')}
+        description={__('Optional. The slug is derived from it.', 'easy-svg')}
         htmlFor="esw-icon-name"
         control={
           <Box maxW="220px">
