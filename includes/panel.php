@@ -183,15 +183,16 @@ function easy_svg_panel_assets( $hook ): void {
 		// and in Forge. Scoped to this screen's body class, so no other admin page
 		// changes colour.
 		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
-		// Ubuntu Sans, bundled (UFL 1.0, licence text beside the files in
-		// build/fonts). Medium for the tab labels, Bold for titles and buttons;
-		// the theme's heading stack names the family and falls back to system
-		// type wherever these two files have not loaded.
-		. '@font-face{font-family:"Ubuntu Sans";font-style:normal;font-weight:500;font-display:swap;'
-		. 'src:url(' . esc_url( plugins_url( 'build/fonts/UbuntuSans-Medium.woff2', $main ) ) . ') format("woff2")}'
-		. '@font-face{font-family:"Ubuntu Sans";font-style:normal;font-weight:700;font-display:swap;'
-		. 'src:url(' . esc_url( plugins_url( 'build/fonts/UbuntuSans-Bold.woff2', $main ) ) . ') format("woff2")}'
-		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0;font-family:"Ubuntu Sans",Ubuntu,system-ui,sans-serif}'
+		// Ubuntu, bundled (UFL 1.0, licence text beside the files in
+		// build/fonts) -- the same two faces Pro's set editor loads, so the
+		// whole product renders one brand type. The theme's heading stack
+		// names the family and falls back to system type where it is not
+		// loaded.
+		. '@font-face{font-family:Ubuntu;font-style:normal;font-weight:400;font-display:swap;'
+		. 'src:url(' . esc_url( plugins_url( 'build/fonts/ubuntu-v21-latin-400-normal.woff2', $main ) ) . ') format("woff2")}'
+		. '@font-face{font-family:Ubuntu;font-style:normal;font-weight:700;font-display:swap;'
+		. 'src:url(' . esc_url( plugins_url( 'build/fonts/ubuntu-v21-latin-700-normal.woff2', $main ) ) . ') format("woff2")}'
+		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0;font-family:Ubuntu,system-ui,sans-serif}'
 		// Same reason as the heading: core's forms.css is unlayered and beats any
 		// layered Chakra rule, so without these the fields sit there in raw
 		// wp-admin grey (#949494, 2px radius). Base and focus repeat ui.sunk,
