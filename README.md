@@ -6,7 +6,7 @@ shown with its real dimensions in the media library, and â€” on WordPress 7.1+ â
 usable as an icon in the core Icon block.
 
 - **Live on wordpress.org:** https://wordpress.org/plugins/easy-svg
-- **Requires:** PHP 8.0+, WordPress 6.0+ (icons need 7.1+)
+- **Requires:** PHP 8.0+, WordPress 6.6+ (icons need 7.1+)
 - **License:** GPL-3.0-or-later
 
 The user-facing readme that wordpress.org renders is [`readme.txt`](readme.txt).

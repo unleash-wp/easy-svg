@@ -12,21 +12,21 @@ Upload SVG files safely. Every SVG is sanitized automatically, shown in your med
 
 == Description ==
 
-Easy SVG Support lets you upload SVG files to WordPress and use them like any other image: in the block editor, as a featured image, in galleries and in custom fields. You choose what runs: turn on SVG uploads and the icon library under Settings → Easy SVG, and the plugin adds exactly what you switch on and nothing else.
+Easy SVG Support lets you upload SVG files to WordPress and use them like any other image: in the block editor, as a featured image, in galleries and in custom fields. You choose what runs: turn on SVG uploads and the icon library under Icons → Settings, and the plugin adds exactly what you switch on and nothing else.
 
 SVG is not a picture format like PNG or JPEG. It is XML, and an SVG file can carry scripts, event handlers and references to other files or websites. That is why WordPress does not allow SVG uploads on its own. Easy SVG Support cleans every SVG with the maintained [enshrined/svg-sanitize](https://github.com/darylldoyle/svg-sanitizer) library before the file is stored, and refuses files it cannot clean.
 
-The plugin deliberately stays small and quiet: one settings page under Settings → Easy SVG, no tracking, no external requests and no ads. Features are off until you turn them on, so a fresh install changes nothing you did not ask for.
+The plugin deliberately stays small and quiet: one Icons screen, no tracking, no external requests and no ads. Features are off until you turn them on, so a fresh install changes nothing you did not ask for.
 
 = Features =
 
-* **Everything is opt-in.** Turn SVG uploads and the icon library on or off, and set the parse-size limit, under Settings → Easy SVG. Sanitising and the size limit are always on — they are the safety, not features you switch off.
+* **Everything is opt-in.** Turn SVG uploads and the icon library on or off, and set the parse-size limit, under Icons → Settings. Sanitising and the size limit are always on — they are the safety, not features you switch off.
 * **SVG uploads** in the media library and the block editor.
 * **Automatic sanitizing** before an SVG is stored, on the usual ways a file arrives: the media uploader, the REST API, WP-CLI `wp media import` and `media_sideload_image()`.
 * **A safety net for everything else.** Every new SVG attachment is checked once more when it is created, for example by an importer. A file that cannot be cleaned is removed again.
 * **XML-RPC uploads** are accepted only when the SVG is already clean.
 * **SVG previews** in the media library.
-* **SVG icons for the Icon block** (WordPress 7.1 and newer). Keep your own icons under Media → SVG icons and use them in the Icon block. Each icon is sanitized with the same rules as your uploads.
+* **SVG icons for the Icon block** (WordPress 7.1 and newer). Keep your own icons under Icons → Icon library and use them in the Icon block. Each icon is sanitized with the same rules as your uploads.
 * **Developer filters** to allow additional SVG tags and attributes.
 * **Lightweight.** No scripts or stylesheets on your front end.
 * **Translation-ready.**
@@ -62,12 +62,12 @@ Add-ons can call `easy_svg_sanitizer()` to clean markup exactly the way the site
 1. In your WordPress admin, go to Plugins → Add New Plugin.
 2. Search for "Easy SVG Support".
 3. Click Install Now, then Activate.
-4. Go to Settings → Easy SVG and turn on SVG uploads (and the icon library, if you want it).
+4. Go to Icons → Settings and turn on SVG uploads (and the icon library, if you want it).
 5. Upload SVG files in the media library as usual.
 
 You can also download the plugin as a zip file and upload it under Plugins → Add New Plugin → Upload Plugin.
 
-Features are off until you switch them on under Settings → Easy SVG, so a fresh install adds nothing you did not ask for. A site that was already using SVG uploads keeps them when it updates.
+Features are off until you switch them on under Icons → Settings, so a fresh install adds nothing you did not ask for. A site that was already using SVG uploads keeps them when it updates.
 
 == Frequently Asked Questions ==
 
@@ -89,9 +89,9 @@ Use the `esw_svg_allowed_tags` and `esw_svg_allowed_attributes` filters, for exa
 
 = How do I use the SVG icons? =
 
-On WordPress 7.1 or newer, go to Media → SVG icons. Give the icon a name, choose an SVG file and add it. The icon then appears in the Icon block under "Easy SVG". You need the capability to edit theme options, because an icon is available site-wide. There is no limit on how many icons you keep.
+Go to Icons → Icon library. Give the icon a name, choose an SVG file and add it. On WordPress 7.1 or newer the icon then appears in the Icon block under "Easy SVG". You need administrator rights, because an icon is available site-wide. There is no limit on how many icons you keep.
 
-On older WordPress versions the SVG icons screen does not appear, and everything else works as before.
+On older WordPress versions the Icon block does not exist, so the icons do not appear in the editor; rendering them with `easy_svg_icon()` works there too.
 
 = For add-on authors: what may an add-on rely on? =
 
