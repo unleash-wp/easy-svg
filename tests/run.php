@@ -2137,18 +2137,14 @@ foreach ( array( 'react', 'react-dom' ) as $dep ) {
 }
 
 /*
- * No font file ships with this plugin.
+ * Exactly two font files ship, with their licence beside them.
  *
- * It carried two Ubuntu woff2 whose stylesheet called them "SIL OFL". They are
- * not: fontsource lists the family as UFL-1.0, the Ubuntu Font Licence, which
- * Debian holds to fall short of its free-software guidelines. wordpress.org
- * requires everything in the directory to be GPL-compatible, fonts included,
- * and `/assets` is not in .distignore -- so both files went to SVN on every
- * deploy, under a licence claim that was wrong in the one direction that
- * matters.
- *
- * Asserted over the whole tree rather than the one folder they sat in, because
- * the next one would not land there.
+ * 5.1.0 removed the previous pair because their stylesheet called them "SIL
+ * OFL" when they are UFL-1.0 -- a wrong licence claim on every deploy. The
+ * owner's call is to bundle the face again, declared correctly: these two
+ * Ubuntu Sans weights, the UFL text in the same folder, sourced from public/
+ * (never shipped) and copied into build/fonts (shipped). A third font file
+ * anywhere in the tree fails here until somebody decides it belongs.
  */
 $font_files = array();
 $walk_all   = static function ( string $dir ) use ( &$walk_all ): array {
@@ -2170,7 +2166,16 @@ foreach ( $walk_all( $root ) as $f ) {
 		$font_files[] = str_replace( $root . '/', '', $f );
 	}
 }
-check( 'BELL: no font file ships: ' . implode( ', ', $font_files ), array() === $font_files );
+sort( $font_files );
+$expected_fonts = array(
+	'build/fonts/UbuntuSans-Bold.woff2',
+	'build/fonts/UbuntuSans-Medium.woff2',
+	'public/fonts/UbuntuSans-Bold.woff2',
+	'public/fonts/UbuntuSans-Medium.woff2',
+);
+check( 'BELL: the two Ubuntu Sans faces and nothing else: ' . implode( ', ', $font_files ), $expected_fonts === $font_files );
+check( 'BELL: the UFL text travels beside the faces, in source and in the release', is_file( $root . '/public/fonts/LICENCE.txt' ) && is_file( $root . '/build/fonts/LICENCE.txt' ) );
+check( 'SILENCE: the fonts\' source folder stays out of the release', in_array( 'public', $distignore, true ) );
 check( 'SILENCE: and nothing enqueues a font stylesheet', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'panel-fonts.css' ) );
 
 // The panel's type stack must start at a face the machine already has.

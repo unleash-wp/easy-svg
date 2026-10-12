@@ -202,8 +202,9 @@ export default function App({ config }) {
         minH="44px"
         px="3"
         fontSize="sm"
+        fontFamily="heading"
         borderRadius="forge"
-        fontWeight="400"
+        fontWeight="500"
         color={t.locked ? 'ui.muted' : 'ui.text'}
         flexShrink="0"
         w={{ md: 'full' }}

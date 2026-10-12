@@ -37,6 +37,8 @@
 /scripts
 
 # The panel build toolchain. The compiled build/ ships; the toolchain does not.
+# public/ is the fonts' source of truth; vite copies it into build/fonts.
+/public
 /src
 /node_modules
 /package.json

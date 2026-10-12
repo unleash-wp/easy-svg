@@ -31,6 +31,7 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
     // minH to stay compact inside a tile.
     fontSize: '14px',
     lineHeight: '20px',
+    fontFamily: 'heading',
     minH: '40px',
     py: '2',
     _focusVisible: { outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' },
