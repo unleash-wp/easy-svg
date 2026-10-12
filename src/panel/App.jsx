@@ -19,7 +19,7 @@ const FREE_TABS = [
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
   { id: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries — with guard-rails.', 'easy-svg') },
+  { id: 'configurator', group: 'pro', order: 40, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
   { id: 'audit', group: 'pro', order: 50, label: __('Audit', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
   { id: 'licence', group: 'pro', order: 60, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
@@ -175,7 +175,7 @@ export default function App({ config }) {
         <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
       </HStack>
       <Text color="ui.muted" mb="5" fontSize="sm" maxW="72ch">
-        {__('SVG uploads, the icon library and — with Pro — collections, configurator, audit and licence, all in one place.', 'easy-svg')}
+        {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
       </Text>
 
       {missed ? (
