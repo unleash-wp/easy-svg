@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.3.0
+Stable tag: 5.3.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,11 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
+= 5.3.1 =
+* Fix: uninstalling now removes the plugin's settings and schema marker as well, on every site of a network.
+* Fix: the readme described menus that no longer exist. Everything lives under Icons.
+* Change: only the German translation ships with the plugin. The bundled empty translation files for 14 other languages blocked future community translations from wordpress.org; those now load as soon as they exist.
+
 = 5.3.0 =
 * New: the Icons screen has a header, a footer and a sidebar you can collapse, with an icon for each section.
 * Fix: screen readers now read the description of each setting, not only its name.
@@ -202,6 +207,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.3.1 =
+Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
 
 = 5.3.0 =
 A new layout for the Icons screen and clearer messages when an SVG cannot be added. No settings change on update.
