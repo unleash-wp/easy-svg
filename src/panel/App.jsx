@@ -71,7 +71,7 @@ export default function App({ config }) {
     if (!reg) return undefined
     const unsub = reg.subscribe(() => force((n) => n + 1))
     // Pro may have registered a tab between this component's first render and
-    // this effect running — that notify had no listener yet and was lost. Read
+    // this effect running; that notify had no listener yet and was lost. Read
     // the registry once more now so a registration caught in that race shows.
     force((n) => n + 1)
     return unsub
@@ -113,7 +113,7 @@ export default function App({ config }) {
     ...PRO_TABS.map((t) => {
       const got = reg && reg.get(t.id)
       // The licence tab is how a site activates, so a registered real one is
-      // always usable — otherwise you could never enter a key to unlock the
+      // always usable; otherwise you could never enter a key to unlock the
       // rest. Every other pro tab stays locked until the licence is in (and the
       // pro REST refuses it server-side regardless of what the client shows).
       const unlocked = got && (t.id === 'licence' || config.proLicensed)
@@ -348,7 +348,7 @@ export default function App({ config }) {
         lazyMount + unmountOnExit belong on the Root: ark lifts them out with
         splitRenderStrategyProps() into a context the panels read, so only the
         active tab's content is ever in the DOM. (On Tabs.Content they are not
-        split out and React warns about unknown DOM props — which is what the
+        split out and React warns about unknown DOM props, which is what the
         earlier hand-rolled gate here was working around.)
       */}
       <Tabs.Root
@@ -363,7 +363,7 @@ export default function App({ config }) {
         {/*
           flex="1" is load-bearing: with orientation="vertical" the Tabs.Root is
           itself a flex container, so this row is a flex ITEM and would default
-          to flex:0 1 auto — shrink-wrapping to its content instead of filling
+          to flex:0 1 auto, shrink-wrapping to its content instead of filling
           the panel. Every tab was already content-sized; it only showed on a tab
           whose content is intrinsically narrow (Pro's Icon Sets table collapsed
           the content column to 244px beside a 240px rail). minW="0" so a wide

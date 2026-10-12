@@ -1,4 +1,4 @@
-// Chakra UI v3 design system — the UnleashWP tokens (navy brand, yellow accent,
+// Chakra UI v3 design system: the UnleashWP tokens (navy brand, yellow accent,
 // Ubuntu, the "forge" radius), copied from the account app so the editor looks
 // like the rest of UnleashWP. Light-only here: it lives inside wp-admin.
 import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'

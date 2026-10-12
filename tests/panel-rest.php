@@ -1,6 +1,6 @@
 <?php
 /**
- * REST /easy-svg/v1/settings — the panel's read/write of the free settings.
+ * REST /easy-svg/v1/settings: the panel's read/write of the free settings.
  *
  * The write must be held to the same bar as the Settings-API form it replaces:
  * the server re-runs easy_svg_sanitize_settings(), so max_mb is clamped and the
