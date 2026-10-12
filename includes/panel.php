@@ -184,6 +184,12 @@ function easy_svg_panel_assets( $hook ): void {
 		// changes colour.
 		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
 		. '.wrap #easy-svg-panel h1{font-size:24px;font-weight:700;margin:0;padding:0}'
+		// Same reason as the heading: core styles input:focus with its own blue
+		// ring, unlayered, and a layered Chakra rule cannot beat it however
+		// specific. Measured: the field focused to #3858e9 at 1.5px, which is
+		// WordPress's accent, not ours. These two values repeat ui.primary and
+		// ui.ring from src/theme.js; change them in both.
+		. '.wrap #easy-svg-panel :is(input,textarea,select):focus{border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.

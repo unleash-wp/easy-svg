@@ -612,7 +612,12 @@ export default function Library({ ctx }) {
             outlineOffset="-2px"
             {...grid.props}
           >
-            <SimpleGrid columns={{ base: 3, md: 5, lg: 7 }} gap="3">
+            {/*
+              Two columns on a phone, not three: a tile has to be wide enough
+              for its three actions at a real touch size, and at three columns
+              it is about 100px, which forces them down to 28px side by side.
+            */}
+            <SimpleGrid columns={{ base: 2, md: 5, lg: 7 }} gap="3">
               {shown.map((ic) => (
                 <IconTile
                   key={ic.id}
@@ -838,9 +843,13 @@ function TileAction({ label, onClick, disabled, danger, children }) {
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      px="1.5"
-      py="1.5"
-      minW="0"
+      px={{ base: '2', md: '1.5' }}
+      py={{ base: '2', md: '1.5' }}
+      // 44 on a phone, where three of these sit side by side in one tile and a
+      // 28px target between two others is a mis-tap. On md and up it is a mouse,
+      // and the tile goes back to holding three narrow buttons.
+      minW={{ base: '44px', md: '0' }}
+      minH={{ base: '44px', md: '0' }}
       borderColor="transparent"
     >
       {children}
