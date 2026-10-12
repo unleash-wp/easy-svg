@@ -269,7 +269,24 @@ export default function App({ config }) {
       borderWidth="1px"
       borderColor="ui.border"
       borderRadius="forge"
-      overflow="hidden"
+      /*
+        NOT overflow:hidden, however much the corners want it: an overflow
+        other than visible makes this box the scroll container for everything
+        inside, and a sticky descendant then sticks to a box that does not
+        scroll -- which is to say it does not stick at all. The header and the
+        footer carry the corner radii instead, and they are the only children
+        that reach a corner.
+      */
+      /*
+        One offset for everything that sticks. wp-admin fixes its bar only
+        above 782px -- its own breakpoint, not a Chakra one -- and below that
+        the bar scrolls away, so keeping its height here pinned the header 46px
+        down with nothing in the gap.
+      */
+      css={{
+        '--esw-admin-bar': 'var(--wp-admin--admin-bar--height, 0px)',
+        '@media screen and (max-width: 782px)': { '--esw-admin-bar': '0px' },
+      }}
     >
       {/*
         The panel's own header bar, the shape the Forge app uses: a white
@@ -285,10 +302,17 @@ export default function App({ config }) {
       <Flex
         borderBottomWidth="1px"
         borderColor="ui.border"
+        borderTopRadius="forge"
         px={{ base: '4', md: '5' }}
         h="65px"
         align="center"
         gap="3.5"
+        // Sticky under wp-admin's bar, which is fixed on desktop. Its own
+        // background, because the content well scrolls underneath it.
+        position="sticky"
+        top="var(--esw-admin-bar)"
+        zIndex="3"
+        bg="ui.surface"
       >
         {/*
           Only from md up: below that the rail is a horizontal strip and there is
@@ -373,21 +397,30 @@ export default function App({ config }) {
         <Flex direction={{ base: 'column', md: 'row' }} align="stretch" gap="0" flex="1" minW="0">
           <Tabs.List
             flexWrap="nowrap"
-            overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
             flexShrink="0"
             w={{ md: collapsed ? '68px' : '216px' }}
             minW={{ md: collapsed ? '68px' : '216px' }}
             transition="width .16s ease"
-            overflow="hidden"
+            overflowX={{ base: 'auto', md: 'hidden' }}
+            overflowY={{ base: 'hidden', md: 'auto' }}
+            /*
+              Sticky below the header, so the tabs stay reachable down a long
+              screen. flex-start rather than stretch: a stretched item is as
+              tall as the row and has nowhere to travel. The max height is what
+              is left of the viewport under wp-admin's bar and our header, so a
+              rail longer than that scrolls on its own instead of being cut.
+            */
+            position={{ md: 'sticky' }}
+            top={{ md: 'calc(var(--esw-admin-bar) + 65px)' }}
+            maxH={{ md: 'calc(100vh - var(--esw-admin-bar) - 65px)' }}
             // On dark the rail has no fill of its own: the selected row IS the
             // surface, raised off the canvas, which is what Forge does there.
             // On light it is the other way round, a white rail with a navy row.
-            borderRightWidth={{ md: '1px' }}
             borderBottomWidth={{ base: '1px', md: '0' }}
             borderColor="ui.border"
             p={{ base: '2', md: '3' }}
-            alignSelf="stretch"
+            alignSelf={{ base: 'stretch', md: 'flex-start' }}
           >
             {rail}
           </Tabs.List>
@@ -395,6 +428,11 @@ export default function App({ config }) {
             flex="1"
             minW="0"
             bg="ui.bg"
+            // The rule between rail and well, drawn by the well: the rail is
+            // only as tall as its tabs now, so its own right border would stop
+            // halfway down the screen.
+            borderLeftWidth={{ md: '1px' }}
+            borderColor="ui.border"
             px={{ base: '4', md: '6' }}
             py={{ base: '5', md: '6' }}
           >
@@ -437,6 +475,8 @@ export default function App({ config }) {
         py="3"
         borderTopWidth="1px"
         borderColor="ui.border"
+        borderBottomRadius="forge"
+        bg="ui.surface"
         align="center"
         justify="space-between"
         gap="3"
