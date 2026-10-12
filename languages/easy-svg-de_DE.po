@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-12T21:20:36+00:00\n"
+"POT-Creation-Date: 2026-10-12T21:24:07+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -247,8 +247,8 @@ msgid "Save failed (%d)"
 msgstr "Speichern fehlgeschlagen (%d)"
 
 #: build/panel.js
-msgid "Icon Sets"
-msgstr "Icon Sets"
+msgid "Icon sets"
+msgstr "Icon-Sets"
 
 #: build/panel.js
 msgid ""
@@ -312,11 +312,11 @@ msgstr ""
 
 #: build/panel.js
 msgid ""
-"SVG uploads and the icon library. With Pro: collections, configurator, audit "
-"and licence, in the same panel."
+"Upload SVGs safely and keep your icons in one place. Every screen for this "
+"plugin is in the menu on the left."
 msgstr ""
-"SVG-Uploads und Icon-Library. Mit Pro: Collections, Configurator, Audit und "
-"Lizenz, im selben Panel."
+"SVGs sicher hochladen und die Icons an einem Ort halten. Jeder Screen dieses "
+"Plugins steht im Menü links."
 
 #: build/panel.js
 msgid "Easy SVG by UnleashWP"
@@ -600,8 +600,8 @@ msgstr ""
 "(1 bis %2$d)."
 
 #: build/panel.js
-msgid "Features"
-msgstr "Features"
+msgid "What runs"
+msgstr "Was läuft"
 
 #: build/panel.js
 msgid ""
@@ -655,6 +655,14 @@ msgstr ""
 "%d MB."
 
 #: build/panel.js
+msgid "Increase the size cap"
+msgstr "Größen-Limit erhöhen"
+
+#: build/panel.js
+msgid "Decrease the size cap"
+msgstr "Größen-Limit verringern"
+
+#: build/panel.js
 msgid "%d MB"
 msgstr ""
 
@@ -685,6 +693,19 @@ msgid ""
 msgstr ""
 "Die Agentur-Schicht für SVG-Icons. Sie liegt in diesem Panel, sobald Pro "
 "aktiv und lizenziert ist."
+
+#~ msgid "Icon Sets"
+#~ msgstr "Icon Sets"
+
+#~ msgid ""
+#~ "SVG uploads and the icon library. With Pro: collections, configurator, "
+#~ "audit and licence, in the same panel."
+#~ msgstr ""
+#~ "SVG-Uploads und Icon-Library. Mit Pro: Collections, Configurator, Audit "
+#~ "und Lizenz, im selben Panel."
+
+#~ msgid "Features"
+#~ msgstr "Features"
 
 #~ msgid "Tools"
 #~ msgstr "Werkzeuge"

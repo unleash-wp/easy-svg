@@ -23,7 +23,7 @@ const FREE_TABS = [
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon Sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
   { id: 'configurator', icon: 'configurator', group: 'pro', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
   { id: 'audit', icon: 'audit', group: 'pro', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
   { id: 'licence', icon: 'licence', group: 'pro', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
@@ -508,7 +508,7 @@ export default function App({ config }) {
                 <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
               </HStack>
               <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-                {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+                {__('Upload SVGs safely and keep your icons in one place. Every screen for this plugin is in the menu on the left.', 'easy-svg')}
               </Text>
             </Box>
 

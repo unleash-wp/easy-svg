@@ -155,7 +155,7 @@ export default function Settings({ ctx }) {
   return (
     <Stack gap="5" maxW="760px">
       <Section
-        title={__('Features', 'easy-svg')}
+        title={__('What runs', 'easy-svg')}
         description={__('Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it.', 'easy-svg')}
       >
         <ToggleRow
@@ -227,7 +227,12 @@ export default function Settings({ ctx }) {
                   w="92px"
                   flexShrink="0"
                 >
-                  <NumberInput.Control />
+                  {/* Chakra labels the steppers in English; they are buttons a
+                      screen reader reads out, so they get our strings. */}
+                  <NumberInput.Control>
+                    <NumberInput.IncrementTrigger aria-label={__('Increase the size cap', 'easy-svg')} />
+                    <NumberInput.DecrementTrigger aria-label={__('Decrease the size cap', 'easy-svg')} />
+                  </NumberInput.Control>
                   <NumberInput.Input
                     id="esw-setting-max-mb"
                     bg="ui.sunk"
