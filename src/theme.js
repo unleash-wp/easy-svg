@@ -5,7 +5,11 @@ import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'
 
 const config = defineConfig({
   globalCss: {
-    '#easy-svg-panel': { fontFamily: 'body', color: 'ui.text' },
+    // colorPalette makes navy the default for every Chakra component that
+    // resolves colorPalette.* (badges, tab indicators, switches). Without it
+    // they fall back to Chakra's zinc and the panel stops looking like ours.
+    // Scoped to the panel root, never html: wp-admin is not ours to restyle.
+    '#easy-svg-panel': { fontFamily: 'body', color: 'ui.text', colorPalette: 'brand' },
     '#easy-svg-panel *:focus-visible': {
       outline: '2px solid',
       outlineColor: 'ui.primary',
