@@ -90,10 +90,13 @@ const config = defineConfig({
         'ui.rangeFill': { value: { base: '#e7ebf5', _dark: '#26314d' } },
       },
       shadows: {
-        // Navy-tinted on light; on dark a tint disappears, so these go to black.
-        sm: { value: { base: '0 1px 2px rgba(32,49,89,.06)', _dark: '0 1px 2px rgba(0,0,0,.4)' } },
-        md: { value: { base: '0 6px 24px rgba(32,49,89,.09)', _dark: '0 6px 24px rgba(0,0,0,.4)' } },
-        lg: { value: { base: '0 18px 48px rgba(32,49,89,.16)', _dark: '0 18px 48px rgba(0,0,0,.55)' } },
+        // Plain values, not { base, _dark }: the conditional form on these three
+        // names silently lost to Chakra's own shadows.sm/md/lg and the panel
+        // rendered its zinc default. Measured --chakra-shadows-sm at
+        // color-mix(#18181b ...) until this went back.
+        sm: { value: '0 1px 2px rgba(32,49,89,.06)' },
+        md: { value: '0 6px 24px rgba(32,49,89,.09)' },
+        lg: { value: '0 18px 48px rgba(32,49,89,.16)' },
       },
     },
     // Typography scale for the panel. Only 400 and 700 are used: Ubuntu ships
@@ -102,7 +105,7 @@ const config = defineConfig({
     textStyles: {
       h1: {
         value: {
-          fontSize: '24px',
+          fontSize: '28px',
           fontWeight: '700',
           letterSpacing: '-0.01em',
           color: 'ui.heading',

@@ -232,7 +232,7 @@ export default function App({ config }) {
         borderBottomWidth="1px"
         borderColor="ui.border"
         px={{ base: '4', md: '5' }}
-        py="3.5"
+        h="65px"
         align="center"
         gap="3.5"
       >
@@ -298,8 +298,8 @@ export default function App({ config }) {
             overflowX={{ base: 'auto', md: 'visible' }}
             gap="1"
             flexShrink="0"
-            w={{ md: '240px' }}
-            minW={{ md: '240px' }}
+            w={{ md: '216px' }}
+            minW={{ md: '216px' }}
             // On dark the rail has no fill of its own: the selected row IS the
             // surface, raised off the canvas, which is what Forge does there.
             // On light it is the other way round, a white rail with a navy row.
