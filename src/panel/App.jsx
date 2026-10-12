@@ -194,13 +194,29 @@ export default function App({ config }) {
 
   return (
     <Box maxW="1100px" pr={{ base: '3', md: '6' }} pb="10">
-      <HStack gap="3" align="center" mb="1" mt="2">
-        {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-        <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
-      </HStack>
-      <Text color="ui.muted" mb="5" fontSize="sm" maxW="72ch">
-        {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
-      </Text>
+      {/*
+        The panel's own header bar, the shape the Forge app uses: a white
+        surface on the canvas, so the screen opens with something of ours
+        rather than straight into wp-admin's grey.
+      */}
+      <Box
+        bg="ui.surface"
+        borderWidth="1px"
+        borderColor="ui.border"
+        borderRadius="forge"
+        px={{ base: '4', md: '5' }}
+        py="4"
+        mt="2"
+        mb="5"
+      >
+        <HStack gap="3" align="center">
+          {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
+          <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
+        </HStack>
+        <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
+          {__('SVG uploads and the icon library. With Pro: collections, configurator, audit and licence, in the same panel.', 'easy-svg')}
+        </Text>
+      </Box>
 
       {missed ? (
         <Box
@@ -291,6 +307,25 @@ export default function App({ config }) {
           </Box>
         </Flex>
       </Tabs.Root>
+
+      {/*
+        The footer Forge has and this panel did not. It closes the canvas, and
+        it answers the first question a support mail has to answer anyway:
+        which version is installed.
+      */}
+      <Flex
+        mt="8"
+        pt="4"
+        borderTopWidth="1px"
+        borderColor="ui.border"
+        align="center"
+        justify="space-between"
+        gap="3"
+        wrap="wrap"
+      >
+        <Text textStyle="caption">{__('Easy SVG by UnleashWP', 'easy-svg')}</Text>
+        {config.version ? <Text textStyle="caption">{`v${config.version}`}</Text> : null}
+      </Flex>
     </Box>
   )
 }

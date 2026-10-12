@@ -148,6 +148,10 @@ function easy_svg_panel_assets( $hook ): void {
 			'restRoot'     => esc_url_raw( trailingslashit( rest_url() ) ),
 			'nonce'        => wp_create_nonce( 'wp_rest' ),
 			'icon'         => easy_svg_panel_icon_uri( '#203159' ),
+			// Shown in the panel's footer, the way Forge shows its own. Read from
+			// the plugin header rather than a constant, because the header is the
+			// single version source this plugin has.
+			'version'      => (string) ( get_file_data( $main, array( 'Version' => 'Version' ) )['Version'] ?? '' ),
 			'proActive'    => $pro_active,
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
@@ -173,7 +177,13 @@ function easy_svg_panel_assets( $hook ): void {
 	wp_enqueue_style( 'easy-svg-panel' );
 	wp_add_inline_style(
 		'easy-svg-panel',
-		'.wrap #easy-svg-panel h1{font-size:24px;font-weight:700;margin:0;padding:0}'
+		// The panel paints its own canvas. wp-admin's body is #f0f0f0, a neutral
+		// grey; ours is the cool ui.bg the rest of UnleashWP uses, so the white
+		// header, rail and cards sit on the same ground they do in the account app
+		// and in Forge. Scoped to this screen's body class, so no other admin page
+		// changes colour.
+		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
+		. '.wrap #easy-svg-panel h1{font-size:24px;font-weight:700;margin:0;padding:0}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.
