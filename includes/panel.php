@@ -468,7 +468,12 @@ function easy_svg_panel_library_payload( string $search = '' ) {
 	return array(
 		'items'     => $items,
 		'total'     => $total,
-		'truncated' => $total > count( $items ),
+		// Under a search the total IS the match count, so the unfiltered
+		// comparison can never be true there: a full page is then the only
+		// signal left that the cap cut the matches short.
+		'truncated' => '' === $search
+			? $total > count( $items )
+			: count( $items ) >= EASY_SVG_PANEL_LIBRARY_MAX,
 	);
 }
 

@@ -77,9 +77,13 @@ function wp_delete_post( $id, $force = false ): bool {
 	$GLOBALS['deleted'][] = (int) $id;
 	return true;
 }
-function easy_svg_icon_page( $page, $per_page ): array {
+// The third parameter is the search term, and it is declared because PHP drops
+// a surplus argument to a user-defined function without a word: a two-argument
+// stub kept the suite green while it could not see the term at all.
+function easy_svg_icon_page( $page, $per_page, $search = '' ): array {
 	$GLOBALS['asked_per_page'] = $per_page;
-	$n = (int) ( $GLOBALS['stored_icons'] ?? 0 );
+	$GLOBALS['asked_search']   = $search;
+	$n = (int) ( $GLOBALS['stored_matches'] ?? $GLOBALS['stored_icons'] ?? 0 );
 	return array_fill( 0, min( $n, (int) $per_page ), array( 'id' => 1, 'slug' => 'x', 'label' => 'X', 'content' => '<svg/>' ) );
 }
 function wp_count_posts( $type ) {
@@ -438,7 +442,29 @@ check( 'SILENCE: the cap is what was asked for, not a bigger read', EASY_SVG_PAN
 // first, so `response.items ?? response` is the whole migration.
 check( 'BELL: items is a list, not a map', array_keys( $payload['items'] ) === range( 0, count( $payload['items'] ) - 1 ) );
 
-$GLOBALS['stored_icons'] = 0;
+// The search goes to the store, and a search reports ITS OWN count.
+$GLOBALS['stored_icons']   = 812;
+$GLOBALS['stored_matches'] = 3;
+$GLOBALS['asked_search']   = 'untouched';
+$payload                   = easy_svg_panel_library_payload( 'pfeil' );
+check( 'BELL: the term reaches the store', 'pfeil' === $GLOBALS['asked_search'] );
+check( 'BELL: a search answers with its matches', 3 === count( $payload['items'] ) );
+check( 'BELL: and counts them, not the library', 3 === $payload['total'] );
+check( 'SILENCE: three matches out of 812 is not a truncated list', false === $payload['truncated'] );
+
+// A search that fills the cap: the total cannot reveal the cut, so the page
+// size has to.
+$GLOBALS['stored_matches'] = 900;
+$payload                   = easy_svg_panel_library_payload( 'pfeil' );
+check( 'BELL: a capped search says it was cut short', true === $payload['truncated'] );
+
+// Without a term the store is asked without one, so the unfiltered count rules.
+$GLOBALS['stored_matches'] = null;
+$payload                   = easy_svg_panel_library_payload();
+check( 'SILENCE: no term reaches the store when none was given', '' === $GLOBALS['asked_search'] );
+
+$GLOBALS['stored_icons']   = 0;
+$GLOBALS['stored_matches'] = null;
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"
