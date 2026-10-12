@@ -40,12 +40,11 @@ const config = defineConfig({
           950: { value: '#0f131f' },
         },
       },
-      // No webfont ships with this plugin -- see includes/panel.php for why --
-      // so the stack starts at the system face. Ubuntu stays in it, after the
-      // system fonts rather than before: a Linux machine that already has it
-      // gets the UnleashWP type for free, and nobody downloads anything.
+      // Ubuntu Sans ships with the plugin (public/fonts -> build/fonts, UFL 1.0
+      // text beside the files; panel.php declares the faces). Only headings,
+      // tabs and buttons use it -- body text stays system type on purpose.
       fonts: {
-        heading: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
+        heading: { value: '"Ubuntu Sans", Ubuntu, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
         body: { value: 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif' },
       },
       radii: {
@@ -135,7 +134,9 @@ const config = defineConfig({
       },
       caption: {
         value: {
-          fontSize: '12px',
+          // 13px, the same step as descriptions: the audit found four body
+          // sizes on one screen, and the raster allows two (13 and 14).
+          fontSize: '13px',
           fontWeight: '400',
           color: 'ui.muted',
         },

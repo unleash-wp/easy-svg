@@ -48,7 +48,7 @@ export function SearchField({ id, label, placeholder, value, onChange, maxW = '3
 // screen is in rather than as another row of the card it sits in. The count is
 // announced, because the thing that changed it (a click on a tile far away) does
 // not announce itself.
-export function BulkBar({ count, label, actionLabel, onAction, busy }) {
+export function BulkBar({ count, label, actionLabel, onAction, busy, cancelLabel, onCancel }) {
   return (
     <HStack
       bg="navy"
@@ -64,14 +64,31 @@ export function BulkBar({ count, label, actionLabel, onAction, busy }) {
         {label}
       </Text>
       {/*
-        accent, not ghost: the ghost variant draws navy text on a navy border,
-        which on this bar is navy on navy. Yellow on navy is the only pairing in
-        the system that reads here, and the bar is a mode with one action in it.
+        Red, because the one action here removes things for good. Yellow is the
+        brand accent and must not double as the destructive colour.
       */}
       <HStack gap="2">
+        {cancelLabel ? (
+          // White on navy, borderless: the ghost variant's navy-on-navy is
+          // unreadable here, and the accent button must stay the only loud one.
+          <Button
+            size="sm"
+            variant="ghost"
+            color="white"
+            borderColor="whiteAlpha.500"
+            _hover={{ color: 'white', borderColor: 'white', bg: 'whiteAlpha.200' }}
+            onClick={onCancel}
+            disabled={busy}
+          >
+            {cancelLabel}
+          </Button>
+        ) : null}
         <Button
           size="sm"
-          variant="accent"
+          variant="primary"
+          bg="ui.bad"
+          _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+          _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
           onClick={onAction}
           disabled={busy || !count}
         >

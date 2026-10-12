@@ -17,6 +17,7 @@
 /vendor/enshrined/svg-sanitize/composer.json export-ignore
 .DS_Store export-ignore
 /scripts export-ignore
+/public export-ignore
 /src export-ignore
 /node_modules export-ignore
 /package.json export-ignore

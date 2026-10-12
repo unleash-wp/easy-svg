@@ -26,7 +26,14 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
     borderRadius: 'forge',
     fontWeight: '700',
     h: 'auto',
-    py: size === 'sm' ? '2.5' : '3',
+    // The 40px control raster, 14px label like every other label. minH, not
+    // h: a wrapping label may still grow, and the tile actions pass their own
+    // minH to stay compact inside a tile.
+    fontSize: '14px',
+    lineHeight: '20px',
+    fontFamily: 'heading',
+    minH: '40px',
+    py: '2',
     _focusVisible: { outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' },
     'data-variant': variant,
   }
@@ -42,9 +49,12 @@ export function Button({ variant = 'ghost', size = 'md', danger, children, ...re
   }
 
   if (variant === 'primary') {
+    // Hover lightens the navy instead of flipping to yellow: a full colour
+    // swap reads as a state change, and yellow is the brand accent, not a
+    // confirmation colour.
     return (
       <CButton {...common} bg="navy" color="white" boxShadow="sm"
-        _hover={{ bg: 'yellow', color: 'navy' }} _active={{ transform: 'translateY(1px)' }}
+        _hover={{ bg: '#2c4070' }} _active={{ transform: 'translateY(1px)' }}
         _disabled={{ opacity: 0.55, bg: 'navy', color: 'white', cursor: 'default' }} {...rest}>
         {children}
       </CButton>
@@ -120,7 +130,9 @@ export function FieldRow({ label, description, control, layout = 'inline', htmlF
     return (
       <Field.Root py="4" borderBottomWidth="1px" borderColor="ui.border" gap="0">
         <Box mb="3">{head}</Box>
-        <Box>{control}</Box>
+        {/* Full width: Field.Root does not stretch its children, so a bare Box
+            shrinks to the control's content and a full-width control lies. */}
+        <Box w="full">{control}</Box>
       </Field.Root>
     )
   }
@@ -326,17 +338,17 @@ export function useDropGuard(onMiss) {
 
 // Centred empty state: optional icon, a title, a muted line, an optional action
 // (pass a <Button>). All copy comes in as props.
-export function EmptyState({ icon, title, description, action }) {
+export function EmptyState({ icon, title, description, action, contentProps, ...rest }) {
   return (
-    <CEmptyState.Root>
-      <CEmptyState.Content>
+    <CEmptyState.Root {...rest}>
+      <CEmptyState.Content {...contentProps}>
         {icon ? <CEmptyState.Indicator>{icon}</CEmptyState.Indicator> : null}
         <VStack textAlign="center" gap="1">
           <CEmptyState.Title fontSize="16px" fontWeight="700" color="ui.heading">
             {title}
           </CEmptyState.Title>
           {description ? (
-            <CEmptyState.Description color="ui.muted">{description}</CEmptyState.Description>
+            <CEmptyState.Description fontSize="13px" lineHeight="1.5" color="ui.muted">{description}</CEmptyState.Description>
           ) : null}
         </VStack>
         {action ? <Box pt="2">{action}</Box> : null}

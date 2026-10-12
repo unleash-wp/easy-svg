@@ -130,6 +130,12 @@ export default function Library({ ctx }) {
   const [selecting, setSelecting] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
   const [editing, setEditing] = useState(null)
+  // Deleting is the one unrecoverable act on this screen, so it takes a second
+  // click: { id } for one tile, { bulk: true } for the selection bar.
+  const [confirming, setConfirming] = useState(null)
+  // The call to copy by hand when there is no clipboard API, dismissable.
+  const [copyHelp, setCopyHelp] = useState('')
+  const copyHelpRef = useRef(null)
   const fileRef = useRef(null)
 
   // One place unwraps a library response, so a route that still answers the old
@@ -139,6 +145,19 @@ export default function Library({ ctx }) {
     setIcons(list)
     setTotal(totalOf(res, list.length))
   }
+
+  // Opening the paste form used to look like a dead click: it rendered below
+  // the fold with nothing focused. Focus pulls it into view.
+  useEffect(() => {
+    if (!pasting) {
+      return
+    }
+    const el = document.getElementById('esw-icon-name')
+    if (el) {
+      el.focus()
+      el.scrollIntoView({ block: 'center' })
+    }
+  }, [pasting])
 
   // Cancelled when the tab goes away, or when the icon library is switched off
   // while a load is in flight. See the note in tabs/Settings.jsx.
@@ -181,11 +200,13 @@ export default function Library({ ctx }) {
   const clear = () => {
     setErr('')
     setStatus('')
+    setCopyHelp('')
   }
 
   function stopSelecting() {
     setSelecting(false)
     setPicked(new Set())
+    setConfirming(null)
   }
 
   function togglePicked(id, on) {
@@ -352,6 +373,7 @@ export default function Library({ ctx }) {
         take(fresh)
       }
       setPicked(new Set())
+      setConfirming(null)
       setBusy(false)
     }
   }
@@ -386,9 +408,33 @@ export default function Library({ ctx }) {
     } catch {
       // An admin served over plain HTTP has no clipboard API at all, so hand the
       // text over to be copied by hand rather than leave a dead button.
-      setErr(
+      setCopyHelp(text)
+    }
+  }
+
+  // The legacy path for exactly the pages the modern API refuses: select the
+  // call, try execCommand, and either way leave it selected for a manual copy.
+  function copyHelpByHand() {
+    const node = copyHelpRef.current
+    if (!node) {
+      return
+    }
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+    if (copied) {
+      setCopyHelp('')
+      setStatus(
         // translators: %s: the PHP call that renders the icon, e.g. easy_svg_icon( 'heart' ).
-        sprintf(__('The clipboard is not available here. The call is %s.', 'easy-svg'), text)
+        sprintf(__('Copied %s to the clipboard.', 'easy-svg'), node.textContent)
       )
     }
   }
@@ -453,6 +499,24 @@ export default function Library({ ctx }) {
   const messages = (
     <>
       {err ? <Notice bad role="alert">{err}</Notice> : null}
+      {copyHelp ? (
+        <Notice role="status">
+          <HStack justify="space-between" gap="3" align="center" flexWrap="wrap">
+            <Text as="span" fontSize="sm">
+              {__('The clipboard is not available here. Copy the call by hand:', 'easy-svg')}{' '}
+              <Box as="code" ref={copyHelpRef} fontFamily="mono" userSelect="all">{copyHelp}</Box>
+            </Text>
+            <HStack gap="2">
+              <Button size="sm" variant="ghost" onClick={copyHelpByHand}>
+                {__('Copy', 'easy-svg')}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setCopyHelp('')}>
+                {__('Dismiss', 'easy-svg')}
+              </Button>
+            </HStack>
+          </HStack>
+        </Notice>
+      ) : null}
       {status ? (
         <Text role="status" aria-live="polite" color="ui.goodInk" fontSize="sm">{status}</Text>
       ) : null}
@@ -499,20 +563,22 @@ export default function Library({ ctx }) {
         {messages}
         {reportBox}
         <Section title={__('Your icons', 'easy-svg')}>
-          <Box {...dashed(zone.isOver)} px="4" py="8" {...zone.props}>
+          <Box {...dashed(zone.isOver)} px="4" py="5" {...zone.props}>
             <EmptyState
+              py="2"
+              contentProps={{ maxW: 'none', gap: '3' }}
               title={__('Drop your first SVG here', 'easy-svg')}
               description={__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
               action={
                 <Stack gap="3" align="center">
-                  <HStack gap="3" flexWrap="wrap" justify="center">
-                    <Button variant="primary" onClick={openChooser} disabled={busy}>
+                  <HStack gap="2" flexWrap="wrap" justify="center">
+                    <Button variant="primary" size="sm" onClick={openChooser} disabled={busy}>
                       {__('Choose an SVG', 'easy-svg')}
                     </Button>
-                    <Button variant="ghost" onClick={addFromMedia} disabled={busy}>
+                    <Button variant="ghost" size="sm" onClick={addFromMedia} disabled={busy}>
                       {__('Choose from the media library', 'easy-svg')}
                     </Button>
-                    <Button variant="ghost" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
+                    <Button variant="ghost" size="sm" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
                       {pasteLabel}
                     </Button>
                   </HStack>
@@ -583,13 +649,23 @@ export default function Library({ ctx }) {
             <BulkBar
               count={picked.size}
               busy={busy}
-              label={sprintf(
-                // translators: %d: number of icons selected.
-                _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
-                picked.size
-              )}
-              actionLabel={__('Remove', 'easy-svg')}
-              onAction={() => remove(Array.from(picked))}
+              label={
+                confirming && confirming.bulk
+                  ? sprintf(
+                      // translators: %d: number of icons selected.
+                      _n('Remove %d icon? This cannot be undone.', 'Remove %d icons? This cannot be undone.', picked.size, 'easy-svg'),
+                      picked.size
+                    )
+                  : sprintf(
+                      // translators: %d: number of icons selected.
+                      _n('%d icon selected', '%d icons selected', picked.size, 'easy-svg'),
+                      picked.size
+                    )
+              }
+              actionLabel={confirming && confirming.bulk ? __('Remove permanently', 'easy-svg') : __('Remove', 'easy-svg')}
+              onAction={() => (confirming && confirming.bulk ? remove(Array.from(picked)) : setConfirming({ bulk: true }))}
+              cancelLabel={confirming && confirming.bulk ? __('Cancel', 'easy-svg') : null}
+              onCancel={() => setConfirming(null)}
             />
           ) : null}
 
@@ -632,7 +708,10 @@ export default function Library({ ctx }) {
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
-                  onRemove={() => remove(ic.id)}
+                  confirmingDelete={!!(confirming && confirming.id === ic.id)}
+                  onRemove={() => setConfirming({ id: ic.id })}
+                  onConfirmRemove={() => remove(ic.id)}
+                  onCancelRemove={() => setConfirming(null)}
                 />
               ))}
 
@@ -701,7 +780,10 @@ function IconTile({
   onEditCancel,
   onEditSave,
   onCopy,
+  confirmingDelete,
   onRemove,
+  onConfirmRemove,
+  onCancelRemove,
 }) {
   const name = nameOf(ic)
   const isEditing = null !== editing
@@ -714,9 +796,11 @@ function IconTile({
       px="2"
       py="2.5"
       minH="96px"
-      gridColumn={isEditing ? 'span 2' : undefined}
+      gridColumn={isEditing || confirmingDelete ? 'span 2' : undefined}
       css={{
-        '& [data-tile-actions]': { opacity: 0, transition: 'opacity .12s ease' },
+        // Dimmed, never hidden: fully invisible actions were not found at all
+        // until a click landed on one by accident.
+        '& [data-tile-actions]': { opacity: 0.5, transition: 'opacity .12s ease' },
         '&:hover [data-tile-actions]': { opacity: 1 },
         '&:focus-within [data-tile-actions]': { opacity: 1 },
         '@media (hover: none)': { '& [data-tile-actions]': { opacity: 1 } },
@@ -772,23 +856,52 @@ function IconTile({
                 }
               }}
             />
-            <HStack gap="2" justify="center">
+            {/* Stacked and full width: side by side the two of them are wider
+                than the tile and get clipped at its edge. */}
+            <Stack gap="2" w="full">
               <Button
                 size="sm"
                 variant="primary"
+                w="full"
                 onClick={() => onEditSave(editing)}
                 disabled={busy || !editing.trim()}
               >
                 {__('Save', 'easy-svg')}
               </Button>
-              <Button size="sm" variant="ghost" onClick={onEditCancel} disabled={busy}>
+              <Button size="sm" variant="ghost" w="full" onClick={onEditCancel} disabled={busy}>
                 {__('Cancel', 'easy-svg')}
               </Button>
-            </HStack>
+            </Stack>
+          </Stack>
+        ) : confirmingDelete ? (
+          <Stack gap="2" w="full" pt="1" align="center">
+            <Text fontSize="xs" color="ui.heading" fontWeight="700" textAlign="center">
+              {
+                // translators: %s: icon name.
+                sprintf(__('Delete %s? This cannot be undone.', 'easy-svg'), name)
+              }
+            </Text>
+            <Stack gap="2" w="full">
+              <Button
+                size="sm"
+                variant="primary"
+                bg="ui.bad"
+                w="full"
+                _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+                _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
+                onClick={onConfirmRemove}
+                disabled={busy}
+              >
+                {__('Delete', 'easy-svg')}
+              </Button>
+              <Button size="sm" variant="ghost" w="full" onClick={onCancelRemove} disabled={busy}>
+                {__('Cancel', 'easy-svg')}
+              </Button>
+            </Stack>
           </Stack>
         ) : (
           <>
-            <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={1} w="full" title={name}>
+            <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={2} w="full" title={name}>
               {name}
             </Text>
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
@@ -867,7 +980,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
         description={__('Optional. The slug is derived from it.', 'easy-svg')}
         htmlFor="esw-icon-name"
         control={
-          <Box maxW="220px">
+          <Box w="320px" maxW="full">
             <TextInput
               id="esw-icon-name"
               placeholder={__('e.g. arrow-right', 'easy-svg')}
@@ -885,10 +998,12 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
         control={
           <Textarea
             id="esw-icon-markup"
-            rows={4}
             placeholder="<svg>…</svg>"
             value={markup}
             onChange={(e) => setMarkup(e.target.value)}
+            w="full"
+            minH="160px"
+            resize="vertical"
             bg="ui.surface"
             borderColor="ui.border"
             borderRadius="forge"

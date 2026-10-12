@@ -183,13 +183,25 @@ function easy_svg_panel_assets( $hook ): void {
 		// and in Forge. Scoped to this screen's body class, so no other admin page
 		// changes colour.
 		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
-		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0}'
-		// Same reason as the heading: core styles input:focus with its own blue
-		// ring, unlayered, and a layered Chakra rule cannot beat it however
-		// specific. Measured: the field focused to #3858e9 at 1.5px, which is
-		// WordPress's accent, not ours. These two values repeat ui.primary and
-		// ui.ring from src/theme.js; change them in both.
-		. '.wrap #easy-svg-panel :is(input,textarea,select):focus{border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
+		// Ubuntu Sans, bundled (UFL 1.0, licence text beside the files in
+		// build/fonts). Medium for the tab labels, Bold for titles and buttons;
+		// the theme's heading stack names the family and falls back to system
+		// type wherever these two files have not loaded.
+		. '@font-face{font-family:"Ubuntu Sans";font-style:normal;font-weight:500;font-display:swap;'
+		. 'src:url(' . esc_url( plugins_url( 'build/fonts/UbuntuSans-Medium.woff2', $main ) ) . ') format("woff2")}'
+		. '@font-face{font-family:"Ubuntu Sans";font-style:normal;font-weight:700;font-display:swap;'
+		. 'src:url(' . esc_url( plugins_url( 'build/fonts/UbuntuSans-Bold.woff2', $main ) ) . ') format("woff2")}'
+		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0;font-family:"Ubuntu Sans",Ubuntu,system-ui,sans-serif}'
+		// Same reason as the heading: core's forms.css is unlayered and beats any
+		// layered Chakra rule, so without these the fields sit there in raw
+		// wp-admin grey (#949494, 2px radius). Base and focus repeat ui.sunk,
+		// ui.border, the forge radius, ui.primary and ui.ring from src/theme.js;
+		// change them in both. This is the one input style for every panel tab,
+		// Pro's included.
+		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],textarea,select)'
+		. '{background:#f5f7fa;border:1px solid #e3e7f0;border-radius:5px;padding:8px 12px}'
+		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],select){min-height:40px}'
+		. '.wrap #easy-svg-panel :is(input,textarea,select):is(:focus,:focus-visible){background:#fff;border-color:#203159;box-shadow:0 0 0 3px rgba(32,49,89,.26);outline:none}'
 	);
 
 	// Let Pro enqueue its extension bundle with ours as a dependency.
