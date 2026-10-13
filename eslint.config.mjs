@@ -6,6 +6,12 @@ import hooks from 'eslint-plugin-react-hooks'
  * not -- an import left behind by a refactor, a name that no longer exists.
  * Three findings of exactly that shape reached review before it existed.
  *
+ * Pinned to eslint 9: eslint-plugin-react does not declare support for 10, and
+ * `npm ci` refuses the pair. 9 is end-of-life and npm says so on install, which
+ * is noise rather than a risk for a dev dependency -- but it is the reason to
+ * revisit this when the plugin catches up. Without that plugin every component
+ * imported for JSX reads as unused, which is the one thing this is here for.
+ *
  * exhaustive-deps WARNS. Several effects here deliberately leave a dependency
  * out and say why, so failing on it would turn the file into disable comments.
  */
