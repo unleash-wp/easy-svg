@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-12T22:02:27+00:00\n"
+"POT-Creation-Date: 2026-10-13T08:03:20+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -40,7 +40,7 @@ msgid "https://www.unleash-wp.com"
 msgstr ""
 
 #. translators: %s: path of the file the older sanitizer was loaded from
-#: easy-svg.php:323
+#: easy-svg.php:331
 #, php-format
 msgid ""
 "Easy SVG Support: another plugin has loaded an older version of the SVG "
@@ -53,15 +53,15 @@ msgstr ""
 "daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte "
 "aktualisiere oder deaktiviere das zugehörige Plugin."
 
-#: easy-svg.php:475
+#: easy-svg.php:483
 msgid "Sorry, this SVG file is not allowed for security reasons."
 msgstr "Diese SVG-Datei ist aus Sicherheitsgründen leider nicht erlaubt."
 
-#: easy-svg.php:483
+#: easy-svg.php:491
 msgid "Sorry, please check your SVG file."
 msgstr "Bitte überprüfe deine SVG-Datei."
 
-#: easy-svg.php:623
+#: easy-svg.php:631
 msgid ""
 "This SVG file contains content this site does not allow. Please upload it "
 "through the media library, which cleans it."
@@ -82,57 +82,61 @@ msgstr "Easy SVG"
 msgid "Icons"
 msgstr "Icons"
 
-#: includes/panel.php:139 build/panel.js
+#: includes/panel.php:134 build/panel.js
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: includes/panel.php:140 build/panel.js
+#: includes/panel.php:135 build/panel.js
 msgid "Icon library"
 msgstr "Icon-Library"
 
-#: includes/panel.php:310
+#: includes/panel.php:305
 msgid "The icon post id, as the library listing reports it."
 msgstr "Die Beitrags-ID des Icons, so wie die Bibliotheksliste sie nennt."
 
-#: includes/panel.php:331
+#: includes/panel.php:326
 msgid "Whether editors may upload .svg files."
 msgstr "Ob Redakteure .svg-Dateien hochladen dürfen."
 
-#: includes/panel.php:335
+#: includes/panel.php:330
 msgid "Whether the icon library and the Icon block are registered."
 msgstr "Ob die Icon-Library und der Icon-Block registriert werden."
 
-#: includes/panel.php:341
+#: includes/panel.php:336
 msgid ""
 "The largest SVG the sanitiser will parse, in megabytes. Always enforced; "
 "only its value is settable."
 msgstr ""
+"Das größte SVG, das der Bereiniger verarbeitet, in Megabyte. Gilt immer; nur "
+"der Wert ist einstellbar."
 
-#: includes/panel.php:358
+#: includes/panel.php:353
 msgid "Narrow the list to icons whose name or slug contains this."
 msgstr "Grenzt die Liste auf Icons ein, deren Name oder Slug das enthält."
 
-#: includes/panel.php:374
+#: includes/panel.php:369
 msgid "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
 msgstr ""
 "Das SVG-Markup. Wird beim Hereinkommen bereinigt und gehärtet, was auch "
 "gesendet wird."
 
-#: includes/panel.php:378
+#: includes/panel.php:373
 msgid ""
 "The icon name a person reads. The slug is derived from it and never moves "
 "afterwards."
 msgstr ""
+"Der Icon-Name, den ein Mensch liest. Der Slug wird daraus gebildet und "
+"ändert sich danach nie."
 
-#: includes/panel.php:400
+#: includes/panel.php:395
 msgid "Attachment ids of SVGs already in the media library."
 msgstr "Anhang-IDs von SVGs, die schon in der Mediathek liegen."
 
-#: includes/panel.php:417
+#: includes/panel.php:412
 msgid "The new visible name. The slug is not touched."
 msgstr "Der neue sichtbare Name. Der Slug bleibt unberührt."
 
-#: includes/panel.php:495
+#: includes/panel.php:490
 msgid ""
 "The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to "
 "restore it."
@@ -140,11 +144,11 @@ msgstr ""
 "Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installiere "
 "das Plugin neu, um ihn wiederherzustellen."
 
-#: includes/panel.php:497
+#: includes/panel.php:492
 msgid "That SVG is empty, so there was nothing to store."
 msgstr "Diese SVG ist leer, es gab also nichts zu speichern."
 
-#: includes/panel.php:499
+#: includes/panel.php:494
 msgid ""
 "That SVG could not be stored: it arrived without a drawing, or the write was "
 "refused."
@@ -152,41 +156,41 @@ msgstr ""
 "Diese SVG konnte nicht gespeichert werden: sie kam ohne Zeichnung an, oder "
 "der Schreibvorgang wurde abgelehnt."
 
-#: includes/panel.php:501 build/panel.js
+#: includes/panel.php:496 build/panel.js
 msgid "Icon added."
 msgstr "Icon hinzugefügt."
 
-#: includes/panel.php:503
+#: includes/panel.php:498
 msgid "That file is no longer in the media library."
 msgstr "Diese Datei liegt nicht mehr in der Mediathek."
 
-#: includes/panel.php:505
+#: includes/panel.php:500
 msgid "That file is not stored on this server, so it could not be read."
 msgstr ""
 "Diese Datei liegt nicht auf diesem Server und konnte deshalb nicht gelesen "
 "werden.Diese Datei liegt nicht auf diesem Server und konnte deshalb nicht "
 "gelesen werden."
 
-#: includes/panel.php:507
+#: includes/panel.php:502
 msgid "That is not an SVG the sanitiser accepts."
 msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
 
-#: includes/panel.php:509
+#: includes/panel.php:504
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
 msgstr ""
 "Aus diesem Namen lässt sich kein Icon-Name bilden. Nimm Buchstaben und "
 "Zahlen.Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende "
 "Buchstaben und Zahlen."
 
-#: includes/panel.php:511
+#: includes/panel.php:506
 msgid "That SVG is larger than the size allowed in Settings."
 msgstr "Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe."
 
-#: includes/panel.php:513
+#: includes/panel.php:508
 msgid "That SVG has too many parts to be read safely."
 msgstr "Dieses SVG hat zu viele Teile, um sicher gelesen zu werden."
 
-#: includes/panel.php:517
+#: includes/panel.php:512
 msgid ""
 "The icon could not be added, for a reason this screen has no name for. Try "
 "again, or try a different file."
@@ -194,29 +198,29 @@ msgstr ""
 "Das Icon konnte nicht hinzugefügt werden, aus einem Grund, für den dieser "
 "Bildschirm keinen Namen hat. Versuche es erneut oder mit einer anderen Datei."
 
-#: includes/panel.php:530 includes/panel.php:566 build/panel.js
+#: includes/panel.php:525 includes/panel.php:561 build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
 msgstr "Die Icon-Library ist aus. Schalte sie im Tab „Einstellungen“ ein."
 
-#: includes/panel.php:571
+#: includes/panel.php:566
 msgid "Choose at least one SVG from the media library."
 msgstr "Wähle mindestens ein SVG aus der Mediathek."
 
 #. translators: %d: how many media files one request may carry.
-#: includes/panel.php:578
+#: includes/panel.php:573
 #, php-format
 msgid "Choose at most %d files at a time."
 msgstr "Wähle höchstens %d Dateien auf einmal."
 
-#: includes/panel.php:643 includes/panel.php:709
+#: includes/panel.php:638 includes/panel.php:704
 msgid "Icon not found."
 msgstr "Icon nicht gefunden."
 
-#: includes/panel.php:651
+#: includes/panel.php:646
 msgid "An icon needs a name."
 msgstr "Ein Icon braucht einen Namen."
 
-#: includes/panel.php:685
+#: includes/panel.php:680
 msgid "The icon could not be renamed."
 msgstr "Das Icon konnte nicht umbenannt werden."
 
@@ -409,8 +413,20 @@ msgid "Delete"
 msgstr "Löschen"
 
 #: build/panel.js
+msgid "Drop your first SVG here"
+msgstr "Leg dein erstes SVG hier ab"
+
+#: build/panel.js
 msgid "Drop SVG files here"
 msgstr "SVG-Dateien hier ablegen"
+
+#: build/panel.js
+msgid ""
+"Every file is sanitised and hardened on the way in. Same bar as a media "
+"upload."
+msgstr ""
+"Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe Messlatte "
+"wie ein Medien-Upload."
 
 #: build/panel.js
 msgid "Choose an SVG"
@@ -419,6 +435,10 @@ msgstr "SVG auswählen"
 #: build/panel.js
 msgid "Choose from the media library"
 msgstr "Aus der Mediathek wählen"
+
+#: build/panel.js
+msgid "There is no limit on how many icons you keep."
+msgstr "Wie viele Icons du behältst, ist nicht begrenzt."
 
 #: build/panel.js
 msgid "The clipboard is not available here"
@@ -434,7 +454,7 @@ msgstr "Kopieren"
 
 #: build/panel.js
 msgid "The call to copy into your template"
-msgstr ""
+msgstr "Der Aufruf zum Kopieren in dein Template"
 
 #: build/panel.js
 msgid "Dismiss"
@@ -456,22 +476,6 @@ msgstr "Diesen Bericht schließen"
 #: build/panel.js
 msgid "Your icons"
 msgstr "Deine Icons"
-
-#: build/panel.js
-msgid "Drop your first SVG here"
-msgstr "Leg dein erstes SVG hier ab"
-
-#: build/panel.js
-msgid ""
-"Every file is sanitised and hardened on the way in. Same bar as a media "
-"upload."
-msgstr ""
-"Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe Messlatte "
-"wie ein Medien-Upload."
-
-#: build/panel.js
-msgid "There is no limit on how many icons you keep."
-msgstr "Wie viele Icons du behältst, ist nicht begrenzt."
 
 #. translators: %d: number of icons in the library.
 #: build/panel.js
