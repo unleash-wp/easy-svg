@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js'
-import { adminPage } from './helpers.js'
+import { LIBRARY, addIcon, adminPage, sweepE2E } from './helpers.js'
 
 /*
  * A reference that no longer resolves.
@@ -25,6 +25,21 @@ test.describe('an Icon block whose icon is gone', () => {
 
   test.beforeAll(async ({ browser }) => {
     const { page, context } = await adminPage(browser)
+
+    /*
+     * One icon in the free library, because the second case needs a collection
+     * that IS still registered.
+     *
+     * WordPress lists a collection only once something registers it, and an
+     * empty library registers nothing -- so on a fresh site both references
+     * read as "nothing registers that collection", and the spec passed here
+     * while measuring the wrong branch. Found by CI, which has an empty
+     * library; this machine did not.
+     */
+    await page.goto(LIBRARY)
+    await sweepE2E(page)
+    await addIcon(page, 'e2e Anker')
+
     await page.goto('/wp-admin/')
     pageId = await page.evaluate(async () => {
       const nonce = window.wpApiSettings?.nonce
@@ -46,6 +61,8 @@ test.describe('an Icon block whose icon is gone', () => {
 
   test.afterAll(async ({ browser }) => {
     const { page, context } = await adminPage(browser)
+    await page.goto(LIBRARY)
+    await sweepE2E(page)
     await page.goto('/wp-admin/')
     await page.evaluate(async (id) => {
       const nonce = window.wpApiSettings?.nonce
