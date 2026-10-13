@@ -1798,20 +1798,87 @@ check(
 );
 
 /*
- * Core loads a bundled JSON catalogue BEFORE the wordpress.org language packs,
- * so bundling an untranslated locale hides the community's pack for it. Only a
- * locale somebody actually translated may ship.
+ * Only a locale somebody actually translated may ship. A bundled catalogue with
+ * empty msgstrs is worse than none: it is a file that looks like a translation,
+ * and on the JS side core reads it before the community's pack.
+ *
+ * German is shipped as five files because WordPress looks for the EXACT locale:
+ * a site set to de_DE_formal, de_AT or de_CH finds no de_DE and takes English.
+ * They are generated from de_DE by scripts/make-de-variants.php.
  */
+$shipped_locales       = array( 'de_DE', 'de_DE_formal', 'de_AT', 'de_CH', 'de_CH_informal' );
 $unexpected_lang_files = array();
+$untranslated          = array();
 foreach ( scandir( $root . '/languages' ) ?: array() as $lang_file ) {
-	if ( '.' === $lang_file || '..' === $lang_file || '.DS_Store' === $lang_file || 'easy-svg.pot' === $lang_file ) {
+	if ( '.' === $lang_file || '..' === $lang_file || '.DS_Store' === $lang_file
+		|| 'easy-svg.pot' === $lang_file || 'de_DE_formal.map.json' === $lang_file ) {
 		continue;
 	}
-	if ( 0 !== strpos( $lang_file, 'easy-svg-de_DE.' ) && 0 !== strpos( $lang_file, 'easy-svg-de_DE-' ) ) {
+	$known = false;
+	foreach ( $shipped_locales as $shipped_locale ) {
+		if ( 0 === strpos( $lang_file, 'easy-svg-' . $shipped_locale . '.' )
+			|| 0 === strpos( $lang_file, 'easy-svg-' . $shipped_locale . '-' ) ) {
+			$known = true;
+		}
+	}
+	if ( ! $known ) {
 		$unexpected_lang_files[] = $lang_file;
 	}
 }
-check( 'BELL: only translated locales are bundled (de_DE)', array() === $unexpected_lang_files );
+check( 'BELL: only locales this plugin ships a translation for are bundled', array() === $unexpected_lang_files );
+
+foreach ( $shipped_locales as $shipped_locale ) {
+	$po = (string) @file_get_contents( $root . '/languages/easy-svg-' . $shipped_locale . '.po' );
+	if ( '' === $po ) {
+		$untranslated[] = $shipped_locale . ' (missing)';
+		continue;
+	}
+	/*
+	 * One empty msgstr against a non-empty msgid is one English line on a
+	 * German screen, and the file around it says the locale is covered.
+	 *
+	 * The plugin's own header -- name, author, the two URIs -- is excluded:
+	 * wordpress.org reads those from the readme, and translating the plugin's
+	 * name is not something this plugin decides.
+	 */
+	foreach ( explode( "\n\n", $po ) as $entry ) {
+		if ( false !== strpos( $entry, ' of the plugin' ) ) {
+			continue;
+		}
+		// msgid and msgstr both span as many quoted lines as they need, so a
+		// translated entry can begin `msgstr ""` and carry its words below. The
+		// joined text is what counts.
+		$joined = static function ( string $keyword ) use ( $entry ): string {
+			$text    = '';
+			$reading = false;
+			foreach ( explode( "\n", $entry ) as $line ) {
+				if ( 0 === strpos( $line, $keyword . ' "' ) ) {
+					$reading = true;
+					$text    = substr( $line, strlen( $keyword ) + 2, -1 );
+					continue;
+				}
+				if ( $reading && 0 === strpos( $line, '"' ) ) {
+					$text .= substr( $line, 1, -1 );
+					continue;
+				}
+				if ( $reading ) {
+					break;
+				}
+			}
+			return $text;
+		};
+		// A plural entry keeps its translations in msgstr[0]/msgstr[1].
+		$translation = false !== strpos( $entry, 'msgid_plural' ) ? $joined( 'msgstr[0]' ) : $joined( 'msgstr' );
+		if ( '' !== $joined( 'msgid' ) && '' === $translation ) {
+			$untranslated[] = $shipped_locale;
+			break;
+		}
+	}
+}
+check( 'BELL: every bundled catalogue is actually translated', array() === $untranslated );
+if ( array() !== $untranslated ) {
+	echo '      unübersetzt: ' . implode( ', ', $untranslated ) . "\n";
+}
 
 /*
  * And something loads it.
@@ -1827,6 +1894,19 @@ $plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
 check(
 	'BELL: the bundled catalogue is loaded, or nothing ever reads it',
 	1 === preg_match( "/load_plugin_textdomain\(\s*'easy-svg',\s*false,\s*[^;]*languages/s", $plugin_src )
+);
+/*
+ * And loaded a second time, from our own folder.
+ *
+ * load_plugin_textdomain() returns the moment a wordpress.org pack loads and
+ * never looks inside the plugin, so on every site that has a pack the call
+ * above reads nothing of ours. Loading our file afterwards layers it under the
+ * pack: translators keep every string they have, and the rest stops being
+ * English.
+ */
+check(
+	'BELL: and again from the plugin folder, which the call above skips wherever a pack exists',
+	1 === preg_match( '/load_textdomain\(\s*\x27easy-svg\x27,\s*\$mofile/s', $plugin_src )
 );
 if ( array() !== $unexpected_lang_files ) {
 	echo '      unerwartet: ' . implode( ', ', $unexpected_lang_files ) . "\n";

@@ -705,9 +705,23 @@ require_once __DIR__ . '/includes/panel.php';
  *
  * On `init` rather than earlier, which is where WordPress wants a textdomain
  * loaded, and still before the menu is built on `admin_menu`.
+ *
+ * Two calls, and the order is the point. load_plugin_textdomain() returns as
+ * soon as a wordpress.org pack loads and never looks inside the plugin, so on
+ * every site that has a pack -- which is most German sites -- what we ship was
+ * still read by nothing: measured on a de_DE_formal site, the menu said "Icon
+ * library" while the pack it loaded held four header strings and nothing else.
+ * Loading ours afterwards layers it UNDER the pack: a string translators have
+ * wins, and one they have not yet seen is no longer English.
  */
 function easy_svg_load_textdomain(): void {
     load_plugin_textdomain( 'easy-svg', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+
+    $locale = determine_locale();
+    $mofile = __DIR__ . '/languages/easy-svg-' . $locale . '.mo';
+    if ( is_readable( $mofile ) ) {
+        load_textdomain( 'easy-svg', $mofile, $locale );
+    }
 }
 add_action( 'init', 'easy_svg_load_textdomain', 1 );
 
