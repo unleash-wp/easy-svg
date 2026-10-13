@@ -32,3 +32,4 @@
 /playwright-report export-ignore
 /test-results export-ignore
 /.playwright-mcp export-ignore
+/languages/de_DE_formal.map.json export-ignore
