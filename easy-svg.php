@@ -728,6 +728,14 @@ add_action( 'init', 'easy_svg_load_textdomain', 1 );
 // The editor-only notice for an Icon block whose icon is no longer registered.
 add_action( 'enqueue_block_editor_assets', 'easy_svg_enqueue_icon_block_notice' );
 
+/*
+ * The stroke rule, wherever core renders an icon it was given: the page, the
+ * block editor, and the site editor. Late, because the icons register on init
+ * and nothing can know whether the rule is needed before that.
+ */
+add_action( 'wp_enqueue_scripts', 'easy_svg_print_stroke_css', 20 );
+add_action( 'enqueue_block_editor_assets', 'easy_svg_print_stroke_css', 20 );
+
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );

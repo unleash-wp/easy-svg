@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/icons.php';
+require_once __DIR__ . '/core-icon.php';
 
 /** Who may manage icons. */
 const EASY_SVG_ICON_CAP = 'edit_theme_options';
@@ -253,6 +254,26 @@ function easy_svg_boot_icons() {
         'wp_register_icon_collection',
         'wp_register_icon'
     );
+}
+
+/**
+ * Print the stroke rule, where core prints the icons it was registered with.
+ *
+ * Front end and editor both: `wp_get_icon()` is called from templates as well
+ * as from the Icon block, and a rule that only reached one of them would make
+ * the editor and the page disagree about what an icon looks like.
+ */
+function easy_svg_print_stroke_css() {
+    if ( ! easy_svg_stroke_stylesheet_needed() ) {
+        return;
+    }
+
+    $handle = 'easy-svg-stroke-icons';
+    // No file to version against: the rule is inline and changes with the
+    // plugin, so the file this function lives in is the honest answer.
+    wp_register_style( $handle, false, array(), (string) filemtime( __FILE__ ) );
+    wp_enqueue_style( $handle );
+    wp_add_inline_style( $handle, easy_svg_stroke_css() );
 }
 
 /**

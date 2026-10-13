@@ -2005,6 +2005,9 @@ $icons_status = 1;
 exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/icons.php' ) . ' 2>&1', $icons_out, $icons_status );
 check( 'the icon checks pass: ' . ( $icons_out[ count( $icons_out ) - 1 ] ?? 'no output' ), 0 === $icons_status );
 
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/core-icon.php' ) . ' 2>&1', $core_icon_out, $core_icon_status );
+check( 'the core-icon checks pass: ' . ( $core_icon_out[ count( $core_icon_out ) - 1 ] ?? 'no output' ), 0 === $core_icon_status );
+
 // The panel's REST, for the same reason -- and so that `php tests/run.php` on a
 // laptop means what a green pipeline means.
 $panel_out    = array();
@@ -2021,7 +2024,7 @@ $suite_files = array_map(
 	static fn( string $path ): string => basename( $path, '.php' ),
 	(array) glob( __DIR__ . '/*.php' )
 );
-$orphans = array_values( array_diff( $suite_files, array( 'run', 'runner', 'icons', 'panel-rest' ) ) );
+$orphans = array_values( array_diff( $suite_files, array( 'run', 'runner', 'icons', 'panel-rest', 'core-icon' ) ) );
 check(
 	'BELL: every suite in tests/ is run by this file' . ( $orphans ? ' -- orphaned: ' . implode( ', ', $orphans ) : '' ),
 	array() === $orphans
