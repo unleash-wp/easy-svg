@@ -423,7 +423,7 @@ export default function App({ config }) {
           bg="ui.ghostHover"
         >
           <Text fontSize="sm" color="ui.text">
-            {__('That landed next to the drop area. Drop SVG files on the dashed area in the Icon Library tab.', 'easy-svg')}
+            {__('That landed next to the drop area. Drop SVG files on the dashed area in the Icon library tab.', 'easy-svg')}
           </Text>
         </Box>
       ) : null}
