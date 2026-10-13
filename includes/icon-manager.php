@@ -124,14 +124,6 @@ function easy_svg_stored_icons() {
 }
 
 /**
- * One page of stored icons, straight from the posts table. Only the posts
- * themselves are wanted: no found-rows count, no meta or term caches.
- *
- * @param int $page     1-based page number.
- * @param int $per_page How many icons a page holds.
- * @return array<int, array{id:int, slug:string, label:string, content:string}>
- */
-/**
  * Icon ids whose SLUG contains a term. Its own query because WP_Query cannot
  * ask: `search_columns` takes only post_title, post_excerpt and post_content,
  * and `name` is exact.
@@ -148,6 +140,7 @@ function easy_svg_icon_ids_by_slug_like( $term ) {
 
     return array_map(
         'intval',
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot ask this (see above), and the answer changes on every icon added or renamed.
         (array) $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = 'publish' AND post_name LIKE %s",
@@ -158,6 +151,15 @@ function easy_svg_icon_ids_by_slug_like( $term ) {
     );
 }
 
+/**
+ * One page of stored icons, straight from the posts table. Only the posts
+ * themselves are wanted: no found-rows count, no meta or term caches.
+ *
+ * @param int    $page     1-based page number.
+ * @param int    $per_page How many icons a page holds.
+ * @param string $search   Term to match against name and slug, or ''.
+ * @return array<int, array{id:int, slug:string, label:string, content:string}>
+ */
 function easy_svg_icon_page( $page, $per_page, $search = '' ) {
     $args = array(
         'post_type'              => EASY_SVG_ICON_POST_TYPE,
