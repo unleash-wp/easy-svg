@@ -339,12 +339,21 @@ function esw_svg_file_checker( $file ) {
         return false;
     }
 
+    // On disk BEFORE reading it, as easy_svg_read_svg_dimensions() already does:
+    // the cap is what stops one file tying up a request, and reading 100 MB to
+    // decide it is too big is the cost the cap exists to refuse.
+    if ( is_file( $file ) && filesize( $file ) > easy_svg_max_bytes() ) {
+        return false;
+    }
+
     $unclean = file_get_contents( $file );
 
     if ( false === $unclean ) {
         return false;
     }
 
+    // And again on what was actually read, which a stream wrapper can make
+    // differ from what the filesystem reported.
     if ( strlen( $unclean ) > easy_svg_max_bytes() ) {
         return false;
     }

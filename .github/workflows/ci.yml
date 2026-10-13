@@ -39,6 +39,19 @@ jobs:
       - name: Lint (panel sources)
         run: npm run lint
 
+      # build/panel.js is committed and is what a customer runs; nothing else
+      # rebuilds it. An edit to src/ without a rebuild ships the old panel and
+      # looks, from the outside, like the change simply did not work.
+      - name: The committed bundle is the one these sources build
+        run: |
+          set -euo pipefail
+          npm run build
+          if ! git diff --quiet -- build/; then
+            echo "::error::build/ is out of date; run npm run build and commit the result"
+            git diff --stat -- build/
+            exit 1
+          fi
+
       - name: Tests
         run: php tests/run.php
 
