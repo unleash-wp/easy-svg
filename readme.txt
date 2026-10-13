@@ -146,6 +146,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 == Changelog ==
 
 = 5.3.2 =
+* New: the editor says so when an Icon block points at an icon that is no longer here. A collection leaves when a theme is switched, a plugin is deactivated or a folder is renamed, and until now the block simply drew nothing -- on the page as well, where the first person to notice was a visitor.
 * Security: an SVG could keep an animation that runs on load by writing the element behind a namespace prefix. The neutraliser reads the element's own name now, prefix or not.
 * Fix: the German translation this plugin ships was read by nobody. WordPress stops looking as soon as it has a language pack, so what the download carries was never used; it is loaded underneath the pack now, which means a string translators have not reached yet is no longer English.
 * Fix: German arrives on sites set to "Sie", to Austrian or to Swiss German. WordPress looks for the exact locale, and only one German catalogue shipped.

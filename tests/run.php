@@ -1718,7 +1718,7 @@ foreach ( scandir( $root ) ?: array() as $entry ) {
 	$ships[] = $entry;
 }
 sort( $ships );
-$expected = array( 'build', 'easy-svg.php', 'includes', 'index.php', 'languages', 'license.txt', 'readme.txt', 'uninstall.php', 'vendor' );
+$expected = array( 'assets', 'build', 'easy-svg.php', 'includes', 'index.php', 'languages', 'license.txt', 'readme.txt', 'uninstall.php', 'vendor' );
 if ( $expected !== $ships ) {
 	// Named, because "the release is wrong" without the difference sends the
 	// reader back to rebuild the tree by hand to find out what changed.

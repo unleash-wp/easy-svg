@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-13T15:03:17+00:00\n"
+"POT-Creation-Date: 2026-10-13T19:29:24+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -73,7 +73,7 @@ msgstr ""
 msgid "SVG icons"
 msgstr "SVG-Icons"
 
-#: includes/icons.php:492
+#: includes/icons.php:534
 msgid "Easy SVG"
 msgstr "Easy SVG"
 
@@ -242,6 +242,28 @@ msgstr ""
 "Easy SVG 5.0: Funktionen sind standardmäßig aus. Aktiviere SVG-Uploads und "
 "die Icon-Bibliothek unter %s."
 
+#. translators: 1: the saved icon reference, 2: the collection it names.
+#: assets/icon-block-notice.js:56
+msgid ""
+"This icon is no longer in the collection it was taken from: %1$s. The "
+"collection %2$s is still here, so the icon was renamed or removed. Pick it "
+"again."
+msgstr ""
+"Dieses Icon gibt es in seiner Sammlung nicht mehr: %1$s. Die Sammlung %2$s "
+"ist weiterhin da, das Icon wurde also umbenannt oder entfernt. Wähle es neu "
+"aus."
+
+#. translators: 1: the saved icon reference, 2: the collection it names.
+#: assets/icon-block-notice.js:62
+msgid ""
+"This icon is not available on this site: %1$s. Nothing registers the "
+"collection %2$s. A theme or plugin that provided it may have been switched "
+"off, and visitors see no icon here."
+msgstr ""
+"Dieses Icon gibt es auf dieser Website nicht: %1$s. Die Sammlung %2$s wird "
+"von nichts registriert. Vielleicht wurde ein Theme oder Plugin abgeschaltet, "
+"das sie mitgebracht hat; Besucher sehen hier kein Icon."
+
 #. translators: %d: HTTP status code.
 #: build/panel.js
 msgid "Load failed (%d)"
@@ -312,7 +334,9 @@ msgstr "Menü einklappen"
 msgid ""
 "That landed next to the drop area. Drop SVG files on the dashed area in the "
 "Icon library tab."
-msgstr "Das ist neben der Ablagefläche gelandet. Lege SVG-Dateien auf der gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
+msgstr ""
+"Das ist neben der Ablagefläche gelandet. Lege SVG-Dateien auf der "
+"gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
 
 #: build/panel.js
 msgid ""

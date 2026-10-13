@@ -81,6 +81,39 @@ function easy_svg_icons_supported() {
 }
 
 /**
+ * The editor-only notice for an Icon block whose icon is gone.
+ *
+ * Enqueued on the block editor alone, and only where there are icons to miss:
+ * a WordPress without the icon registry has no Icon block for the filter to
+ * wrap. The front end is left silent on purpose -- a reader is not the person
+ * who can fix a reference, and saying it there publishes an internal problem.
+ */
+function easy_svg_enqueue_icon_block_notice() {
+    if ( ! easy_svg_icons_supported() ) {
+        return;
+    }
+
+    $main = dirname( __DIR__ ) . '/easy-svg.php';
+    $file = dirname( __DIR__ ) . '/assets/icon-block-notice.js';
+    if ( ! is_readable( $file ) ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'easy-svg-icon-block-notice',
+        plugins_url( 'assets/icon-block-notice.js', $main ),
+        array( 'wp-hooks', 'wp-element', 'wp-data', 'wp-i18n', 'wp-compose', 'wp-block-editor' ),
+        (string) filemtime( $file ),
+        true
+    );
+    // The path, for the catalogue this plugin bundles -- the same reason
+    // panel.php passes one.
+    wp_set_script_translations( 'easy-svg-icon-block-notice', 'easy-svg', dirname( __DIR__ ) . '/languages' );
+}
+// Hooked in easy-svg.php beside the plugin's other hooks: this file is pure
+// enough to be read by the suite without a WordPress around it.
+
+/**
  * The stored markup for one icon slug, or '' when there is none. Reads the
  * esw_icon post directly: the content is the sanitiser's hardened output, so it
  * is safe to print, and it needs no 7.1 registry, so this works on 6.6 too.
