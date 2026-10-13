@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react'
 import DOMPurify from 'dompurify'
 import { __, _n, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, EmptyState, SkeletonRows, Button, TextInput, IconAction, useDropZone } from '../../ui.jsx'
+import { Section, FieldRow, SkeletonRows, Button, TextInput, IconAction, useDropZone } from '../../ui.jsx'
 import { Notice, SearchField, ReportList } from '../parts.jsx'
 import { makeApi } from '../api.js'
 
@@ -463,10 +463,8 @@ export default function Library({ ctx }) {
   }
 
 
-  // Two targets, one behaviour: the zone above and the grid below both take a
-  // drop, because adding where you are already looking was right -- it was just
-  // the only place. ui.jsx owns the handlers so pro's tabs get the same ones.
-  const zone = useDropZone({ onFiles: addFiles, disabled: busy })
+  // The grid takes a drop too, because adding where you are already looking is
+  // the obvious gesture. The surface above is Chakra's and owns its own.
   const grid = useDropZone({ onFiles: addFiles, disabled: busy })
 
   const dashed = (over) => ({
@@ -548,7 +546,7 @@ export default function Library({ ctx }) {
    * input, the drag state and the keyboard path; the verdict on a file stays
    * the server's, nothing is pre-judged beyond the accept hint.
    */
-  const addSurface = (
+  const uploadSurface = (first) => (
     <FileUpload.Root
       accept={FILE_ACCEPT}
       multiple
@@ -573,8 +571,13 @@ export default function Library({ ctx }) {
         <Box color="ui.muted"><UploadGlyph /></Box>
         <FileUpload.DropzoneContent gap="2">
           <Text fontSize="14px" fontWeight="700" color="ui.heading">
-            {__('Drop SVG files here', 'easy-svg')}
+            {first ? __('Drop your first SVG here', 'easy-svg') : __('Drop SVG files here', 'easy-svg')}
           </Text>
+          {first ? (
+            <Text textStyle="caption" maxW="46ch">
+              {__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
+            </Text>
+          ) : null}
           <HStack gap="2" flexWrap="wrap" justify="center">
             <FileUpload.Trigger asChild>
               <Button variant="primary" size="sm" disabled={busy}>
@@ -606,10 +609,14 @@ export default function Library({ ctx }) {
               {pasteLabel}
             </Button>
           </HStack>
+          {first ? (
+            <Text textStyle="caption">{__('There is no limit on how many icons you keep.', 'easy-svg')}</Text>
+          ) : null}
         </FileUpload.DropzoneContent>
       </FileUpload.Dropzone>
     </FileUpload.Root>
   )
+  const addSurface = uploadSurface(false)
   const pasteForm = (
     <PasteForm {...{ label, setLabel, markup, setMarkup, addPasted, busy, setPasting }} />
   )
@@ -700,32 +707,10 @@ export default function Library({ ctx }) {
       <Stack gap="5" maxW="900px">
         {messages}
         {reportBox}
+        {/* The same dropzone the populated screen uses, so there is one drag
+            target, one keyboard path and one set of buttons to maintain. */}
         <Section title={__('Your icons', 'easy-svg')}>
-          <Box {...dashed(zone.isOver)} px="4" py="5" {...zone.props}>
-            <EmptyState
-              py="2"
-              contentProps={{ maxW: 'none', gap: '3' }}
-              title={__('Drop your first SVG here', 'easy-svg')}
-              description={__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
-              action={
-                <Stack gap="3" align="center">
-                  <HStack gap="2" flexWrap="wrap" justify="center">
-                    <Button variant="primary" size="sm" onClick={openChooser} disabled={busy}>
-                      {__('Choose an SVG', 'easy-svg')}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={addFromMedia} disabled={busy}>
-                      {__('Choose from the media library', 'easy-svg')}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setPasting((v) => !v)} aria-expanded={pasting}>
-                      {pasteLabel}
-                    </Button>
-                  </HStack>
-                  <Text textStyle="caption">{__('There is no limit on how many icons you keep.', 'easy-svg')}</Text>
-                </Stack>
-              }
-            />
-          </Box>
-          {fileInput}
+          {uploadSurface(true)}
           {pasting ? <Box pt="4">{pasteForm}</Box> : null}
         </Section>
         {deleteDialog}
