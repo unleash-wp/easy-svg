@@ -1576,7 +1576,10 @@ $upgrade_notice = (string) substr( $readme, (int) strpos( $readme, '== Upgrade N
 check( 'BELL: there is an upgrade notice for this version', false !== strpos( $readme, '== Upgrade Notice ==' ) && false !== strpos( $upgrade_notice, '= ' . ( $header_v[1] ?? 'x' ) . ' =' ) );
 check( 'BELL: it tells a site owner that sideloaded SVGs are now sanitised', false !== stripos( $upgrade_notice, 'wp media import' ) );
 check( 'SILENCE: and no longer talks about WordPress 4', false === strpos( $upgrade_notice, '4.0 to 4.9' ) );
-$changelog_43 = (string) substr( $readme, (int) strpos( $readme, '== Changelog ==' ), 4000 );
+// To the end of the changelog, not a fixed 4000 characters: every release
+// pushes the 4.3 entries further down, and the guard would have started
+// passing on an absence rather than on the text it is about.
+$changelog_43 = (string) substr( $readme, (int) strpos( $readme, '== Changelog ==' ) );
 foreach ( array( 'GHSA-9rjx-3jch-6vjf', 'GHSA-m9xh-6747-9r6f', 'GHSA-v383-3rw5-q8rf', 'GHSA-qhmf-972w-m957' ) as $advisory ) {
 	check( "BELL: the changelog names {$advisory}", false !== strpos( $changelog_43, $advisory ) );
 }

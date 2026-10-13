@@ -107,7 +107,7 @@ The hooks below are part of that surface too, because this plugin's own add-on a
 
 = For add-on authors: which hooks are there? =
 
-`easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. Every icon this plugin draws passes through it, whatever asked for it: the Icon block, a shortcode, a page builder, an add-on. Add a class or a `<title>` with it. Return your own string and you own the escaping.
+`easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. That covers the template tag and everything that renders through it, a page builder's icon element included. The Icon block does not: WordPress holds the markup it was handed when the collection was registered, and draws that. Add a class or a `<title>` with this. Return your own string and you own the escaping.
 
 `easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
 
@@ -144,6 +144,14 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 3. An SVG as the featured image of a post.
 
 == Changelog ==
+
+= 5.3.2 =
+* Fix: the upload size cap could not be set above 20 MB however high an add-on raised the ceiling -- and the field kept showing the number it was not going to save.
+* Fix: searching the icon library said the library held as many icons as the search found, so a search that matched nothing reported an empty library.
+* Fix: the search field's magnifier sat on the first letters of what you typed.
+* Fix: the icon grid worked out its columns from the window rather than from the space it has, so icon names broke across two lines on a narrow screen.
+* Change: the panel self-hosts Ubuntu again. It was removed in 5.1.0; the panel now ships the two weight files beside its own licence text, and no request leaves your site for them.
+* Fix: the documented `easy_svg_icon_markup` filter said it reached the Icon block. It does not -- the readme now says which paths it covers.
 
 = 5.3.1 =
 * Fix: uninstalling now removes the plugin's settings and schema marker as well, on every site of a network.
@@ -213,6 +221,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
+
+= 5.3.2 =
+Fixes on the Icons screen: the size cap can be set as high as the ceiling allows, the search no longer miscounts the library, and icon names stop breaking across two lines on a narrow screen. No setting changes on update.
 
 = 5.3.1 =
 Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
