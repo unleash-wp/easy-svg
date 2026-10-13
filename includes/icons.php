@@ -494,7 +494,8 @@ function easy_svg_register_icons( $icons, $register_collection, $register_icon )
      * whose collection it does not know -- but announcing it unconditionally
      * puts an empty entry in the editor's icon picker, which reads as broken.
      */
-    $ready_icons = array();
+    $ready_icons      = array();
+    $needs_stylesheet = false;
 
     foreach ( (array) $icons as $icon ) {
         $name = easy_svg_icon_name( isset( $icon['slug'] ) ? $icon['slug'] : '' );
@@ -506,11 +507,24 @@ function easy_svg_register_icons( $icons, $register_collection, $register_icon )
             continue;
         }
 
+        /*
+         * Rewritten for what core's registry keeps: shapes become paths,
+         * groups are flattened, and a stroked icon carries its stroke as a
+         * class the stylesheet restores. Without this an outline set -- the
+         * usual thing an agency ships -- reaches the Icon block as paths with
+         * no stroke and no fill, which draws nothing at all.
+         */
+        $for_core = easy_svg_core_icon( isset( $icon['content'] ) ? $icon['content'] : '' );
+        $content  = '' !== $for_core['content'] ? $for_core['content'] : (string) ( $icon['content'] ?? '' );
+        if ( array() !== $for_core['classes'] ) {
+            $needs_stylesheet = true;
+        }
+
         $ready_icons[] = array(
             'name' => $name,
             'args' => easy_svg_icon_args(
                 isset( $icon['label'] ) ? $icon['label'] : '',
-                isset( $icon['content'] ) ? $icon['content'] : ''
+                $content
             ),
         );
     }
@@ -539,5 +553,65 @@ function easy_svg_register_icons( $icons, $register_collection, $register_icon )
         }
     }
 
+    // Only when something actually needs it: a site whose icons are all filled
+    // paths loads no stylesheet for a rule it would never use.
+    if ( $needs_stylesheet && $taken > 0 ) {
+        easy_svg_stroke_stylesheet_needed( true );
+    }
+
     return $taken;
+}
+
+/**
+ * The rule that gives a stroked icon its stroke back.
+ *
+ * Core keeps `class` on the root and nothing else that matters, so this is the
+ * other half of easy_svg_core_icon(): the classes it sets mean nothing until
+ * something declares them. Printed inline -- six short rules are not worth a
+ * request, and there is no file to link to anyway.
+ */
+function easy_svg_stroke_css() {
+    /*
+     * Aimed at the SHAPES, not at the root.
+     *
+     * Core's own block sheet carries `.wp-block-icon svg{fill:currentcolor}`,
+     * and a `fill` on our root would only be inherited by the paths -- an
+     * inherited value loses to any rule that matches the element itself, so
+     * the first version of this drew filled black lines. A rule on the paths
+     * wins that by construction rather than by specificity, which is what
+     * makes it hold inside a host whose selectors we do not know.
+     *
+     * No `!important`: a theme that deliberately restyles an icon should still
+     * be able to.
+     */
+    $shapes = '.esvg-stroke path,.esvg-stroke polygon';
+
+    return $shapes . '{fill:none;stroke:currentColor;stroke-width:1}'
+        . '.esvg-stroke.esvg-sw-1 path,.esvg-stroke.esvg-sw-1 polygon{stroke-width:1}'
+        . '.esvg-stroke.esvg-sw-125 path,.esvg-stroke.esvg-sw-125 polygon{stroke-width:1.25}'
+        . '.esvg-stroke.esvg-sw-15 path,.esvg-stroke.esvg-sw-15 polygon{stroke-width:1.5}'
+        . '.esvg-stroke.esvg-sw-175 path,.esvg-stroke.esvg-sw-175 polygon{stroke-width:1.75}'
+        . '.esvg-stroke.esvg-sw-2 path,.esvg-stroke.esvg-sw-2 polygon{stroke-width:2}'
+        . '.esvg-stroke.esvg-sw-25 path,.esvg-stroke.esvg-sw-25 polygon{stroke-width:2.5}'
+        . '.esvg-stroke.esvg-sw-3 path,.esvg-stroke.esvg-sw-3 polygon{stroke-width:3}'
+        . '.esvg-stroke.esvg-cap-round path,.esvg-stroke.esvg-cap-round polygon{stroke-linecap:round}'
+        . '.esvg-stroke.esvg-join-round path,.esvg-stroke.esvg-join-round polygon{stroke-linejoin:round}';
+}
+
+/**
+ * Whether anything registered this request needs the stroke stylesheet.
+ *
+ * A latch rather than an option: registration happens on every request, so the
+ * answer is current by construction, and a site that removes its last stroked
+ * icon stops loading the rule the moment it does.
+ *
+ * @param bool|null $set Pass true to latch it; null to read.
+ * @return bool
+ */
+function easy_svg_stroke_stylesheet_needed( $set = null ) {
+    static $needed = false;
+    if ( null !== $set ) {
+        $needed = (bool) $set;
+    }
+    return $needed;
 }

@@ -33,6 +33,7 @@ function esc_attr( $text ): string {
     return htmlspecialchars( (string) $text, ENT_QUOTES );
 }
 
+require dirname( __DIR__ ) . '/includes/core-icon.php';
 require dirname( __DIR__ ) . '/includes/icons.php';
 
 $passed = 0;
@@ -564,6 +565,21 @@ $stuck = static function ( int $page, int $per_page ) use ( $store ): array {
     return $store( 500 )( 1, $per_page );
 };
 check( 'BELL: a page that repeats itself ends the read instead of looping', 100 === count( easy_svg_collect_icons( $stuck, 100 ) ) );
+
+/*
+ * ─── The other half of the rewrite ──────────────────────────────────────────
+ *
+ * The classes mean nothing until something declares them, and WHERE the rule
+ * points decides whether it holds: core's own block sheet carries
+ * `.wp-block-icon svg{fill:currentcolor}`, so a `fill` on our root is only
+ * inherited by the paths -- and an inherited value loses to any rule that
+ * matches the element itself. Measured on the page: the first version drew
+ * filled black lines where an outline icon belonged.
+ */
+$css = easy_svg_stroke_css();
+check( 'BELL: the fill rule points at the shapes, not at the root', false !== strpos( $css, '.esvg-stroke path' ) && false === strpos( $css, '.esvg-stroke{fill' ) );
+check( 'BELL: every width class points at the shapes too', 0 === substr_count( $css, 'esvg-sw-2{' ) );
+check( 'SILENCE: and nothing is forced with !important', false === strpos( $css, '!important' ) );
 
 echo 0 === $failed
     ? "all {$passed} checks passed\n"
