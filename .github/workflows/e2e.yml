@@ -1,0 +1,58 @@
+# The panel, driven in a real browser.
+#
+# Its own workflow rather than a step in CI: this one starts WordPress in
+# Docker and takes minutes where that one takes seconds, and a browser failure
+# should be readable as a browser failure.
+name: Panel E2E
+
+on:
+  pull_request: {}
+  push: { branches: [master] }
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+
+      - run: npm ci
+      # The panel the specs drive is the BUILT bundle, not the sources.
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+
+      # .wp-env.json maps this repository in as the only plugin, so what CI
+      # drives is the free panel alone -- no Pro tabs, which is the state a
+      # wordpress.org visitor gets.
+      #
+      # @wordpress/env is a dependency rather than something npx fetches: asked
+      # for by the bare name it resolved to `wp-env@1.0.1`, an unrelated package
+      # of somebody else's, which started nothing and left the whole run failing
+      # on a refused connection.
+      - name: Start WordPress
+        run: npx wp-env start
+
+      # A runner resolves `localhost` to ::1 first and wp-env listens on IPv4
+      # only, so every request was refused before a spec ran.
+      #
+      # The host entry goes, rather than the browser being pointed at
+      # 127.0.0.1: wp-env pins WP_HOME and WP_SITEURL as constants, so the site
+      # keeps writing localhost into its own markup whatever the options say --
+      # browsing it under another name serves the page from one origin and its
+      # nonce and assets from another, and the panel never finishes loading.
+      - name: Resolve localhost to IPv4
+        run: sudo sed -i '/^::1[[:space:]].*localhost/d' /etc/hosts
+
+      - name: E2E
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

@@ -24,3 +24,8 @@
 /package-lock.json export-ignore
 /vite.config.js export-ignore
 /eslint.config.mjs export-ignore
+/.wp-env.json export-ignore
+/playwright.config.js export-ignore
+/e2e export-ignore
+/playwright-report export-ignore
+/test-results export-ignore
