@@ -725,6 +725,9 @@ function easy_svg_load_textdomain(): void {
 }
 add_action( 'init', 'easy_svg_load_textdomain', 1 );
 
+// The editor-only notice for an Icon block whose icon is no longer registered.
+add_action( 'enqueue_block_editor_assets', 'easy_svg_enqueue_icon_block_notice' );
+
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );
