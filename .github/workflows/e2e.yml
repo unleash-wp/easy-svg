@@ -29,7 +29,17 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start
 
+      # On a runner `localhost` resolves to ::1 first and wp-env listens on
+      # IPv4 only. Moving the site's own url to 127.0.0.1 rather than just
+      # pointing the browser there, so WordPress serves its scripts and fonts
+      # from the origin the page is on.
+      - name: Put the site on IPv4
+        run: |
+          npx wp-env run cli wp option update siteurl http://127.0.0.1:8888
+          npx wp-env run cli wp option update home http://127.0.0.1:8888
+
       - name: E2E
+        env: { WP_BASE_URL: 'http://127.0.0.1:8888' }
         run: npm run test:e2e
 
       - uses: actions/upload-artifact@v4

@@ -8,6 +8,15 @@ import { defineConfig, devices } from '@playwright/test'
  * BASE_URL so the same specs run against a local wp-env and against the one
  * CI starts, without a second config.
  */
+/*
+ * The site's OWN url, whatever that is -- not merely a host that answers.
+ *
+ * WordPress writes its asset urls from `siteurl`, so visiting the same site
+ * under a different host serves the page from one origin and its scripts and
+ * fonts from another, and the browser refuses them as cross-origin. CI sets
+ * WP_BASE_URL and moves `siteurl` with it, because `localhost` resolves to ::1
+ * first on a runner and wp-env listens on IPv4 only.
+ */
 const baseURL = process.env.WP_BASE_URL || 'http://localhost:8888'
 
 export default defineConfig({
