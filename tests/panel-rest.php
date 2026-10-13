@@ -30,10 +30,17 @@ function current_user_can( $c ): bool {
 function add_action( ...$a ): bool {
 	return true;
 }
-function add_filter( ...$a ): bool {
+// Dispatching, not a stub that returns its input: the route's schema is built
+// from a filtered value, and a stub made a hard-coded bound look correct.
+$GLOBALS['hooks'] = array();
+function add_filter( $h, $cb, ...$a ): bool {
+	$GLOBALS['hooks'][ $h ][] = $cb;
 	return true;
 }
 function apply_filters( $h, $v, ...$a ) {
+	foreach ( $GLOBALS['hooks'][ $h ] ?? array() as $cb ) {
+		$v = $cb( $v, ...$a );
+	}
 	return $v;
 }
 function __( $s, $d = '' ): string {
@@ -382,7 +389,19 @@ check(
 	'BELL: no settings key is required, because an absent one must keep its stored value',
 	array() === array_filter( $settings_args, static fn( $a ) => ! empty( $a['required'] ) )
 );
-check( 'BELL: max_mb carries the same ceiling the sanitiser clamps to', 20 === ( $settings_args['max_mb']['maximum'] ?? 0 ) );
+check( 'BELL: max_mb carries the same ceiling the sanitiser clamps to', easy_svg_max_mb_ceiling() === ( $settings_args['max_mb']['maximum'] ?? 0 ) );
+
+/*
+ * And it follows the filter. A hard-coded 20 here refused every value a site
+ * with a raised ceiling is offered -- the sanitiser would have accepted it, so
+ * the panel showed the number it sent and the option never changed.
+ */
+add_filter( 'easy_svg_max_mb_ceiling', static fn() => 100 );
+$GLOBALS['routes'] = array();
+easy_svg_panel_rest();
+$raised = $GLOBALS['routes']['easy-svg/v1/settings'][1]['args'] ?? array();
+check( 'BELL: a raised ceiling raises the bound the route enforces', 100 === ( $raised['max_mb']['maximum'] ?? 0 ) );
+$GLOBALS['hooks']['easy_svg_max_mb_ceiling'] = array();
 
 $media_args = $GLOBALS['routes']['easy-svg/v1/library/media']['args'] ?? array();
 check( 'BELL: the ids cap is declared where a client can read it', EASY_SVG_MEDIA_MAX_IDS === ( $media_args['ids']['maxItems'] ?? 0 ) );

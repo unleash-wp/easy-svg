@@ -285,7 +285,10 @@ function easy_svg_panel_rest(): void {
 					'max_mb'     => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
-						'maximum'     => 20,
+						// The CEILING, which an add-on raises -- not a literal 20. With
+						// the number hard-coded here the route refused every value a
+						// licensed site is offered, while the panel reported a save.
+						'maximum'     => easy_svg_max_mb_ceiling(),
 						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable.', 'easy-svg' ),
 					),
 				),
