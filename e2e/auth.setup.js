@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test'
+import { rest } from './helpers.js'
 
 /*
  * One login for the whole run, stored and reused.
@@ -28,5 +29,21 @@ setup('sign in to wp-admin', async ({ page }) => {
 
   await page.goto('/wp-admin/admin.php?page=easy-svg-icons&tab=settings')
   await expect(page.locator('#wpadminbar')).toBeVisible()
+
+  /*
+   * Switch the icon library on, because a fresh install has every feature off
+   * -- the plugin adds what was asked for and no more. Without this the library
+   * tab is a sentence pointing at Settings, and every spec that looks for the
+   * search field waits for something that was never going to be drawn.
+   *
+   * Merged onto what is stored, so a site that already has settings keeps them.
+   */
+  const current = await rest(page, '/settings')
+  const saved = await rest(page, '/settings', {
+    method: 'POST',
+    body: { ...(current.body || {}), icons: true },
+  })
+  expect(saved.status, JSON.stringify(saved.body).slice(0, 200)).toBe(200)
+
   await page.context().storageState({ path: 'e2e/.auth/admin.json' })
 })
