@@ -1,21 +1,12 @@
 <?php
 /**
- * The icon store, and the WordPress adapters over it.
+ * The icon store, and the WordPress adapters over it. Everything that decides
+ * anything is in `icons.php`, injected and checked without WordPress.
  *
- * Everything that decides anything is in `icons.php`, injected and checked
- * without WordPress. What is left here is a post type, a query, and the one
- * write that stores an icon. There is no screen: the Icons panel writes
- * through this file.
- *
- * Two capabilities, two questions. `EASY_SVG_ICON_CAP` is
- * `edit_theme_options` and belongs to the POST TYPE -- what every other route
- * into the store must clear, XML-RPC and a generic post editor included. An
- * icon applies site-wide and shows up in every editor, so it is a design
- * decision, not `upload_files`. The panel asks for `manage_options`, which is
- * stricter and widens nothing.
- *
- * `wp_register_icon()` is `@since 7.1.0` and this plugin declares 6.6, so
- * nothing here may assume it exists; on an older site nothing registers.
+ * `EASY_SVG_ICON_CAP` is `edit_theme_options` and belongs to the POST TYPE, so
+ * every route into the store clears it -- an icon is site-wide, which is a
+ * design decision rather than `upload_files`. `wp_register_icon()` is 7.1 and
+ * this plugin declares 6.6, so nothing here may assume it exists.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -37,12 +28,10 @@ const EASY_SVG_ICON_CACHE = 'easy_svg_icons';
 const EASY_SVG_ICON_VERSION = 'easy_svg_icons_version';
 
 /**
- * The store.
- *
- * Private in every direction -- no archive, no single view, not queryable,
- * not searchable: an icon is editor markup, not a page anybody should open.
- * `show_ui` is false too, because the generic post list would offer a content
- * editor for SVG markup; the Icons panel is the interface.
+ * The store. Private in every direction -- no archive, no single view, not
+ * queryable, not searchable: an icon is editor markup, not a page anybody
+ * should open. `show_ui` is false because the generic post list would offer a
+ * content editor for SVG markup; the Icons panel is the interface.
  */
 function easy_svg_register_icon_store() {
     // Nothing to store before 7.1, which has no icon registry to hand icons
@@ -67,12 +56,10 @@ function easy_svg_register_icon_store() {
             'query_var'           => false,
             'supports'            => array( 'title', 'editor' ),
             /*
-             * Every capability is this plugin's own. The `post` defaults would let an
-             * Author create an icon and an Editor change anybody's through any route
-             * that asks the post type -- XML-RPC, REST if it were ever switched on, a
-             * plugin's generic post editor. Who may add one is the same question as who
-             * may change the theme. `map_meta_cap` off, so these are checked as written
-             * instead of mapped back to post-author rules.
+             * Every capability is this plugin's own. The `post` defaults would let
+             * an Author create an icon and an Editor change anybody's through any
+             * route that asks the post type -- XML-RPC, a generic post editor.
+             * `map_meta_cap` off, so these are checked as written.
              */
             'capabilities'        => array(
                 'edit_post'              => EASY_SVG_ICON_CAP,
@@ -97,28 +84,20 @@ function easy_svg_register_icon_store() {
 }
 
 /**
- * Every stored icon, oldest first, so the picker does not reshuffle when
- * somebody adds one.
+ * Every stored icon, oldest first, so the picker does not reshuffle.
  *
- * Cached because core has no lazy hook for its icon registry: it registers on
- * every `init` and so must we, the Icon block rendering server-side for every
- * visitor. Uncached, that is a full query with markup on every request of
- * every 7.1 site, most of which have no icons.
- *
- * Dropped whenever an icon is saved or deleted, hooked on the post type so
- * WP-CLI drops it too. The expiry earns its keep twice: a transient with one
- * is not autoloaded, so the markup is not carried through every request; and
- * a write that bypassed WordPress heals within a day.
+ * Cached because core registers its icon registry on every `init`, which would
+ * otherwise be a full query with markup on every request of every site. The
+ * expiry keeps it out of the autoload and heals a write that bypassed us.
  *
  * @return array<int, array{id:int, slug:string, label:string, content:string}>
  */
 function easy_svg_stored_icons() {
     /*
-     * The version is read BEFORE the icons. A request that misses the cache
-     * can take a moment to read them, and if somebody adds or removes an icon
-     * meanwhile, the list it is about to store is already out of date. The
-     * version it stores with that list is then lower than the current one, so
-     * the next request ignores it instead of trusting it for a day.
+     * The version is read BEFORE the icons: a miss takes a moment to read them,
+     * and an icon added meanwhile makes the list it is about to store stale. The
+     * version stored with that list is then the lower one, so the next request
+     * ignores it instead of trusting it for a day.
      */
     $version = (int) get_option( EASY_SVG_ICON_VERSION, 0 );
     $cached  = get_transient( EASY_SVG_ICON_CACHE );
@@ -145,10 +124,8 @@ function easy_svg_stored_icons() {
 }
 
 /**
- * One page of stored icons, straight from the posts table.
- *
- * Only the posts themselves are wanted: no found-rows count, no meta or term
- * caches primed for posts that have neither.
+ * One page of stored icons, straight from the posts table. Only the posts
+ * themselves are wanted: no found-rows count, no meta or term caches.
  *
  * @param int $page     1-based page number.
  * @param int $per_page How many icons a page holds.
@@ -196,10 +173,9 @@ function easy_svg_icon_page( $page, $per_page, $search = '' ) {
 
     /*
      * The server searches, because a library past one page cannot be filtered
-     * by what one response happened to carry. Title only here, plus a separate
-     * slug query: core narrows `search_columns` to title, excerpt and content,
-     * which drops post_name -- and is also why an icon's SVG markup is never
-     * searched.
+     * by what one response carried. Title here plus a separate slug query:
+     * core narrows `search_columns` to title, excerpt and content, which drops
+     * post_name -- and is why an icon's SVG markup is never searched either.
      */
     $search = trim( (string) $search );
     if ( '' !== $search ) {
@@ -235,11 +211,9 @@ function easy_svg_icon_page( $page, $per_page, $search = '' ) {
 }
 
 /**
- * Drop the cached list, so the next request reads the icons again.
- *
- * Hooked on `save_post_esw_icon` rather than called from the panel's REST
- * handlers alone: an icon written by WP-CLI, an importer or another REST
- * client has to show up just the same.
+ * Drop the cached list, so the next request reads the icons again. Hooked on
+ * `save_post_esw_icon` rather than the panel's REST handlers alone: an icon
+ * written by WP-CLI or an importer has to show up just the same.
  */
 function easy_svg_forget_icons() {
     // A small autoloaded number: reading it costs nothing on any request.
@@ -280,36 +254,27 @@ function easy_svg_boot_icons() {
 }
 
 /**
- * Store one icon, and answer with the word for what happened.
- *
- * A word rather than a sentence, and a return rather than an exit, so every
- * caller can check the answer and phrase it for itself: the panel's REST add
- * turns the word into a message (`easy_svg_panel_add_message()`) and an HTTP
- * status, where WP-CLI or an importer wants neither.
+ * Store one icon, and answer with the word for what happened. A word rather
+ * than a sentence, and a return rather than an exit, so every caller can phrase
+ * it itself: the REST add makes a message and a status of it, WP-CLI does not.
  *
  * @param string $label  What the person typed, already sanitised as text.
  * @param string $markup The bytes they uploaded.
  * @return string A state `easy_svg_panel_add_message()` has a sentence for.
  */
 /**
- * Store one icon and answer with the word for what happened.
- *
- * Kept as the whole contract it has always been, because every caller reads it
- * that way. What it cannot say is which name the icon ENDED UP with, so a
- * caller that needs that asks easy_svg_add_icon_result() instead.
+ * What this cannot say is which name the icon ENDED UP with, so a caller that
+ * needs that asks easy_svg_add_icon_result() instead.
  */
 function easy_svg_add_icon( $label, $markup ) {
     return easy_svg_add_icon_result( $label, $markup )['state'];
 }
 
 /**
- * The same write, answering with the icon it created.
- *
- * `post_name` is decided inside wp_insert_post(): wp_unique_post_slug() appends
- * `-2` when the name is taken, so the slug an icon ends up with is knowable
- * only after the insert. A caller that derives it from the label instead is
- * right until the first collision and silently wrong afterwards -- it hands
- * back a name that resolves to somebody else's icon.
+ * The same write, answering with the icon it created. `post_name` is decided
+ * inside wp_insert_post(), where wp_unique_post_slug() appends `-2` when the
+ * name is taken: a caller that derives the slug from the label is right until
+ * the first collision, then hands back somebody else's icon.
  *
  * @return array{state:string, id:int, slug:string}
  */
@@ -328,11 +293,9 @@ function easy_svg_add_icon_result( $label, $markup ) {
     }
 
     /*
-     * The same two bounds the media uploader applies, so every way into the
-     * icon store costs a request the same amount at most. Without them the
-     * panel's REST add handed whatever arrived straight to the sanitiser's DOM
-     * parser; `max_mb` is the site's own setting, so the bound a person sees on
-     * the Settings tab is the bound an icon meets.
+     * The same two bounds the media uploader applies, so every way into the icon
+     * store costs a request the same at most. `max_mb` is the site's own
+     * setting, so the bound on the Settings tab is the bound an icon meets.
      */
     $decision = easy_svg_accept_icon(
         $label,
@@ -348,23 +311,16 @@ function easy_svg_add_icon_result( $label, $markup ) {
     }
 
     /*
-     * `post_name` is left to WordPress, which makes it unique against what is
-     * already there: two icons called "Arrow" become `arrow` and `arrow-2`
-     * rather than one replacing the other, and the second is still a name core
-     * accepts, since `wp_unique_post_slug` only appends `-<number>`.
-     *
-     * A WP_Error is asked for and checked. "Icon added." above a table without
-     * the icon sends a person looking for a bug in the wrong place.
+     * `post_name` is left to WordPress, which makes it unique: two icons called
+     * "Arrow" become `arrow` and `arrow-2`, and the second is still a name core
+     * accepts because `wp_unique_post_slug` only appends `-<number>`. A WP_Error
+     * is asked for and checked, so "Icon added." is never said about no icon.
      */
     /*
-     * kses is switched off for this one insert, and only if it was on.
-     * wp_insert_post() runs content through wp_filter_post_kses for anybody
-     * without unfiltered_html -- every administrator of a multisite sub-site,
-     * every site with DISALLOW_UNFILTERED_HTML -- and kses knows no SVG, so the
-     * icon arrived empty. The markup has just been through this site's SVG
-     * sanitiser, which is the check that understands it. Restored in `finally`,
-     * so no path leaves kses off for the rest of the request. Slashed, because
-     * wp_insert_post() unslashes what it is given.
+     * kses off for this one insert, and only if it was on: wp_filter_post_kses
+     * knows no SVG, so for anybody without unfiltered_html the icon arrived
+     * empty. What the markup has been through instead is this site's own SVG
+     * sanitiser. Slashed, because wp_insert_post() unslashes what it is given.
      */
     $kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
     if ( $kses_was_on ) {
