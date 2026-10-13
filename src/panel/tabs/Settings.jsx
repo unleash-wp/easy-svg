@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Stack, Box, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
+import { Stack, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, SaveBar, TextInput, SkeletonRows, useDirty } from '../../ui.jsx'
+import { Section, FieldRow, SaveBar, SkeletonRows, useDirty } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
 

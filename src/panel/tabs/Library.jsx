@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActionBar,
   Box,
@@ -227,6 +227,14 @@ export default function Library({ ctx }) {
   }, [ctx.iconsEnabled, query])
 
   const all = icons || []
+
+  // The grid takes a drop too, because adding where you are already looking is
+  // the obvious gesture. The surface above is Chakra's and owns its own.
+  //
+  // Above the early return below for the same reason as `shown`: a hook may not
+  // be skipped, and this tab re-renders with iconsEnabled flipped the moment
+  // the Settings tab is saved.
+  const grid = useDropZone({ onFiles: addFiles, disabled: busy })
 
   // Above the early return below, because a hook may not be skipped: this tab
   // re-renders with iconsEnabled flipped the moment the Settings tab is saved.
@@ -463,9 +471,6 @@ export default function Library({ ctx }) {
   }
 
 
-  // The grid takes a drop too, because adding where you are already looking is
-  // the obvious gesture. The surface above is Chakra's and owns its own.
-  const grid = useDropZone({ onFiles: addFiles, disabled: busy })
 
   const dashed = (over) => ({
     borderWidth: '1px',
