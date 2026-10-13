@@ -260,6 +260,18 @@ $GLOBALS['inserted']       = [];
  * administrator gets.
  */
 $GLOBALS['kses_on']      = false;
+/*
+ * Core's own, near enough for a slug: lower-case, spaces and punctuation to
+ * single dashes, trimmed. Without it easy_svg_icon_slug() fell back to
+ * strtolower(), so every label with a space in it was refused as bad_name HERE
+ * and accepted on a real site -- the suite was testing a different function.
+ */
+function sanitize_title( $title, $fallback = '', $context = 'save' ) {
+	$slug = strtolower( (string) $title );
+	$slug = preg_replace( '/[^a-z0-9]+/', '-', $slug );
+	return trim( (string) $slug, '-' );
+}
+
 $GLOBALS['stored_posts'] = [];
 $GLOBALS['deleted_posts'] = [];
 function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_hooks = true ) {
@@ -270,7 +282,16 @@ function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_h
 		if ( $GLOBALS['kses_on'] ) {
 			$content = trim( strip_tags( $content ) );
 		}
-		$GLOBALS['stored_posts'][ $answer ] = (object) [ 'ID' => $answer, 'post_type' => $post['post_type'] ?? '', 'post_content' => $content ];
+		// post_name as core sets it: the slug is derived from the title when the
+		// caller does not pass one, and easy_svg_add_icon() reads it back off
+		// the stored post. Without it every slug this file saw was ''.
+		$slug = (string) ( $post['post_name'] ?? sanitize_title( (string) ( $post['post_title'] ?? '' ) ) );
+		$GLOBALS['stored_posts'][ $answer ] = (object) [
+			'ID'           => $answer,
+			'post_type'    => $post['post_type'] ?? '',
+			'post_content' => $content,
+			'post_name'    => $slug,
+		];
 	}
 	// As core does: without $wp_error a failure is 0, never an object.
 	return ( ! $wp_error && $answer instanceof WP_Error ) ? 0 : $answer;
@@ -931,6 +952,17 @@ check( 'SILENCE: a saved icon is reported as added', 'added' === easy_svg_add_ic
 check( 'SILENCE: and was written once', 1 === count( $GLOBALS['inserted'] ) );
 check( 'BELL: asking for a WP_Error, so a failure says why instead of 0', true === ( $GLOBALS['inserted'][0]['wp_error'] ?? false ) );
 check( 'BELL: what is written is the cleaned markup', false !== strpos( (string) ( $GLOBALS['inserted'][0]['post']['post_content'] ?? '' ), '<path' ) );
+
+/*
+ * The slug, read back off the stored post rather than guessed from the label:
+ * wp_unique_post_slug() appends `-2` when the name is taken, and the panel
+ * shows -- and easy_svg_icon() is called with -- whatever was actually stored.
+ * Only the one-word wrapper had a check, and that one matched source text.
+ */
+$GLOBALS['inserted']       = [];
+$GLOBALS['insert_returns'] = 43;
+$added                     = easy_svg_add_icon_result( 'Arrow Up', $good_svg );
+check( 'BELL: the result carries the state, the id and the stored slug', array( 'added', 43, 'arrow-up' ) === array( $added['state'] ?? '', $added['id'] ?? 0, $added['slug'] ?? '' ) );
 
 $GLOBALS['insert_returns'] = new WP_Error( 'db_insert_error', 'Could not insert post into the database.' );
 check( 'BELL: a WP_Error from the insert is not reported as added', 'not_saved' === easy_svg_add_icon( 'Arrow', $good_svg ) );
@@ -1856,6 +1888,28 @@ $icons_out    = array();
 $icons_status = 1;
 exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/icons.php' ) . ' 2>&1', $icons_out, $icons_status );
 check( 'the icon checks pass: ' . ( $icons_out[ count( $icons_out ) - 1 ] ?? 'no output' ), 0 === $icons_status );
+
+// The panel's REST, for the same reason -- and so that `php tests/run.php` on a
+// laptop means what a green pipeline means.
+$panel_out    = array();
+$panel_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/panel-rest.php' ) . ' 2>&1', $panel_out, $panel_status );
+check( 'the panel REST checks pass: ' . ( $panel_out[ count( $panel_out ) - 1 ] ?? 'no output' ), 0 === $panel_status );
+
+/*
+ * And nothing in tests/ is left out. A list written today stops covering the
+ * file added tomorrow, and the file it stops covering is never the one you
+ * expected -- six suites in the paid plugin ran nowhere for months this way.
+ */
+$suite_files = array_map(
+	static fn( string $path ): string => basename( $path, '.php' ),
+	(array) glob( __DIR__ . '/*.php' )
+);
+$orphans = array_values( array_diff( $suite_files, array( 'run', 'runner', 'icons', 'panel-rest' ) ) );
+check(
+	'BELL: every suite in tests/ is run by this file' . ( $orphans ? ' -- orphaned: ' . implode( ', ', $orphans ) : '' ),
+	array() === $orphans
+);
 
 // ─── On WordPress 7.1 ────────────────────────────────────────────────────────
 
