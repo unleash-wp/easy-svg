@@ -407,6 +407,30 @@ export default function App({ config }) {
         <Text color="ui.heading" fontWeight="700" fontSize="0.9688rem" hideBelow="sm">
           Easy SVG
         </Text>
+        {/*
+          Two plugins make one panel, and until now nothing on screen said the
+          paid half was here at all: the version in the corner is the free
+          plugin's, and the add-on's was buried on the licence tab. A badge when
+          it is licensed, and nothing when it is not -- the licence tab is where
+          an inactive licence belongs, not in the brand bar.
+        */}
+        {config.proLicensed ? (
+          <Box
+            as="span"
+            bg="ui.accent"
+            color="ui.heading"
+            fontWeight="700"
+            fontSize="0.6875rem"
+            lineHeight="1.4"
+            letterSpacing=".02em"
+            px="1.5"
+            py="0.5"
+            borderRadius="full"
+            title={config.proVersion ? `Easy SVG Pro ${config.proVersion}` : 'Easy SVG Pro'}
+          >
+            Pro
+          </Box>
+        ) : null}
         {config.version ? <Text ml="auto" textStyle="caption">{`v${config.version}`}</Text> : null}
       </Flex>
 
@@ -546,7 +570,14 @@ export default function App({ config }) {
         wrap="wrap"
       >
         <Text textStyle="caption">{__('Easy SVG by UnleashWP', 'easy-svg')}</Text>
-        {config.version ? <Text textStyle="caption">{`v${config.version}`}</Text> : null}
+        {config.version ? (
+          <Text textStyle="caption">
+            {`v${config.version}`}
+            {/* Both halves, where a person looks for a version before writing
+                to support: one of these numbers alone answers half a question. */}
+            {config.proVersion ? ` · Pro ${config.proVersion}` : ''}
+          </Text>
+        ) : null}
       </Flex>
     </Box>
   )

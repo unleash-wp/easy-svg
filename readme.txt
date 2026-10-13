@@ -148,6 +148,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 == Changelog ==
 
 = 5.3.3 =
+* New: the panel says which halves are installed -- a badge beside the product name when the add-on is licensed, and both version numbers in the footer. Until now the only place that named the add-on's version was its own licence screen.
 * Change: the Icons entry now sits at the bottom of the admin menu and carries the UnleashWP mark instead of a generic glyph.
 * New: the plugin's row on the Plugins screen links straight to the Icons screen, and offers the paid add-on to a site that does not have it. The offer disappears the moment that add-on is installed.
 * Fix: icons drawn with strokes -- most outline sets -- showed as an empty box in the Icon block and anywhere a template calls `wp_get_icon()`. WordPress's icon registry keeps only paths and polygons and drops `stroke` entirely; the icon now carries its stroke as a class that a small stylesheet restores, and circles, rects, ellipses, lines and polylines are handed over as the paths they are. Nothing changes for icons that are plain filled paths.

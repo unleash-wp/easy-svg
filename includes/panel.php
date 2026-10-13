@@ -303,6 +303,10 @@ function easy_svg_panel_assets( $hook ): void {
 			// single version source this plugin has.
 			'version'      => (string) ( get_file_data( $main, array( 'Version' => 'Version' ) )['Version'] ?? '' ),
 			'proActive'    => $pro_active,
+			// The add-on's own version, when it is here. The panel shows one
+			// product and two plugins make it, and the licence screen was the
+			// only place that said which version of the paid half is running.
+			'proVersion'   => function_exists( 'easy_svg_pro_version' ) ? (string) easy_svg_pro_version() : '',
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
 			// The cap's ceiling, so the field and the slider end where the
