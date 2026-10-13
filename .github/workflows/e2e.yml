@@ -26,6 +26,11 @@ jobs:
       # .wp-env.json maps this repository in as the only plugin, so what CI
       # drives is the free panel alone -- no Pro tabs, which is the state a
       # wordpress.org visitor gets.
+      #
+      # @wordpress/env is a dependency rather than something npx fetches: asked
+      # for by the bare name it resolved to `wp-env@1.0.1`, an unrelated package
+      # of somebody else's, which started nothing and left the whole run failing
+      # on a refused connection.
       - name: Start WordPress
         run: npx wp-env start
 

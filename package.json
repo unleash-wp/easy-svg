@@ -20,6 +20,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "@wordpress/env": "^11.17.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
