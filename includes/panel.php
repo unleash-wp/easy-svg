@@ -107,15 +107,27 @@ add_action( 'admin_menu', 'easy_svg_panel_menu_to_the_end', 9999 );
 function easy_svg_panel_menu_icon_css(): void {
 	$selector = '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image';
 
-	echo '<style id="easy-svg-menu-icon">'
-		. $selector . '{display:flex;align-items:center;justify-content:center;padding:0}'
+	/*
+	 * Enqueued rather than echoed into admin_head. The selector is built from a
+	 * constant and escapes nothing a CSS context would want escaped, so the
+	 * echo was safe -- but it reads to a reviewer, and to Plugin Check, as
+	 * output that was never escaped, and arguing with that on a wordpress.org
+	 * review is a worse use of everyone's time than using the enqueue the
+	 * platform already has.
+	 */
+	$handle = 'easy-svg-menu-icon';
+	wp_register_style( $handle, false, array(), (string) filemtime( __FILE__ ) );
+	wp_enqueue_style( $handle );
+	wp_add_inline_style(
+		$handle,
+		$selector . '{display:flex;align-items:center;justify-content:center;padding:0}'
 		. $selector . ' img{width:26px;height:26px;padding:0;max-width:none}'
 		// Folded menu and the mobile bar: the row is taller there, and the
 		// same two rules keep it centred rather than needing their own.
 		. '.folded ' . $selector . ',#adminmenu .wp-submenu ' . $selector . '{padding:0}'
-		. '</style>';
+	);
 }
-add_action( 'admin_head', 'easy_svg_panel_menu_icon_css' );
+add_action( 'admin_enqueue_scripts', 'easy_svg_panel_menu_icon_css' );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );

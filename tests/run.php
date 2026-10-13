@@ -61,6 +61,23 @@ function apply_filters( string $hook, $value, ...$args ) {
 	}
 	return $value;
 }
+/*
+ * Styles, as three recorders rather than three no-ops. A no-op would let a
+ * rule be added to a handle nothing enqueued -- which produces no CSS and no
+ * error -- and the suite would still pass.
+ */
+$GLOBALS['styles'] = [ 'registered' => [], 'enqueued' => [], 'inline' => [] ];
+function wp_register_style( string $handle, $src, array $deps = [], $ver = false, string $media = 'all' ): bool {
+	$GLOBALS['styles']['registered'][ $handle ] = $ver;
+	return true;
+}
+function wp_enqueue_style( string $handle, string $src = '', array $deps = [], $ver = false, string $media = 'all' ): void {
+	$GLOBALS['styles']['enqueued'][] = $handle;
+}
+function wp_add_inline_style( string $handle, string $data ): bool {
+	$GLOBALS['styles']['inline'][ $handle ] = ( $GLOBALS['styles']['inline'][ $handle ] ?? '' ) . $data;
+	return true;
+}
 function __return_false(): bool {
 	return false;
 }
@@ -2351,7 +2368,10 @@ check( 'SILENCE: and still gets the way in', isset( $links_with_pro['easy_svg_pa
  */
 ob_start();
 easy_svg_panel_menu_icon_css();
-$menu_css = (string) ob_get_clean();
+$menu_echoed = (string) ob_get_clean();
+$menu_css    = (string) ( $GLOBALS['styles']['inline']['easy-svg-menu-icon'] ?? '' );
+check( 'SILENCE: the menu rules are enqueued, not echoed into the head', '' === $menu_echoed );
+check( 'BELL: on a handle something actually enqueued', in_array( 'easy-svg-menu-icon', $GLOBALS['styles']['enqueued'], true ) );
 check( 'BELL: the menu icon rules name this plugin\'s own entry', false !== strpos( $menu_css, '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image' ) );
 check( 'BELL: and size the image rather than leaving it to core\'s 20px', 1 === preg_match( '/img\{[^}]*width:2[0-9]px/', $menu_css ) );
 check( 'SILENCE: nothing is forced with !important', false === strpos( $menu_css, '!important' ) );
