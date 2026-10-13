@@ -18,6 +18,10 @@
 /composer.lock
 /RELEASING.md
 /README.md
+# Never committed, but a local build rsyncs the working directory: the file is
+# notes for whoever works on this repository, and a customer is not that.
+/CLAUDE.md
+/AGENTS.md
 /docs
 /tests
 

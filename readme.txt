@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.3.1
+Stable tag: 5.3.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -146,6 +146,9 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 == Changelog ==
 
 = 5.3.2 =
+* Security: an SVG could keep an animation that runs on load by writing the element behind a namespace prefix. The neutraliser reads the element's own name now, prefix or not.
+* Fix: the German translation this plugin ships was read by nobody. WordPress stops looking as soon as it has a language pack, so what the download carries was never used; it is loaded underneath the pack now, which means a string translators have not reached yet is no longer English.
+* Fix: German arrives on sites set to "Sie", to Austrian or to Swiss German. WordPress looks for the exact locale, and only one German catalogue shipped.
 * Fix: the upload size cap could not be set above 20 MB however high an add-on raised the ceiling -- and the field kept showing the number it was not going to save.
 * Fix: searching the icon library said the library held as many icons as the search found, so a search that matched nothing reported an empty library.
 * Fix: the search field's magnifier sat on the first letters of what you typed.
@@ -223,7 +226,7 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 == Upgrade Notice ==
 
 = 5.3.2 =
-Fixes on the Icons screen: the size cap can be set as high as the ceiling allows, the search no longer miscounts the library, and icon names stop breaking across two lines on a narrow screen. No setting changes on update.
+Security: an SVG could keep an animation that runs on load by writing the element behind a namespace prefix. Also: the German translation this plugin ships is finally read, on "Sie", Austrian and Swiss sites as well, and the Icons screen fixes -- the size cap can be set as high as the ceiling allows, the search no longer miscounts the library, and icon names stop breaking across two lines. No setting changes on update.
 
 = 5.3.1 =
 Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
