@@ -85,14 +85,9 @@ function easy_svg_panel_menu(): void {
 	);
 
 	/*
-	 * One menu entry per tab, which is how a WordPress admin expects to reach a
-	 * screen: the panel is one page and the entries are that page with `?tab=`
-	 * on it. Pro adds its own through the same filter rather than this file
-	 * learning which tabs a paid add-on registers.
-	 *
-	 * The slug carries the query argument, so WordPress builds the right URL and
-	 * marks the entry current; the shared callback renders the same panel, and
-	 * the app reads the parameter to decide which tab opens.
+	 * One entry per tab: the panel is a single page, and each entry is that
+	 * page with `?tab=` in the slug, so WordPress builds the URL and marks the
+	 * entry current by itself. Pro contributes its own through the filter.
 	 */
 	foreach ( easy_svg_panel_menu_tabs() as $tab => $label ) {
 		add_submenu_page(

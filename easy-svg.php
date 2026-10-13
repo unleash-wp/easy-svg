@@ -110,16 +110,10 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 define( 'EASY_SVG_API', 3 );
 
 /**
- * The version of the PANEL contract, which is a different promise.
- *
- * Its own number because EASY_SVG_API covers `easy_svg_sanitizer()` alone, and
- * an add-on asking "may I hang a tab in the panel" is asking about something
- * else entirely: `easy_svg_panel_enqueue`, `easy_svg_panel_menu_tabs` and
- * `easy_svg_max_mb_ceiling`.
- *
- * 1 is the first version that carries all three. A filter cannot be probed for
- * -- nothing registers it, it is simply applied or not -- so an add-on that
- * contributes menu entries has no way to ask except by this number.
+ * The panel contract: `easy_svg_panel_enqueue`, `easy_svg_panel_menu_tabs` and
+ * `easy_svg_max_mb_ceiling`. Its own number because EASY_SVG_API covers the
+ * sanitiser alone, and because a filter cannot be probed for -- an add-on has
+ * no other way to ask whether these three are there.
  */
 define( 'EASY_SVG_PANEL_API', 1 );
 

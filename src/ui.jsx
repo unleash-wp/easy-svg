@@ -25,13 +25,9 @@ import {
 // ghost = outline. The "forge" radius is theirs. Ubuntu ships only 400 and
 // 700, so buttons use 700; 500/600 would render as a faux weight the font
 // never shipped.
-/*
- * forwardRef, because Chakra's `asChild` triggers (Dialog, Tooltip,
- * FileUpload, Clipboard) clone their child and hand it a ref. A plain
- * function component drops it, and the trigger then has no element to
- * anchor, focus or open from -- React says so in a warning and the control
- * silently does nothing.
- */
+// forwardRef is load-bearing: Chakra's `asChild` triggers clone their child and
+// hand it a ref, and a plain function component drops it -- the trigger then has
+// nothing to anchor or open from and silently does nothing.
 export const Button = forwardRef(function Button(
   { variant = 'ghost', size = 'md', danger, children, ...rest },
   ref
@@ -449,14 +445,9 @@ export function Notice({ bad, role, status, title, children, ...rest }) {
   )
 }
 
-/*
- * An icon-only button that says what it does on hover and to a screen reader.
- *
- * The label is the accessible name AND the tooltip, so the two can never drift
- * apart. Chakra's Tooltip is portalled by default; this one is not, because
- * the panel's own styles -- the brand face above all -- are scoped to its
- * subtree, and a tooltip in document.body would render in wp-admin's type.
- */
+// One label serves as the accessible name and the tooltip, so the two cannot
+// drift apart. Not portalled: the panel's styles are scoped to its subtree, and
+// a tooltip in document.body would render in wp-admin's face.
 export function IconAction({ label, danger, children, ...rest }) {
   return (
     <CTooltip.Root openDelay={250} closeDelay={80} positioning={{ placement: 'top' }}>
@@ -494,11 +485,9 @@ export function IconAction({ label, danger, children, ...rest }) {
   )
 }
 
-// A filter field that sits directly above the thing it filters. The label is a
-// real <label htmlFor>, hidden visually only: a visible one would be a second
-// line saying what the placeholder already says, and a bare input says nothing
-// at all to a screen reader. type="search" so the browser offers its own clear
-// affordance and the Escape key empties the field.
+// The label is real but visually hidden: a visible one would repeat the
+// placeholder, and a bare input says nothing to a screen reader. type="search"
+// for the browser's own clear affordance and the Escape key.
 export function SearchField({ id, label, placeholder, value, onChange, maxW = '300px' }) {
   return (
     <Box flex="1" maxW={maxW} minW="160px">

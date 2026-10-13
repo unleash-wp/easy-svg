@@ -1140,12 +1140,9 @@ check( 'BELL: and the icon feature is still there, unlimited', function_exists( 
 check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === EASY_SVG_API );
 
 /*
- * The panel contract, pinned the same way and for the same reason.
- *
- * Its own number because EASY_SVG_API is the sanitiser alone. Pro gates its
- * menu entries and its raised size ceiling on this one, and it cannot probe for
- * either: a filter that nothing registers cannot be asked about, and a site
- * running an older free plugin would simply see Pro's contributions do nothing.
+ * The panel contract, pinned for the same reason as the one above. Pro gates
+ * its menu entries and its raised ceiling on this number and cannot probe for
+ * either, so on an older free plugin its contributions would do nothing.
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
 check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
@@ -1819,13 +1816,9 @@ check( 'SILENCE: and the file was actually read', '' !== $source );
 // ─── Every PHP file parses ───────────────────────────────────────────────────
 
 /*
- * `php -l` on each file, because being READ is not being LOADED.
- *
- * Several files reach this suite only as text -- icon-manager.php is read with
- * file_get_contents() and its one entry point is stubbed -- so a file of those
- * could stop parsing and every check here would still pass. That happened: a
- * careless in-place edit ate an assignment's left-hand side and the suite
- * stayed green.
+ * Being READ is not being LOADED: icon-manager.php reaches this suite only as
+ * text, with its entry point stubbed, so it could stop parsing with every check
+ * still green. It did once.
  */
 $php_files = array();
 foreach ( array( '', '/includes', '/includes/blocks' ) as $dir ) {
