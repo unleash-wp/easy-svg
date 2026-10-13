@@ -69,9 +69,12 @@ function easy_svg_plugin_action_links( $links ) {
 	 */
 	if ( ! function_exists( 'easy_svg_pro_pro_enabled' ) ) {
 		$ours['easy_svg_pro'] = sprintf(
-			'<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#203159;font-weight:600">%s</a>',
+			// Core's own red, the one wp-admin uses for a link that leaves the
+			// ordinary flow. Picked rather than invented so it sits in the row
+			// like a WordPress link and not like a banner.
+			'<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#d63638;font-weight:600">%s</a>',
 			esc_url( (string) apply_filters( 'easy_svg_pro_url', EASY_SVG_PRO_URL ) ),
-			esc_html__( 'Get the Pro add-on', 'easy-svg' )
+			esc_html__( 'Buy Easy SVG Pro', 'easy-svg' )
 		);
 	}
 
