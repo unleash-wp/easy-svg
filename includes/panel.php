@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 const EASY_SVG_PANEL_SLUG = 'easy-svg-icons';
 
 /**
+ * Where the add-on is sold. One place, and filterable: it is an address on a
+ * website, and the plugin should not need a release when that page moves.
+ */
+const EASY_SVG_PRO_URL = 'https://www.unleash-wp.com';
+
+/**
  * The "Icons" mark: tiles with one circle, so it reads as a collection of icons
  * rather than a generic app grid. Monochrome on purpose -- WordPress tints the
  * menu icon by state, so the shape takes a single $fill from its context.
@@ -46,13 +52,30 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * @return array
  */
 function easy_svg_plugin_action_links( $links ) {
-	$ours = sprintf(
-		'<a href="%s">%s</a>',
-		esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ),
-		esc_html__( 'Icons', 'easy-svg' )
+	$ours = array(
+		'easy_svg_panel' => sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ),
+			esc_html__( 'Icons', 'easy-svg' )
+		),
 	);
 
-	return array_merge( array( 'easy_svg_panel' => $ours ), (array) $links );
+	/*
+	 * And the add-on, for a site that does not have it.
+	 *
+	 * Gone the moment it is installed: an upsell that stays after somebody has
+	 * paid is the kind of thing people write reviews about. The address is
+	 * filterable because it is marketing, and marketing moves.
+	 */
+	if ( ! function_exists( 'easy_svg_pro_pro_enabled' ) ) {
+		$ours['easy_svg_pro'] = sprintf(
+			'<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#203159;font-weight:600">%s</a>',
+			esc_url( (string) apply_filters( 'easy_svg_pro_url', EASY_SVG_PRO_URL ) ),
+			esc_html__( 'Get the Pro add-on', 'easy-svg' )
+		);
+	}
+
+	return array_merge( $ours, (array) $links );
 }
 add_filter( 'plugin_action_links_' . plugin_basename( dirname( __DIR__ ) . '/easy-svg.php' ), 'easy_svg_plugin_action_links' );
 
@@ -65,6 +88,31 @@ add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
  * a site with thirteen plugins, position 99.7 put Icons 22nd of 26.
  */
 add_action( 'admin_menu', 'easy_svg_panel_menu_to_the_end', 9999 );
+
+/**
+ * The menu icon, sized and centred.
+ *
+ * Core's rule for a file icon is `width:20px` plus 9px of padding on top, which
+ * is built for a glyph that fills its box edge to edge. This mark is a bulb with
+ * air around it, so at 20px it reads small and the padding pushes it off the
+ * line of the label. Flex centring puts it on that line at any row height, and
+ * the padding goes rather than being compensated for.
+ *
+ * On every admin screen, because that is where the menu is -- three rules, in
+ * the head, for one element.
+ */
+function easy_svg_panel_menu_icon_css(): void {
+	$selector = '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image';
+
+	echo '<style id="easy-svg-menu-icon">'
+		. $selector . '{display:flex;align-items:center;justify-content:center;padding:0}'
+		. $selector . ' img{width:26px;height:26px;padding:0;max-width:none}'
+		// Folded menu and the mobile bar: the row is taller there, and the
+		// same two rules keep it centred rather than needing their own.
+		. '.folded ' . $selector . ',#adminmenu .wp-submenu ' . $selector . '{padding:0}'
+		. '</style>';
+}
+add_action( 'admin_head', 'easy_svg_panel_menu_icon_css' );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );

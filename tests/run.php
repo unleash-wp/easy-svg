@@ -378,6 +378,12 @@ function plugin_basename( string $file ): string {
 function admin_url( string $path = '' ): string {
 	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
 }
+function esc_url( string $url ): string {
+	return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
+}
+function esc_html__( string $text, string $domain = '' ): string {
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+}
 
 $GLOBALS['menu_icon']     = '';   // what the top-level entry was given
 $GLOBALS['menu_position']  = null; // and where it asked to sit
@@ -2314,6 +2320,41 @@ check( 'SILENCE: the file it names ships with the plugin', is_readable( $root . 
  * the position is a decimal string that no integer can collide with.
  */
 check( 'BELL: the Icons entry asks for a place below Settings', (float) $GLOBALS['menu_position'] > 80.0 );
+
+/*
+ * The add-on link, and the one condition on it.
+ *
+ * An upsell that stays after somebody has paid is the kind of thing people
+ * write reviews about, so it is gone the moment the add-on is installed -- and
+ * "installed" is the free plugin's own test for that, the function the add-on
+ * defines.
+ */
+$links_without_pro = easy_svg_plugin_action_links( array( 'deactivate' => '<a>x</a>' ) );
+check( 'BELL: a site without the add-on is offered it', isset( $links_without_pro['easy_svg_pro'] ) );
+check( 'BELL: and the link leaves the admin in a new tab, without handing over the referrer', false !== strpos( (string) ( $links_without_pro['easy_svg_pro'] ?? '' ), 'rel="noopener noreferrer"' ) );
+check( 'BELL: the way in comes first, before WordPress\'s own links', array( 'easy_svg_panel', 'easy_svg_pro', 'deactivate' ) === array_keys( $links_without_pro ) );
+
+// The add-on, present. Declared here because the suite has no Pro to load, and
+// the free plugin asks for exactly this function.
+if ( ! function_exists( 'easy_svg_pro_pro_enabled' ) ) {
+	eval( 'function easy_svg_pro_pro_enabled() { return true; }' );
+}
+$links_with_pro = easy_svg_plugin_action_links( array( 'deactivate' => '<a>x</a>' ) );
+check( 'BELL: a site that HAS the add-on is not sold it again', ! isset( $links_with_pro['easy_svg_pro'] ) );
+check( 'SILENCE: and still gets the way in', isset( $links_with_pro['easy_svg_panel'] ) );
+
+/*
+ * The menu icon's own rules, and the one thing that can silently stop them
+ * applying: a selector that names the wrong screen. The look itself was
+ * measured in a browser -- icon centre and label centre on the same line --
+ * and this is the half a suite can hold.
+ */
+ob_start();
+easy_svg_panel_menu_icon_css();
+$menu_css = (string) ob_get_clean();
+check( 'BELL: the menu icon rules name this plugin\'s own entry', false !== strpos( $menu_css, '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image' ) );
+check( 'BELL: and size the image rather than leaving it to core\'s 20px', 1 === preg_match( '/img\{[^}]*width:2[0-9]px/', $menu_css ) );
+check( 'SILENCE: nothing is forced with !important', false === strpos( $menu_css, '!important' ) );
 check( 'BELL: and asks for it as a string, so it cannot take another plugin\'s slot', is_string( $GLOBALS['menu_position'] ) && false !== strpos( (string) $GLOBALS['menu_position'], '.' ) );
 check( 'SILENCE: and the sanitiser the panel REST writes through is still here', function_exists( 'easy_svg_sanitize_settings' ) );
 

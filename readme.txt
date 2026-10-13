@@ -111,6 +111,8 @@ The hooks below are part of that surface too, because this plugin's own add-on a
 
 `easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
 
+`easy_svg_pro_url` filters the address behind the add-on link in this plugin's row on the Plugins screen. The link is only there when the add-on is not installed; return your own address to point it somewhere else.
+
 `easy_svg_panel_menu_tabs` filters which tabs get their own entry in the Icons menu, as `tab id => label`. An add-on that registers a tab adds its entry here, and the entry opens the panel with that tab already open.
 
 `easy_svg_max_mb_ceiling` (20) is the highest cap the Icons screen lets a site set, in megabytes. Raising it widens the field and the slider; the stored value is clamped to it on save.
@@ -147,7 +149,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 = 5.3.3 =
 * Change: the Icons entry now sits at the bottom of the admin menu and carries the UnleashWP mark instead of a generic glyph.
-* New: the plugin's row on the Plugins screen links straight to the Icons screen.
+* New: the plugin's row on the Plugins screen links straight to the Icons screen, and offers the paid add-on to a site that does not have it. The offer disappears the moment that add-on is installed.
 * Fix: icons drawn with strokes -- most outline sets -- showed as an empty box in the Icon block and anywhere a template calls `wp_get_icon()`. WordPress's icon registry keeps only paths and polygons and drops `stroke` entirely; the icon now carries its stroke as a class that a small stylesheet restores, and circles, rects, ellipses, lines and polylines are handed over as the paths they are. Nothing changes for icons that are plain filled paths.
 * New: the editor says so when an Icon block points at an icon that is no longer here. A collection leaves when a theme is switched, a plugin is deactivated or a folder is renamed, and until now the block simply drew nothing -- on the page as well, where the first person to notice was a visitor.
 
