@@ -387,7 +387,13 @@ function esw_svg_file_checker( $file ) {
     // there anything to do; the quick check keeps the ordinary upload off the
     // DOM round-trip. A href-driving animation is taken out; a parse failure
     // leaves the cleaned bytes as they are.
-    if ( false !== stripos( $clean, '<animate' ) || preg_match( '/<set[\s\/>]/i', $clean ) ) {
+    //
+    // A namespace prefix is allowed for, because the function this guards
+    // compares localName and would have defused `<s:animate` -- it was only
+    // this trigger, a raw string match, that never let it look. Measured: with
+    // the element on the allow-list, `<s:animate attributeName="href">` passed
+    // through untouched.
+    if ( preg_match( '/<(?:[a-z][\w.-]*:)?(?:animate[a-z]*|set)[\s\/>]/i', $clean ) ) {
         $neutralized = easy_svg_neutralize_href_animation( $clean );
         if ( '' !== trim( $neutralized ) ) {
             $clean = $neutralized;
