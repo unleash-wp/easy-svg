@@ -36,6 +36,11 @@ wp i18n make-pot . languages/easy-svg.pot \
 perl -pi -e 's{^#: src/[^\s:]*\.jsx?:\d+$}{#: build/panel.js}' languages/easy-svg.pot
 perl -0pi -e 's{(#: build/panel\.js\n)(?:#: build/panel\.js\n)+}{$1}g' languages/easy-svg.pot
 
+# The German variants, derived from de_DE, BEFORE the merge below so each one is
+# brought up to the POT like any other .po. A site set to de_DE_formal, de_AT or
+# de_CH looks for its own file and takes English when there is none.
+php scripts/make-de-variants.php
+
 # A NEW string reaches a catalogue only through msgmerge: make-mo and make-json
 # read the .po, and a .po does not learn a msgid from the POT by itself. Skip
 # this and new strings are simply English in every language, with a green suite
