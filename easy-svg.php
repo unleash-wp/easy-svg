@@ -693,6 +693,24 @@ require_once __DIR__ . '/includes/icon-manager.php';
 // window.EasySvgPanel. Loaded last so the functions it wraps are defined.
 require_once __DIR__ . '/includes/panel.php';
 
+/**
+ * The catalogue that ships with this plugin.
+ *
+ * WordPress loads a plugin's translation on its own, but only from
+ * WP_LANG_DIR/plugins -- which is where wordpress.org puts what translators
+ * contribute. The /languages folder in the download is reached by nothing
+ * unless this is called, so the German catalogue we ship was never read on any
+ * site: measured, the panel was German (its JS catalogue is registered with an
+ * explicit path) while the admin menu beside it and every PHP string were not.
+ *
+ * On `init` rather than earlier, which is where WordPress wants a textdomain
+ * loaded, and still before the menu is built on `admin_menu`.
+ */
+function easy_svg_load_textdomain(): void {
+    load_plugin_textdomain( 'easy-svg', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}
+add_action( 'init', 'easy_svg_load_textdomain', 1 );
+
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );
