@@ -503,9 +503,20 @@ export function SearchField({ id, label, placeholder, value, onChange, maxW = '3
           </Box>
         }
       >
-        {/* ps: the start element sits ON the field, so without room for it the
-            magnifier lands on the first letters of the placeholder. */}
-        <TextInput id={id} type="search" ps="9" placeholder={placeholder} value={value} onChange={onChange} />
+        {/* The start element sits ON the field, so without room for it the
+            magnifier lands on the first letters of the placeholder. ps is not
+            enough on its own: the panel's own unlayered rule has to beat
+            wp-admin's forms.css and sets one padding for every field, so the
+            attribute is what that rule aims at. */}
+        <TextInput
+          id={id}
+          type="search"
+          ps="9"
+          data-esw-search="true"
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+        />
       </InputGroup>
     </Box>
   )
