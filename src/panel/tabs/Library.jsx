@@ -137,6 +137,7 @@ export default function Library({ ctx }) {
   const api = makeApi(ctx)
   const [icons, setIcons] = useState(null)
   const [total, setTotal] = useState(0)
+  const [libraryTotal, setLibraryTotal] = useState(0)
   const [err, setErr] = useState('')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
@@ -158,10 +159,18 @@ export default function Library({ ctx }) {
 
   // One place unwraps a library response, so a route that still answers the old
   // bare array keeps working and the total only has to be read once.
-  const take = (res) => {
+  const take = (res, filtered = false) => {
     const list = listOf(res)
     setIcons(list)
     setTotal(totalOf(res, list.length))
+    /*
+     * How big the library IS, which a search's answer cannot say: its list is
+     * the matches. The heading read them as the library and told a site with
+     * three icons it had one. Every other route answers the whole library.
+     */
+    if (!filtered) {
+      setLibraryTotal(totalOf(res, list.length))
+    }
     // A selection may not outlive the list it was made in. Select all with 400
     // loaded, then search: without this the 397 off-screen ids stay picked, the
     // bar still counts them, and Remove deletes what nobody can see.
@@ -207,7 +216,7 @@ export default function Library({ ctx }) {
       api
         .get(term ? `/library?search=${encodeURIComponent(term)}` : '/library', { signal: ac.signal })
         .then((res) => {
-          take(res)
+          take(res, !!term)
           setSearching(false)
         })
         .catch((e) => {
@@ -729,8 +738,8 @@ export default function Library({ ctx }) {
         title={__('Your icons', 'easy-svg')}
         description={sprintf(
           // translators: %d: number of icons in the library.
-          _n('%d icon in the library.', '%d icons in the library.', all.length, 'easy-svg'),
-          all.length
+          _n('%d icon in the library.', '%d icons in the library.', libraryTotal, 'easy-svg'),
+          libraryTotal
         )}
       >
         <Stack gap="4">
@@ -860,11 +869,14 @@ export default function Library({ ctx }) {
             {...grid.props}
           >
             {/*
-              Two columns on a phone, not three: a tile has to be wide enough
-              for its three actions at a real touch size, and at three columns
-              it is about 100px, which forces them down to 28px side by side.
+              The tile's own width decides how many fit, not the viewport's:
+              this grid sits inside two sidebars, so five columns at a 800px
+              window left each tile 75px wide and broke "Rocket" across two
+              lines. 110px is the floor a tile needs for its three actions at a
+              real touch size. auto-FILL, not auto-fit: with three icons in the
+              library auto-fit would stretch them across the row.
             */}
-            <SimpleGrid columns={{ base: 2, md: 5, lg: 7 }} gap="3">
+            <SimpleGrid templateColumns="repeat(auto-fill, minmax(110px, 1fr))" gap="3">
               {shown.map((ic) => (
                 <IconTile
                   key={ic.id}

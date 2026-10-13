@@ -166,10 +166,7 @@ msgstr "Diese Datei liegt nicht mehr in der Mediathek."
 
 #: includes/panel.php:446
 msgid "That file is not stored on this server, so it could not be read."
-msgstr ""
-"Diese Datei liegt nicht auf diesem Server und konnte deshalb nicht gelesen "
-"werden.Diese Datei liegt nicht auf diesem Server und konnte deshalb nicht "
-"gelesen werden."
+msgstr "Diese Datei liegt nicht auf diesem Server und konnte deshalb nicht gelesen werden."
 
 #: includes/panel.php:448
 msgid "That is not an SVG the sanitiser accepts."
@@ -177,10 +174,7 @@ msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
 
 #: includes/panel.php:450
 msgid "That name cannot be turned into an icon name. Use letters and numbers."
-msgstr ""
-"Aus diesem Namen lässt sich kein Icon-Name bilden. Nimm Buchstaben und "
-"Zahlen.Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende "
-"Buchstaben und Zahlen."
+msgstr "Aus diesem Namen lässt sich kein Icon-Name bilden. Verwende Buchstaben und Zahlen."
 
 #: includes/panel.php:452
 msgid "That SVG is larger than the size allowed in Settings."
@@ -630,10 +624,7 @@ msgstr "SVG-Uploads in der Mediathek erlauben"
 
 #: build/panel.js
 msgid "Editors can upload .svg files; each one is sanitised on the way in."
-msgstr ""
-"Redakteure können .svg-Dateien hochladen; jede wird beim Hereinkommen "
-"bereinigt.Redakteure können .svg-Dateien hochladen; jede wird beim Upload "
-"bereinigt."
+msgstr "Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
 
 #: build/panel.js
 msgid "Enable the icon library"

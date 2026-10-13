@@ -230,7 +230,10 @@ function easy_svg_panel_assets( $hook ): void {
 		// above sets one padding for every field and, being unlayered, beats the
 		// per-field value the component asks for -- so the magnifier landed on
 		// the first letters of the placeholder.
-		. '.wrap #easy-svg-panel [data-scope=input-group] input{padding-inline-start:36px}'
+		// Aimed at the field's own attribute, not at a scope the library emits:
+		// this read [data-scope=input-group], Chakra renders .chakra-group, and
+		// the rule quietly stopped matching anything.
+		. '.wrap #easy-svg-panel input[data-esw-search]{padding-inline-start:36px}'
 		// The copy field shows a call to paste into a template, and it reads as
 		// code. It is an <input>, so the `inherit` rule above takes it back to
 		// the brand face whatever the component asks for -- this is the only
@@ -285,7 +288,10 @@ function easy_svg_panel_rest(): void {
 					'max_mb'     => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
-						'maximum'     => 20,
+						// The CEILING, which an add-on raises -- not a literal 20. With
+						// the number hard-coded here the route refused every value a
+						// licensed site is offered, while the panel reported a save.
+						'maximum'     => easy_svg_max_mb_ceiling(),
 						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable.', 'easy-svg' ),
 					),
 				),

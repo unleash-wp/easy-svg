@@ -40,6 +40,25 @@ test.describe('the upload size cap', () => {
     await expect(slider).toHaveAttribute('aria-valuenow', '7')
   })
 
+  /*
+   * The field's own maximum is the server's ceiling, which an add-on raises.
+   * Typing past it left the typed number standing while the field already held
+   * the clamped one, so the panel showed a cap it was not going to save.
+   */
+  test('a number above the ceiling is corrected in the field, not just on save', async ({ page }) => {
+    await page.goto(SETTINGS)
+    const number = page.locator(`${PANEL} input[inputmode="decimal"], ${PANEL} input[type="number"]`).first()
+    // The slider carries the ceiling where a test can read it; the number
+    // field holds its maximum in the state machine, not in an attribute.
+    const slider = page.locator(`${PANEL} [role="slider"]`).first()
+    const ceiling = await slider.getAttribute('aria-valuemax')
+    expect(Number(ceiling)).toBeGreaterThan(0)
+
+    await number.fill(String(Number(ceiling) + 100))
+    await number.blur()
+    await expect(number).toHaveValue(ceiling)
+  })
+
   test('a saved cap comes back after a reload', async ({ page }) => {
     await page.goto(SETTINGS)
     const number = page.locator(`${PANEL} input[inputmode="decimal"], ${PANEL} input[type="number"]`).first()

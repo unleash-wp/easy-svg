@@ -59,4 +59,37 @@ test.describe('the icon library search', () => {
     await expect(page.locator('#esw-icon-search')).toBeVisible()
     await expect(page.locator(PANEL).getByText(/erstes SVG|first SVG/i)).toHaveCount(0)
   })
+
+  /*
+   * The magnifier sits ON the field, so the field needs room for it. The rule
+   * that makes that room has to be unlayered to beat wp-admin's forms.css, and
+   * it was aimed at an attribute the library stopped emitting -- so it matched
+   * nothing and the placeholder ran under the icon. Measured, because the rule
+   * can go on existing while it selects nothing.
+   */
+  test('the search field leaves room for its magnifier', async ({ page }) => {
+    await page.goto(LIBRARY)
+    const gap = await page.locator('#esw-icon-search').evaluate((input) => {
+      const icon = input.parentElement.querySelector('svg')
+      const style = window.getComputedStyle(input)
+      const textStart = input.getBoundingClientRect().left + parseFloat(style.paddingInlineStart)
+      return textStart - icon.getBoundingClientRect().right
+    })
+    expect(gap).toBeGreaterThan(0)
+  })
+
+  /*
+   * The heading counts the library; the line above the grid counts the matches.
+   * They were the same number, so searching told a library of three it held one
+   * -- and after a search that matched nothing, that it was empty.
+   */
+  test('the heading keeps counting the library while a search narrows it', async ({ page }) => {
+    await page.goto(LIBRARY)
+    const heading = page.getByText(/\d+ Icons? in der Library|\d+ icons? in the library/i)
+    const before = await heading.textContent()
+
+    await page.locator('#esw-icon-search').fill('Rakete')
+    await expect(page.getByText(/1 Icon gefunden|1 icon found/i)).toBeVisible()
+    await expect(heading).toHaveText(before)
+  })
 })

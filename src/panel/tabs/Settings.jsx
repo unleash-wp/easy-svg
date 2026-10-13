@@ -211,7 +211,19 @@ export default function Settings({ ctx }) {
                   min={1}
                   max={MAX_MB}
                   value={String(form.max_mb)}
-                  onValueChange={(e) => set('max_mb', e.value === '' ? '' : Number(e.value))}
+                  onValueChange={(e) => {
+                    set('max_mb', e.value === '' ? '' : Number(e.value))
+                    /*
+                     * The field clamps itself on blur but leaves the typed text
+                     * standing: 120 stayed on screen while 100 was the number
+                     * that would be saved. Remounting rewrites it, and only
+                     * when the two disagree -- on every keystroke the remount
+                     * would move the caret.
+                     */
+                    if (document.getElementById('esw-setting-max-mb')?.value !== e.value) {
+                      setFieldSeq((seq) => seq + 1)
+                    }
+                  }}
                   w="92px"
                   flexShrink="0"
                 >
