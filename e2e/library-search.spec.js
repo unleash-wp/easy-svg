@@ -85,7 +85,9 @@ test.describe('the icon library search', () => {
    */
   test('the heading keeps counting the library while a search narrows it', async ({ page }) => {
     await page.goto(LIBRARY)
-    const heading = page.getByText(/\d+ Icons? in der Library|\d+ icons? in the library/i)
+    // "Bibliothek" and "library": the German word for the screen changed, and
+    // this line went on matching the old one until it timed out on nothing.
+    const heading = page.getByText(/\d+ Icons? in der Bibliothek|\d+ icons? in the library/i)
     const before = await heading.textContent()
 
     await page.locator('#esw-icon-search').fill('Rakete')
