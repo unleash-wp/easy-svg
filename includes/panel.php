@@ -1,12 +1,9 @@
 <?php
 /**
- * The "Icons" admin panel: one branded top-level menu that hosts a React/Chakra
- * dashboard (UnleashWP look). Free owns it; Pro extends it through the JS
- * registry window.EasySvgPanel, injecting its own tabs.
- *
- * React and ReactDOM are NOT bundled -- WordPress ships them (script handles
- * `react` / `react-dom`), so the panel bundle is enqueued with them as
- * dependencies. The bundle loads only on this screen; the front end stays 0-JS.
+ * The "Icons" admin panel: one branded top-level menu hosting a React/Chakra
+ * dashboard. Free owns it; Pro extends it through window.EasySvgPanel. React
+ * and ReactDOM are NOT bundled -- WordPress ships them, so the bundle takes
+ * `react` / `react-dom` as dependencies and the front end stays 0-JS.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -16,12 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 const EASY_SVG_PANEL_SLUG = 'easy-svg-icons';
 
 /**
- * The "Icons" mark: a small set of tiles, one a circle, so it reads as a
- * collection of icons rather than a generic app grid. Monochrome on purpose --
- * WordPress tints the menu icon by state, and the panel header passes the brand
- * navy, so the shape takes a single $fill and is coloured by its context. The
- * forge radius matches the UnleashWP design system. Drop-in replaceable if the
- * official UnleashWP glyph is supplied: same signature, same square viewBox.
+ * The "Icons" mark: tiles with one circle, so it reads as a collection of icons
+ * rather than a generic app grid. Monochrome on purpose -- WordPress tints the
+ * menu icon by state, so the shape takes a single $fill from its context.
  */
 function easy_svg_panel_icon_svg( string $fill ): string {
 	return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="' . $fill . '">'
@@ -36,15 +30,10 @@ function easy_svg_panel_icon_uri( string $fill ): string {
 }
 
 /*
- * Priority 9, before WordPress appends post-type submenus.
- *
- * Core hooks `_add_post_type_submenus` on `admin_menu` at the default 10
- * (wp-includes/default-filters.php). The paid plugin nests its icon-set post
- * type under this menu, and WordPress points a top-level link at whichever
- * submenu entry was registered FIRST -- so at the default priority the panel's
- * own entry lands behind the post type and clicking "Icons" opens a post list
- * instead of the panel. Plugin load order decides it otherwise, which is not
- * something this plugin controls.
+ * Priority 9, before core's `_add_post_type_submenus` at the default 10. Pro
+ * nests its icon-set post type here, and WordPress points a top-level link at
+ * whichever submenu entry was registered FIRST -- at 10, clicking "Icons" opens
+ * a post list instead of the panel, and plugin load order decides it.
  */
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
@@ -63,17 +52,10 @@ function easy_svg_panel_menu(): void {
 	);
 
 	/*
-	 * The panel's own entry inside its submenu, and it is not decoration.
-	 *
-	 * add_menu_page() registers no submenu item, and while nothing nests under
-	 * this slug WordPress just shows the top-level link, so the omission is
-	 * invisible. The moment something does nest here, WordPress renders the
-	 * submenu and points the PARENT link at its first entry -- which would be the
-	 * icon-set list, so "Icons" would land on a post list and the panel could not
-	 * be reached from the menu at all.
-	 *
-	 * Same slug and callback as the parent: that is what makes it the self-entry
-	 * rather than a second page.
+	 * The panel's own entry, not decoration: add_menu_page() registers no
+	 * submenu item, so as soon as anything nests here WordPress would point the
+	 * parent link at that first entry and "Icons" would open a post list. Same
+	 * slug and callback as the parent is what makes it the self-entry.
 	 */
 	add_submenu_page(
 		EASY_SVG_PANEL_SLUG,
@@ -102,11 +84,9 @@ function easy_svg_panel_menu(): void {
 }
 
 /**
- * Mark the entry for the tab that is actually open.
- *
- * WordPress decides which submenu item is current from `$plugin_page` alone,
- * which for every one of these is the same page -- so without this the parent
- * entry stays highlighted whichever tab somebody opened.
+ * Mark the entry for the tab that is actually open. WordPress decides which
+ * item is current from `$plugin_page` alone, which here is always this page,
+ * so without this the parent entry stays highlighted for every tab.
  *
  * @param string|null $submenu_file
  * @return string|null
@@ -155,14 +135,8 @@ function easy_svg_panel_assets( $hook ): void {
 	}
 
 	/*
-	 * No webfont ships with this plugin.
-	 *
-	 * It self-hosted two Ubuntu woff2 files, and the Ubuntu Font Licence 1.0 is
-	 * not the SIL OFL the stylesheet claimed it was. Debian treats UFL-1.0 as
-	 * not meeting its free-software guidelines, and wordpress.org requires
-	 * everything in the directory to be GPL-compatible -- fonts included. The
-	 * panel's type stack starts at system-ui instead, which is what it fell
-	 * back to on any machine the download failed on anyway.
+	 * No font stylesheet is enqueued: the two bundled Ubuntu faces are
+	 * @font-face'd in the inline block below, beside the rules that need them.
 	 */
 
 	// The media frame, for picking SVGs that are already in the library. Only on
@@ -180,14 +154,10 @@ function easy_svg_panel_assets( $hook ): void {
 	);
 
 	/*
-	 * Serve the panel's JS translations. The third argument is required for the
-	 * catalogue this plugin BUNDLES: without a path, WordPress looks only in
-	 * WP_LANG_DIR/plugins (the wordpress.org language pack), and on 6.7+ also in
-	 * the textdomain registry -- which happens to carry this plugin's own
-	 * languages directory because of the `Domain Path` header, but not on the
-	 * 6.6 floor this plugin still supports. Measured on 7.1.3: found either way;
-	 * on 6.6 only with the path. The file is named after md5() of the enqueued
-	 * script's plugin-relative path (`build/panel.js`), which is pinned by a test.
+	 * The path argument is required for the catalogue this plugin BUNDLES:
+	 * without it WordPress looks only in WP_LANG_DIR/plugins, plus the 6.7+
+	 * textdomain registry. Measured on 7.1.3: found either way; on the 6.6 floor
+	 * only with the path. The file is named after md5() of `build/panel.js`.
 	 */
 	wp_set_script_translations( 'easy-svg-panel', 'easy-svg', dirname( __DIR__ ) . '/languages' );
 
@@ -216,19 +186,10 @@ function easy_svg_panel_assets( $hook ): void {
 	);
 
 	/*
-	 * Take the page title back from wp-admin.
-	 *
-	 * The panel renders inside `<div class="wrap">`, and core styles `.wrap h1`
-	 * at 23px/400. Chakra emits its own rules inside a CSS layer, and a layered
-	 * rule loses to ANY unlayered one no matter how specific it is -- so the
-	 * design system's h1 token silently lost and the biggest text on the screen
-	 * was neither the right size nor bold. Measured: 23px/400 inside .wrap,
-	 * 24px/700 the moment the class is removed.
-	 *
-	 * This rule is unlayered and carries an id, so it wins. It repeats the two
-	 * numbers from the h1 textStyle in src/theme.js; change them in both or the
-	 * heading drifts. Only size and weight: colour and letter-spacing already
-	 * come through.
+	 * Core styles `.wrap h1` unlayered, and a layered Chakra rule loses to any
+	 * unlayered one however specific -- so the design system's h1 token lost
+	 * (measured: 23px/400 inside .wrap, 24px/700 without it). These rules are
+	 * unlayered and carry an id. The numbers repeat src/theme.js; change both.
 	 */
 	wp_register_style( 'easy-svg-panel', false, array(), (string) filemtime( $build ) );
 	wp_enqueue_style( 'easy-svg-panel' );
@@ -250,21 +211,17 @@ function easy_svg_panel_assets( $hook ): void {
 		. '@font-face{font-family:Ubuntu;font-style:normal;font-weight:700;font-display:swap;'
 		. 'src:url(' . esc_url( plugins_url( 'build/fonts/ubuntu-v21-latin-700-normal.woff2', $main ) ) . ') format("woff2")}'
 		// The whole panel, unlayered: core sets its own font on body and the
-		// form elements, Chakra's rules sit in a layer, and a layered rule
-		// loses to an unlayered one however specific -- so the panel kept
-		// rendering wp-admin's system face everywhere the theme token did not
-		// reach a prop. `inherit` on the controls because a button, input or
-		// select takes the browser's font, not the document's.
+		// form elements, and a layered Chakra rule loses to an unlayered one
+		// however specific. `inherit` on the controls because a button, input
+		// or select takes the browser's font, not the document's.
 		. '.wrap #easy-svg-panel,.wrap #easy-svg-panel :is(div,p,span,h1,h2,h3,h4,label,a,li,td,th,strong,em,small)'
 		. '{font-family:Ubuntu,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}'
 		. '.wrap #easy-svg-panel :is(button,input,textarea,select){font-family:inherit}'
 		. '.wrap #easy-svg-panel h1{font-size:28px;font-weight:700;margin:0;padding:0}'
-		// Same reason as the heading: core's forms.css is unlayered and beats any
-		// layered Chakra rule, so without these the fields sit there in raw
-		// wp-admin grey (#949494, 2px radius). Base and focus repeat ui.sunk,
-		// ui.border, the forge radius, ui.primary and ui.ring from src/theme.js;
-		// change them in both. This is the one input style for every panel tab,
-		// Pro's included.
+		// Same reason as the heading: core's forms.css is unlayered and beats
+		// any layered Chakra rule, so without these the fields sit in raw
+		// wp-admin grey. The values repeat ui.sunk, ui.border, the forge radius,
+		// ui.primary and ui.ring from src/theme.js; change them in both.
 		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],textarea,select)'
 		. '{background:#f5f7fa;border:1px solid #e3e7f0;border-radius:5px;padding:8px 12px}'
 		. '.wrap #easy-svg-panel :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=url],select){min-height:40px}'
@@ -289,14 +246,10 @@ function easy_svg_panel_rest(): void {
 	$perm = 'easy_svg_panel_rest_permission';
 
 	/*
-	 * Declared arguments, not just hand-checked ones.
-	 *
-	 * Every handler below re-reads and re-sanitises what it is given, and that
-	 * stays: it is what the tests cover, and what protects a caller that is not
-	 * the REST layer -- WP-CLI, another plugin. What the schema adds is the two
-	 * things a hand-check cannot: WordPress refuses a wrong type or a missing
-	 * required field before the callback runs, and OPTIONS on the route finally
-	 * says what the route takes. It answered an empty list until now.
+	 * Declared arguments AND hand-checked ones. Every handler re-reads and
+	 * re-sanitises what it is given, which is what protects a caller that is not
+	 * the REST layer -- WP-CLI, another plugin. The schema adds what a
+	 * hand-check cannot: a wrong type refused before the callback, and OPTIONS.
 	 */
 	$id_arg = array(
 		'type'        => 'integer',
@@ -427,22 +380,15 @@ function easy_svg_panel_rest(): void {
 }
 
 /**
- * How many icons one library response carries.
- *
- * A bound, not a page size: the response holds every icon's hardened markup, so
- * it is the payload rather than the row count that has to stay sane.
+ * How many icons one library response carries. A bound, not a page size: the
+ * response holds every icon's markup, so it is the payload that must stay sane.
  */
 const EASY_SVG_PANEL_LIBRARY_MAX = 500;
 
 /**
- * The library response: the icons, and how many there really are.
- *
- * The routes returned page one of five hundred with `no_found_rows`, so a site
- * with 501 icons was shown 500 and told nothing. The cap can stay; being silent
- * about it cannot.
- *
- * `wp_count_posts()` is the count rather than a query of our own: WordPress
- * caches it per post type and busts it on save.
+ * The library response: the icons, and how many there really are, because the
+ * cap can stay but being silent about it cannot. `wp_count_posts()` rather than
+ * a query of our own: WordPress caches it per post type and busts it on save.
  *
  * @return array{items:array,total:int,truncated:bool}
  */
@@ -535,26 +481,18 @@ function easy_svg_panel_library_add( $request ) {
 }
 
 /**
- * How many attachments one media request may carry.
- *
- * The server reads and sanitises every file in the request, so one click must
- * not be able to ask for unbounded work. The picker sends more in chunks.
+ * How many attachments one media request may carry. The server reads and
+ * sanitises every file, so one click must not ask for unbounded work; the
+ * picker sends more in chunks.
  */
 const EASY_SVG_MEDIA_MAX_IDS = 25;
 
 /**
  * POST /library/media -> store the chosen media-library SVGs as icons.
  *
- * The browser sends attachment ids, never bytes. An offloaded media library
- * serves attachments from another origin, so reading them in the browser would
- * be blocked by CORS on exactly the sites that asked for this; here
- * get_attached_file() either answers with a local path or it does not, and that
- * is a refusal the report can name.
- *
- * Every file goes through easy_svg_add_icon() -- the same call the upload path
- * makes, so the same sanitiser, byte cap and complexity bound apply. An SVG that
- * has sat in the media library since before this plugin may never have been
- * cleaned, so ingesting it is the only thing that makes it safe.
+ * Attachment ids, never bytes -- an offloaded library serves from another origin
+ * and the browser would hit CORS. Every file goes through easy_svg_add_icon(),
+ * because an SVG that predates this plugin may never have been cleaned.
  */
 function easy_svg_panel_library_media( $request ) {
 	if ( ! function_exists( 'easy_svg_add_icon' ) ) {
@@ -596,10 +534,8 @@ function easy_svg_panel_library_media( $request ) {
 
 /**
  * Store one media-library attachment as an icon, and answer with the word for
- * what happened -- `easy_svg_panel_add_message()` has a sentence for each.
- *
- * The three refusals here are separate words on purpose: "that is a PNG" and
- * "that file is not on this server" send a person somewhere entirely different.
+ * what happened. The three refusals are separate words on purpose: "that is a
+ * PNG" and "that file is not on this server" send a person somewhere different.
  */
 function easy_svg_panel_media_state( int $id ): string {
 	if ( $id <= 0 || ! get_post( $id ) ) {
@@ -622,13 +558,9 @@ function easy_svg_panel_media_state( int $id ): string {
 /**
  * POST /library/rename -> change one icon's visible name, and ONLY that.
  *
- * `post_name` is the icon's identity, not a detail of its presentation: a theme
- * calls `easy_svg_icon( 'slug' )` and a saved Icon block carries the slug it was
- * given when it was inserted. Moving the slug would leave every page that
- * already uses the icon pointing at a name nothing answers to -- and silently,
- * because an icon core cannot resolve renders as nothing at all rather than as
- * an error. So the title is the only field written here, `post_name` is never
- * passed, and a test in tests/panel-rest.php holds that shut.
+ * `post_name` is the icon's identity -- a theme and a saved Icon block both
+ * carry the slug -- so moving it would point every page using the icon at a
+ * name nothing answers to, and silently: core renders it as nothing at all.
  */
 function easy_svg_panel_library_rename( $request ) {
 	$body = (array) $request->get_json_params();
@@ -647,15 +579,10 @@ function easy_svg_panel_library_rename( $request ) {
 	}
 
 	/*
-	 * kses off for this one write, and only if it was on -- the same hazard
-	 * easy_svg_add_icon() documents, from the other side. wp_update_post() re-saves
-	 * the row whole, so the markup passes `content_save_pre` again and for any
-	 * administrator without unfiltered_html kses would strip the SVG: renaming an
-	 * icon would quietly empty it. Restored in `finally`, so no error or exception
-	 * leaves kses off for the rest of the request.
-	 *
-	 * Only the new title is slashed; core slashes the fields it pulls out of the
-	 * database itself.
+	 * kses off for this one write, and only if it was on. wp_update_post()
+	 * re-saves the row whole, so the markup passes `content_save_pre` again and
+	 * kses would strip the SVG for any administrator without unfiltered_html --
+	 * renaming would quietly empty the icon. Only the new title is slashed.
 	 */
 	$kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
 	if ( $kses_was_on ) {
@@ -681,12 +608,10 @@ function easy_svg_panel_library_rename( $request ) {
 	}
 
 	/*
-	 * Drop the cached icon list, or the editor keeps offering the old name for up
-	 * to a day. `easy_svg_forget_icons()` is hooked on `save_post_esw_icon`, which
-	 * the update above fires -- but that hook is registered only while the icons
-	 * feature is on (easy-svg.php), and an icon post outlives the switch. Called
-	 * here as well so this route does not depend on a condition it cannot see;
-	 * the second call costs one option write and is otherwise a no-op.
+	 * Drop the cached icon list, or the editor offers the old name for up to a
+	 * day. The `save_post_esw_icon` hook that does this is registered only while
+	 * the icons feature is on, and an icon post outlives the switch -- so it is
+	 * called here as well, where a second call is a no-op.
 	 */
 	if ( function_exists( 'easy_svg_forget_icons' ) ) {
 		easy_svg_forget_icons();
@@ -717,23 +642,17 @@ function easy_svg_panel_settings_get( $request ) {
 }
 
 /**
- * POST /easy-svg/v1/settings -> store the free settings.
- *
- * The body runs through easy_svg_sanitize_settings() exactly as the Settings-API
- * form it replaces did: booleans coerced, max_mb clamped. Security (sanitise +
- * cap) stays always-on and is not a toggle here.
+ * POST /easy-svg/v1/settings -> store the free settings. The body runs through
+ * easy_svg_sanitize_settings(): booleans coerced, max_mb clamped. Sanitising
+ * and the size cap stay always-on and are not toggles here.
  */
 function easy_svg_panel_settings_post( $request ) {
 	$body = (array) $request->get_json_params();
 	/*
-	 * Merged onto what is stored, not onto the defaults.
-	 *
-	 * easy_svg_sanitize_settings() reads a missing key as its default, which is
-	 * what the form it was written for needs -- an unchecked box sends no key
-	 * and means off. A REST body is not a form: it carries the settings the
-	 * caller meant to change, and the rest of a partial write used to be
-	 * switched off without a word, answering 200. An explicit false is still a
-	 * value and still switches a feature off; only an ABSENT key is left alone.
+	 * Merged onto what is STORED, not onto the defaults. A missing key reads as
+	 * its default inside easy_svg_sanitize_settings(), which an unchecked box
+	 * needs and a REST body does not: a partial write would switch the keys it
+	 * never named off, answering 200. An explicit false still switches off.
 	 */
 	update_option( EASY_SVG_SETTINGS_OPTION, easy_svg_sanitize_settings( array_merge( easy_svg_settings(), $body ) ) );
 	return new WP_REST_Response( easy_svg_settings() );

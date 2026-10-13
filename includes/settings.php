@@ -1,9 +1,7 @@
 <?php
 /**
- * One option for the feature switches and the parser's size cap.
- *
- * Everything here reads that one option, so the gate cannot drift from what the
- * panel's Settings tab shows.
+ * One option for the feature switches and the parser's size cap. Everything
+ * reads it, so the gate cannot drift from what the panel's Settings tab shows.
  */
 
 declare(strict_types=1);
@@ -50,11 +48,9 @@ function easy_svg_feature_enabled( string $key ): bool {
  */
 
 /**
- * The highest cap this site may set, in megabytes.
- *
- * 20 by default: past that a single file keeps the sanitiser's DOM parser busy
- * long enough to matter. An add-on may raise the ceiling through the filter,
- * which stays the one place the cap is decided.
+ * The highest cap this site may set, in megabytes. 20 by default: past that a
+ * single file keeps the sanitiser's DOM parser busy long enough to matter. The
+ * filter is the one place the ceiling is decided.
  */
 function easy_svg_max_mb_ceiling(): int {
 	$ceiling = (int) apply_filters( 'easy_svg_max_mb_ceiling', 20 );
@@ -63,8 +59,7 @@ function easy_svg_max_mb_ceiling(): int {
 
 /**
  * Booleans are booleans; the size is an integer megabyte up to the ceiling. A
- * missing key keeps its default, so an unchecked box -- which sends no key --
- * is off.
+ * missing key keeps its default, so an unchecked box -- no key -- stays off.
  *
  * @param mixed $input
  * @return array
@@ -85,9 +80,8 @@ function easy_svg_sanitize_settings( $input ): array {
 
 /*
  * The 5.0 upgrade. A site that updated from 4.x was uploading SVGs all along,
- * so it keeps its uploads -- switching that off under it would break the media
- * library. A fresh install gets the opt-in defaults, and the icon library is
- * new in 5.0, so it is opt-in for everyone.
+ * so it keeps them; switching that off under it would break the media library.
+ * The icon library is new in 5.0, so it stays opt-in for everyone.
  */
 const EASY_SVG_SCHEMA_OPTION  = 'easy_svg_schema';
 const EASY_SVG_SCHEMA_VERSION = '5.0';

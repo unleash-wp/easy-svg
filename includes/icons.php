@@ -1,13 +1,9 @@
 <?php
 /**
- * Icons this site owns, offered to the core Icon block.
- *
- * WordPress 7.1's icon registry is `@since 7.1.0` and this plugin declares 6.6,
- * so everything here is absent-safe: on an older site the manager is not there.
- *
- * Names are validated HERE before core sees them. `WP_Icons_Registry::register()`
- * refuses a bad name through `_doing_it_wrong`, which on production means the
- * icon silently never appears.
+ * Icons this site owns, offered to the core Icon block. The icon registry is
+ * 7.1 and this plugin declares 6.6, so everything here is absent-safe. Names
+ * are validated HERE because `WP_Icons_Registry::register()` refuses a bad one
+ * through `_doing_it_wrong` -- on production the icon never appears at all.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,18 +17,13 @@ const EASY_SVG_ICON_COLLECTION = 'easy-svg';
 const EASY_SVG_ICON_POST_TYPE = 'esw_icon';
 
 /**
- * Exactly what core will accept as the part after the slash.
- *
- * Duplicated from WP_Icons_Registry deliberately -- see the note above about
- * how core refuses.
+ * Exactly what core will accept as the part after the slash. Duplicated from
+ * WP_Icons_Registry deliberately -- see the note above on how core refuses.
  */
 const EASY_SVG_ICON_NAME_PATTERN = '/^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/';
 
 /**
  * A name core will accept, or '' when the label cannot make one.
- *
- * Core's pattern is matched here before core sees it, because its own refusal
- * is a `_doing_it_wrong` the customer never sees.
  *
  * @param string        $label    A human-readable label.
  * @param callable|null $sanitize Turns a label into a slug.
@@ -69,11 +60,9 @@ function easy_svg_icon_name( $slug ) {
 }
 
 /**
- * The argument array core accepts, and nothing besides.
- *
- * `WP_Icons_Registry::register()` refuses any key other than `label`,
- * `content` and `file_path` -- again through `_doing_it_wrong`, so an extra key
- * means the icon silently does not exist.
+ * The argument array core accepts, and nothing besides: `register()` refuses
+ * any key other than `label`, `content` and `file_path`, again through
+ * `_doing_it_wrong`, so an extra key means the icon silently does not exist.
  *
  * @param string $label   Human-readable label.
  * @param string $content SVG markup.
@@ -92,11 +81,9 @@ function easy_svg_icons_supported() {
 }
 
 /**
- * The stored markup for one icon slug, or '' when there is none.
- *
- * Reads the esw_icon post directly -- the content is the sanitiser's hardened
- * output, so it is safe to print, and this path does not need the 7.1 icon
- * registry, which is why the template tag works on older WordPress too.
+ * The stored markup for one icon slug, or '' when there is none. Reads the
+ * esw_icon post directly: the content is the sanitiser's hardened output, so it
+ * is safe to print, and it needs no 7.1 registry, so this works on 6.6 too.
  *
  * @param string $slug
  * @return string
@@ -112,26 +99,18 @@ function easy_svg_icon_markup( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
     }
 
     /*
-     * Any collection the post type does not own can be supplied here, by an
-     * add-on that hooks this filter to serve its own icons through the same
-     * template tag. The post-type collection above always keeps its own name.
-     *
-     * The returned markup is PRINTED as-is. The post-type collection is the
-     * sanitiser's hardened output; an add-on that supplies markup for another
-     * collection is responsible for returning already-sanitised, print-safe
-     * SVG -- it should run every icon through easy_svg_sanitizer() and
-     * easy_svg_harden_icon_markup() before it reaches this filter.
+     * An add-on can serve a collection the post type does not own through this
+     * filter; our own collection always keeps its name. The returned markup is
+     * PRINTED as-is, so an add-on owes already-hardened SVG -- run it through
+     * easy_svg_sanitizer() and easy_svg_harden_icon_markup() first.
      */
     return (string) apply_filters( 'easy_svg_icon_markup', $markup, $slug, (string) $collection );
 }
 
 /**
- * A human LABEL for an icon: its stored title, else its slug read back as words.
- *
- * Used only to name an icon a caller called meaningful without giving a label.
- * The esw_icon post's title is the name the inserter already shows, so it is
- * the name a reader would expect to hear. A slug is the last resort and still
- * beats an unnamed role="img".
+ * A human LABEL for an icon: its stored title, else its slug as words. Used
+ * only when a caller called an icon meaningful without naming it -- the title
+ * is what the inserter shows, and a slug still beats an unnamed role="img".
  *
  * @param string $slug
  * @param string $collection
@@ -150,10 +129,8 @@ function easy_svg_icon_label( $slug, $collection = EASY_SVG_ICON_COLLECTION ) {
 }
 
 /**
- * Render a stored icon. Accepts 'slug' or 'easy-svg/slug'.
- *
- * Reads the esw_icon post directly, so it works on WordPress older than the
- * 7.1 registry. The markup is the sanitiser's hardened output.
+ * Render a stored icon. Accepts 'slug' or 'easy-svg/slug'. Reads the esw_icon
+ * post directly, so it works on WordPress older than the 7.1 registry.
  *
  * @param string $name Icon name, bare slug or collection-qualified.
  * @param array  $args Optional. 'class' (string). 'label' (string) names the
@@ -190,14 +167,10 @@ function easy_svg_icon( $name, $args = array() ) {
         $attrs .= ' aria-hidden="true" focusable="false"';
     } else {
         /*
-         * Read as an image; focusable="false" keeps it off the tab order.
-         *
-         * role="img" without an accessible name is never emitted -- a screen
-         * reader announces "graphic" and nothing else, WCAG 1.1.1 with the role
-         * spelled out. Hiding it instead would contradict a caller who just said
-         * it means something, so it is named: the label given, else the stored
-         * title, else the slug as words. That lookup runs only here, and only
-         * when no label came in.
+         * role="img" is never emitted without a name -- a screen reader then
+         * announces "graphic" and nothing else, WCAG 1.1.1. Hiding it would
+         * contradict a caller who said it means something, so it is named: the
+         * label given, else the stored title, else the slug as words.
          */
         $attrs .= ' role="img" focusable="false"';
         $label  = (string) ( $args['label'] ?? '' );
@@ -209,9 +182,8 @@ function easy_svg_icon( $name, $args = array() ) {
 
     /*
      * Spliced, not preg_replace'd: a replacement string reads `$1`, `${1}` and
-     * `\1` as backreferences, and esc_attr() escapes neither `$` nor `\`, so a
-     * label like "Price $20" was rewritten on its way in. The insertion point is
-     * `<svg` followed by a non-word character, which is what `\b` meant.
+     * `\1` as backreferences and esc_attr() escapes neither `$` nor `\`, so a
+     * label like "Price $20" came out rewritten.
      */
     $at = easy_svg_root_svg_offset( $markup );
     if ( null === $at ) {
@@ -222,12 +194,9 @@ function easy_svg_icon( $name, $args = array() ) {
 }
 
 /**
- * Where the root `<svg` tag starts, or null when there is none.
- *
- * `<svg` has to be followed by something that is not a word character -- a
- * space, `>`, a newline -- so `<svgfoo` is not an svg root. That is exactly
- * what `\b` meant in the pattern this replaced; it is spelled out here because
- * the splice no longer runs a regular expression over attacker-influenced text.
+ * Where the root `<svg` tag starts, or null when there is none. `<svg` has to
+ * be followed by a non-word character -- a space, `>`, a newline -- so
+ * `<svgfoo` is not an svg root.
  *
  * @param string $markup
  * @return int|null Byte offset of the `<` , or null.
@@ -250,13 +219,9 @@ function easy_svg_root_svg_offset( $markup ) {
 
 /**
  * Elements an icon may never carry, whatever a site's SVG allow-list permits.
- *
- * An icon is inlined into the page by the core Icon block, so it runs in the
- * document's own context, not isolated the way an <img> is. `style` would then
- * style the whole page; `script`, `foreignObject`, `iframe`, `embed`, `object`,
- * the SVG Tiny `handler`/`listener`, and the animation elements (which can
- * rewrite an href to javascript: after the sanitiser has checked it) can run
- * code or pull in a document. None of it belongs in a drawing.
+ * The core Icon block inlines an icon into the document, so it is not isolated
+ * the way an <img> is: `style` would style the whole page, and the animation
+ * elements can rewrite an href to javascript: after the sanitiser checked it.
  */
 const EASY_SVG_ICON_UNSAFE_ELEMENTS = array(
     'script',
@@ -277,11 +242,9 @@ const EASY_SVG_ICON_UNSAFE_ELEMENTS = array(
 
 /**
  * Icon markup with everything active taken out: the unsafe elements above, and
- * every href that does not point inside the same drawing (`#id`).
- *
- * A second, fixed layer on the sanitiser's output, so it does not depend on how
- * a site configured its allow-list. Parsed as XML, no network, no entities.
- * Answers '' when nothing drawable survives, and the caller refuses it.
+ * every href that does not point inside the same drawing (`#id`). A second,
+ * fixed layer on the sanitiser's output, so it does not depend on how a site
+ * configured its allow-list. '' when nothing drawable survives.
  *
  * @param string $markup Cleaned SVG markup.
  * @return string Hardened markup, or '' when there is no drawing left to store.
@@ -351,13 +314,10 @@ function easy_svg_harden_icon_markup( $markup ) {
 }
 
 /**
- * Whether a submitted icon may be stored, and in what shape.
- *
- * A pure decision: the bounds are injected, not read, so a test or a CLI import
- * can ask for none. They are the same two the media-upload path applies -- how
- * many icons a site keeps is unbounded, how much WORK one may cost is not. Each
- * refusal is its own word, because "that name makes no icon name" and "that
- * file is not an SVG" send a person somewhere different.
+ * Whether a submitted icon may be stored, and in what shape. The bounds are
+ * injected, not read, so a CLI import can ask for none: how many icons a site
+ * keeps is unbounded, how much WORK one may cost is not. Each refusal is its
+ * own word, because a bad name and a bad file send a person somewhere else.
  *
  * @param string        $label       What the person typed.
  * @param string        $markup      The bytes they uploaded.
@@ -379,10 +339,9 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max
 
     /*
      * Both bounds BEFORE the sanitiser, which is what hands the bytes to a DOM
-     * parser: refusing afterwards would already have spent what this is here to
-     * save. Size alone does not bound the work -- a small file with a
-     * thousand <use> references is cheap to send and expensive to parse -- so
-     * the complexity guard is asked as well.
+     * parser: refusing afterwards has already spent what this saves. Size alone
+     * does not bound the work -- a small file with a thousand <use> references
+     * is cheap to send and expensive to parse -- so complexity is asked too.
      */
     $max_bytes = (int) $max_bytes;
     if ( $max_bytes > 0 && strlen( (string) $markup ) > $max_bytes ) {
@@ -395,9 +354,8 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max
 
     /*
      * The library THROWS for well-formed XML without exactly one <svg> root --
-     * an HTML page or an XML export saved as .svg -- where it returns false for
-     * markup it cannot parse at all. Both mean the same thing to the person
-     * uploading, and an uncaught throw here is a white screen on the form.
+     * an HTML page saved as .svg -- where it returns false for markup it cannot
+     * parse at all. An uncaught throw here is a white screen on the form.
      */
     try {
         $clean = call_user_func( $sanitize, (string) $markup );
@@ -406,31 +364,27 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max
     }
 
     /*
-     * The sanitiser refusing means it could not read the file, and storing what
-     * came back would put bytes nobody understood into every page using the icon.
-     * The explicit check is redundant only while this file has no
-     * `declare(strict_types=1)`: add one, as every other file here has, and the
-     * `false`-to-`''` coercion below becomes a TypeError on somebody's upload.
+     * A refusal means the sanitiser could not read the file, and storing what
+     * came back would put bytes nobody understood on every page using the icon.
+     * The explicit check looks redundant only while this file has no
+     * `declare(strict_types=1)`: add one and the coercion becomes a TypeError.
      */
     if ( ! is_string( $clean ) || '' === trim( $clean ) ) {
         return array( 'state' => 'not_svg' );
     }
 
     /*
-     * An `<svg` root is required of the CLEANED markup, not the submitted
-     * markup. Somebody pasting a whole HTML document gets a sanitiser result
-     * that is technically a string and contains no drawing, and storing that
-     * would put an empty icon in the picker with no explanation.
+     * The `<svg` root is required of the CLEANED markup: a pasted HTML document
+     * sanitises to a string with no drawing in it, and storing that would put an
+     * empty icon in the picker with no explanation.
      */
     if ( false === stripos( $clean, '<svg' ) ) {
         return array( 'state' => 'not_svg' );
     }
 
     /*
-     * One fixed layer on top of the site's allow-list: an icon is inlined by
-     * the core Icon block, so it must carry nothing active even if the site
-     * widened its allow-list to style or animation. Refuse if this leaves no
-     * drawing (unparseable, or nothing but the stripped elements).
+     * One fixed layer on top of the site's allow-list, because the block inlines
+     * the icon. No drawing left means refuse.
      */
     $clean = easy_svg_harden_icon_markup( $clean );
     if ( '' === trim( $clean ) || false === stripos( $clean, '<svg' ) ) {
@@ -449,12 +403,10 @@ function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max
 }
 
 /**
- * Every icon, read a page at a time until a page comes back short.
- *
- * There is no product limit, so one query for "all of them" is unbounded.
- * Pages keep each query small; the loop decides when it is done. The fetcher is
- * injected because the loop is where the mistakes live -- stopping at a fixed
- * number, or never stopping.
+ * Every icon, read a page at a time until a page comes back short. Nothing
+ * bounds how many a site keeps, so one query for "all of them" is unbounded.
+ * The fetcher is injected because the loop is where the mistakes live --
+ * stopping at a fixed number, or never stopping.
  *
  * @param callable $fetch_page ( int $page, int $per_page ) => list of icons with an 'id'.
  * @param int      $per_page   How many one page holds.
@@ -492,12 +444,10 @@ function easy_svg_collect_icons( $fetch_page, $per_page ) {
 }
 
 /**
- * Hand every icon to core, and answer how many were taken.
- *
- * Injected rather than reaching for globals, so the loop can be checked without
- * WordPress -- and the loop is where the interesting mistakes live: registering
- * before the collection exists, letting one bad icon stop the rest, or counting
- * icons core actually refused.
+ * Hand every icon to core, and answer how many were taken. Injected rather than
+ * reaching for globals, so the loop can be checked without WordPress -- and the
+ * loop is where the mistakes live: registering before the collection exists,
+ * letting one bad icon stop the rest, counting icons core refused.
  *
  * @param array    $icons               List of [ 'slug' => , 'label' => , 'content' => ].
  * @param callable $register_collection ( string $slug, array $args ) => bool
@@ -506,14 +456,10 @@ function easy_svg_collect_icons( $fetch_page, $per_page ) {
  */
 function easy_svg_register_icons( $icons, $register_collection, $register_icon ) {
     /*
-     * What is registrable is worked out BEFORE a collection is announced.
-     *
-     * The collection still has to go in first -- `WP_Icons_Registry` refuses an
-     * icon whose collection it does not know -- but doing that unconditionally
-     * put an "Easy SVG" entry in the editor's icon picker on every site with
-     * the feature on and nothing in it yet, and clicking it showed a blank
-     * panel. An empty collection reads as a broken plugin rather than an empty
-     * one, so nothing is offered until there is something to put in it.
+     * What is registrable is worked out BEFORE the collection is announced. The
+     * collection still has to go in first -- `WP_Icons_Registry` refuses an icon
+     * whose collection it does not know -- but announcing it unconditionally
+     * puts an empty entry in the editor's icon picker, which reads as broken.
      */
     $ready_icons = array();
 

@@ -1,15 +1,9 @@
 <?php
 /**
- * What uninstalling Easy SVG Support removes: the icons, their cache, and
- * the plugin's own options.
- *
- * Uploaded SVG files stay. They are media library items like any other, and
- * pages use them; deleting a plugin must not take a site's images with it.
- *
- * The icons are different: they exist only for this plugin's Icon block
- * collection, and without the plugin nothing can show or manage them. They
- * are deleted in batches, so a site with many icons is not read into memory
- * at once, and on a network on every site.
+ * What uninstalling removes: the icons, their cache and the plugin's own
+ * options. Uploaded SVGs stay -- they are media items pages use, and deleting
+ * a plugin must not take a site's images with it. The icons exist only for
+ * this plugin's Icon block collection, so they go, in batches and per site.
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {

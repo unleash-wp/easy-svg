@@ -42,21 +42,16 @@ if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 }
 
 /*
- * The `esw_` names below -- functions, the two allow-list classes and the
- * `esw_svg_allowed_tags` / `esw_svg_allowed_attributes` filters -- are older
- * than the `easy_svg_` prefix and stay as they are: sites hook those filters
- * and call those functions, and renaming them would break every one of them.
+ * The `esw_` names below -- the functions, the two allow-list classes and the
+ * `esw_svg_allowed_*` filters -- predate the `easy_svg_` prefix. Sites hook and
+ * call them, so renaming them would break every one of those sites.
  */
 
 /*
- * The sanitiser 4.1 kept in a global, kept for the snippets that configure it.
- *
- * 4.1 cleaned every upload with this object, so sites wrote
- * `global $sanitizer; $sanitizer->removeRemoteReferences( true );` -- dropping
- * the global turns that into a fatal call on null. It is now the template
- * `easy_svg_sanitizer()` copies, not what anybody sanitises WITH. Created only
- * when the name is free: 4.1 overwrote it unconditionally and clobbered any
- * other plugin's `$sanitizer`, and an existing one should be honoured.
+ * The sanitiser 4.1 kept in a global. Site snippets still call
+ * `$sanitizer->removeRemoteReferences()` on it, so dropping it is a fatal on
+ * null. It is only the template `easy_svg_sanitizer()` copies, and it is
+ * created only when the name is free -- an existing one is somebody else's.
  */
 if ( class_exists( '\enshrined\svgSanitize\Sanitizer' ) && ! isset( $GLOBALS['sanitizer'] ) ) {
     // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- the 4.1 name, kept for site snippets.
@@ -100,20 +95,17 @@ class esw_svg_attributes extends \enshrined\svgSanitize\data\AllowedAttributes {
 /**
  * The version of the contract this plugin offers to add-ons.
  *
- * The surface is `easy_svg_sanitizer()`, a sanitiser with this site's
- * allow-list; bumped only when that changes shape, everything else here is free
- * to move. 2 had a filter over how many icons a site may keep; 3 removes it,
- * because the manager has no limit and an add-on must not build on one. A
- * number, because "4.3" with the filter and "4.3" without look the same to a
- * hasty comparison.
+ * The surface is `easy_svg_sanitizer()`, a sanitiser carrying this site's
+ * allow-list; bumped only when that changes shape, so everything else here is
+ * free to move. A number of its own, because two plugin versions with and
+ * without a given hook look the same to a hasty comparison.
  */
 define( 'EASY_SVG_API', 3 );
 
 /**
  * The panel contract: `easy_svg_panel_enqueue`, `easy_svg_panel_menu_tabs` and
  * `easy_svg_max_mb_ceiling`. Its own number because EASY_SVG_API covers the
- * sanitiser alone, and because a filter cannot be probed for -- an add-on has
- * no other way to ask whether these three are there.
+ * sanitiser alone, and because a filter cannot be probed for.
  */
 define( 'EASY_SVG_PANEL_API', 1 );
 
@@ -123,10 +115,8 @@ require_once __DIR__ . '/includes/settings.php';
 /**
  * The largest SVG this plugin will parse, in bytes.
  *
- * A ceiling in front of every sanitise bounds how large one upload can be. It
- * does not bound the WORK -- easy_svg_svg_too_complex() does that. Two
- * megabytes is far above any icon or ordinary drawing; a site that needs more
- * raises it.
+ * It bounds the input, not the WORK -- easy_svg_svg_too_complex() does that.
+ * Two megabytes is far above any icon or ordinary drawing.
  *
  * @return int
  */
@@ -138,11 +128,10 @@ function easy_svg_max_bytes() {
 /**
  * Whether an SVG is too structurally complex to sanitise within a bounded cost.
  *
- * The byte cap bounds the input, not the work: the bundled library rescans the
- * whole string once per nested PHP processing instruction and walks every id'd
- * element once per `<use>`, so a file far under the size cap can tie up a
- * worker for minutes. These two counts stay linear and reject the pathological
- * shapes before the parser sees them; no real drawing comes near either bound.
+ * The library rescans the whole string once per nested PHP processing
+ * instruction and walks every id'd element once per `<use>`, so a file far
+ * under the byte cap can tie up a worker for minutes. These two counts are
+ * linear and refuse those shapes before the parser sees them.
  *
  * @param string $markup
  * @return bool
@@ -159,10 +148,9 @@ function easy_svg_svg_too_complex( $markup ) {
 /**
  * The width and height of an SVG on disk, or [] when it cannot be read safely.
  *
- * The one whole-file SVG parse in the plugin besides the sanitiser. Bounded by
- * easy_svg_max_bytes(), warnings silenced, every failure swallowed -- this runs
- * in media listings and in attachment metadata, where a fatal would break the
- * screen for everyone.
+ * Bounded by easy_svg_max_bytes(), warnings silenced, every failure swallowed:
+ * this runs in media listings and in attachment metadata, where a fatal would
+ * break the screen for everyone.
  *
  * @param string $path
  * @return array{width:int,height:int}|array{}
@@ -189,12 +177,10 @@ function easy_svg_read_svg_dimensions( $path ) {
 /**
  * Remove any animation element that drives an `href` or an `on*` handler.
  *
- * A no-op by default -- the allow-list has no animation elements -- but a site
- * that widens `esw_svg_allowed_tags` to `animate`/`set` keeps them, and the
- * sanitiser's value checks read only attribute NAMES, never `attributeName`, so
- * `<animate attributeName="href" values="javascript:...">` would set an href it
- * had already approved. Animation of a benign property is left alone. Parsed as
- * XML with no network and no entity expansion.
+ * A no-op by default -- the allow-list has no animation elements. A site that
+ * widens `esw_svg_allowed_tags` to `animate`/`set` keeps them, and the
+ * sanitiser checks attribute NAMES, never `attributeName`, so `<animate
+ * attributeName="href" values="javascript:...">` sets an href it approved.
  *
  * @param string $markup Cleaned SVG markup.
  * @return string Markup without href-driving animation, or '' when unparseable.
@@ -238,13 +224,10 @@ function easy_svg_neutralize_href_animation( $markup ) {
 /**
  * A sanitiser configured the way THIS SITE sanitises. The whole public surface.
  *
- * Add-ons get this function, never the `esw_svg_*` classes: those are internals,
- * and a rename breaks them silently -- `class_exists()` goes false, the add-on
- * decides the plugin is not installed and tells somebody to install what is
- * already active. This plugin uses it too, or it would be a second path. The
- * allow-list runs through `esw_svg_allowed_tags`, which sites widen, so an
- * add-on configured any other way would report and remove things this site
- * never would.
+ * Add-ons get this function, never the `esw_svg_*` classes: those are
+ * internals, and a rename leaves `class_exists()` false, which an add-on reads
+ * as "not installed". The allow-list runs through `esw_svg_allowed_tags`, which
+ * sites widen, so one built any other way removes what this site keeps.
  *
  * @return \enshrined\svgSanitize\Sanitizer|null Null when the library is absent.
  */
@@ -254,15 +237,10 @@ function easy_svg_sanitizer() {
     }
 
     /*
-     * One instance per call. The 4.1 global was reconfigured on every upload,
-     * so two callers meant whichever ran last decided what the other stripped.
-     *
-     * A COPY of that global when it holds a Sanitizer, so whatever a site
-     * snippet set on it still applies as it did in 4.1. A clone is safe to hand
-     * out -- the library builds a new DOMDocument per sanitize() -- and the
-     * allow-lists set on the copy replace anything set on the global, which is
-     * what 4.1 did on every upload anyway. Anything else under that name is
-     * somebody else's variable and is left alone.
+     * One instance per call: a shared one gets reconfigured, and then whichever
+     * caller ran last decides what the others strip. It is a COPY of the 4.1
+     * global when that holds a Sanitizer, so a site snippet's settings still
+     * apply; cloning is safe, the library builds a DOMDocument per sanitize().
      */
     $legacy    = isset( $GLOBALS['sanitizer'] ) ? $GLOBALS['sanitizer'] : null;
     $sanitizer = $legacy instanceof \enshrined\svgSanitize\Sanitizer
@@ -273,15 +251,10 @@ function easy_svg_sanitizer() {
     $sanitizer->setAllowedAttrs( new esw_svg_attributes() );
 
     /*
-     * External references are removed: an SVG that loads a stylesheet, an
-     * image or a font from another server makes every visitor's browser ask
-     * that server. References inside the drawing (`#id`) and local paths stay.
-     *
-     * Precedence: the filter decides, and its default is true. Every other
-     * setting a site made on the 4.1 global still comes through the copy
-     * above; for this one the library offers no way to tell "set to false on
-     * purpose" from its own default, so the filter is the documented switch.
-     * A site that needs external references returns false from it.
+     * An SVG that loads a stylesheet, image or font from another server makes
+     * every visitor's browser ask that server; `#id` and local paths stay. The
+     * filter decides here rather than the copied global, because the library
+     * offers no way to tell a deliberate false from its own default.
      */
     $sanitizer->removeRemoteReferences(
         (bool) apply_filters( 'esw_svg_remove_remote_references', true )
@@ -293,11 +266,10 @@ function easy_svg_sanitizer() {
 /**
  * Whether the sanitiser PHP will use is the version this plugin ships.
  *
- * Composer classes are global, and the first autoloader to answer for a class
- * wins. A plugin that bundles an older copy of this library and loads first
- * puts ITS Sanitizer behind every upload here. `removeDoctype()` exists only
- * from 1.0.0 on -- it is the fix for the most serious of the advisories that
- * release closed -- so its presence is what tells the two apart.
+ * Composer classes are global and the first autoloader to answer wins, so a
+ * plugin bundling an older copy of this library can put ITS Sanitizer behind
+ * every upload here. `removeDoctype()` exists only from 1.0.0 on, which is
+ * what tells the two apart.
  *
  * @param string $class The sanitiser class; injectable so it can be checked.
  * @return bool
@@ -334,10 +306,8 @@ function easy_svg_outdated_sanitizer_message( $class = '\\enshrined\\svgSanitize
 }
 
 /**
- * Shown to administrators, on the screens where they would act on it.
- *
- * Once per request, on the dashboard, the plugins screen and the media
- * library -- not on every admin page, where it would be noise.
+ * Shown to administrators, on the screens where they would act on it: the
+ * dashboard, the plugins screen and the media library, not every admin page.
  */
 function easy_svg_outdated_sanitizer_notice() {
     if ( ! current_user_can( 'activate_plugins' ) ) {
@@ -386,11 +356,9 @@ function esw_svg_file_checker( $file ) {
     }
 
     /*
-     * Caught, and answered like any other file the sanitiser refuses. The
-     * library throws a LogicException for well-formed XML without exactly one
-     * <svg> root, where it returns false for markup it cannot parse; both mean
-     * "not a usable SVG", and the caller turns false into an upload error the
-     * person can read. Uncaught, the same file was a fatal error.
+     * The library throws a LogicException for well-formed XML without exactly
+     * one <svg> root, where it returns false for markup it cannot parse. Both
+     * mean "not a usable SVG"; uncaught, the same file was a fatal error.
      */
     try {
         $clean = $sanitizer->sanitize( $unclean );
@@ -429,8 +397,6 @@ function esw_svg_file_checker( $file ) {
 /**
  * Whether a filename names an SVG.
  *
- * The extension is compared case-insensitively.
- *
  * @param string $name A filename or path.
  * @return bool
  */
@@ -441,9 +407,8 @@ function easy_svg_is_svg_name( $name ) {
 /**
  * Filter and sanitize uploaded SVG files using trusted file detection.
  *
- * This function does NOT rely on the user-controlled MIME header.
- * It uses wp_check_filetype_and_ext() and the file extension to reliably
- * detect SVG uploads and sanitize them. Inconsistent SVG uploads are rejected.
+ * The user-controlled MIME header is never trusted: the extension and
+ * wp_check_filetype_and_ext() decide, and an inconsistent SVG is refused.
  *
  * @param array $file Array containing file details before upload.
  * @return array Modified file array or error message if invalid.
@@ -498,15 +463,10 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 }
 
 /*
- * The same check for files that do not come from the media uploader.
- *
- * WordPress builds `{$action}_prefilter` from `wp_handle_upload` OR
- * `wp_handle_sideload`, and the second is what `media_sideload_image()`,
- * WP-CLI `wp media import` and importers use.
- *
- * Safe on this path: WP-CLI copies a local file to a temporary first and a
- * remote one arrives through `download_url()`, so `tmp_name` is always a
- * temporary copy. Sanitising in place never touches the file somebody passed in.
+ * The same check for files that do not come from the media uploader:
+ * `wp_handle_sideload` is what `media_sideload_image()`, WP-CLI and importers
+ * use. Sanitising in place is safe here, because `tmp_name` is always a
+ * temporary copy -- of a local file, or of what `download_url()` fetched.
  */
 if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
     add_filter( 'wp_handle_sideload_prefilter', 'esw_svg_upload_filter_check_init' );
@@ -515,10 +475,9 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 /**
  * Whether SVG markup is already clean: the sanitiser would remove nothing.
  *
- * Compared by structure, not by bytes -- the sanitiser re-serialises every
- * file, so its output never equals the input byte for byte, even when it took
- * nothing out. Elements, attributes, text and processing instructions are
- * compared; whitespace, the XML declaration and comments are not.
+ * Compared by structure, not by bytes: the sanitiser re-serialises every file,
+ * so its output never equals the input byte for byte even when it removed
+ * nothing. Whitespace, the XML declaration and comments are not compared.
  *
  * @param string $markup SVG markup.
  * @return bool False when the sanitiser refuses it or would change it.
@@ -531,15 +490,10 @@ function easy_svg_markup_is_clean( $markup ) {
     }
 
     /*
-     * Three things a structural comparison cannot see, refused up front:
-     *
-     * - a document type: its internal subset can declare attribute defaults
-     *   that no element carries in the markup, and the sanitiser's output
-     *   drops it, so the two would compare equal while the stored bytes kept
-     *   it;
-     * - control characters, which a parser may stop at, leaving whatever
-     *   follows unparsed but stored;
-     * - anything but whitespace after the root element's closing `>`.
+     * Three things a structural comparison cannot see: a doctype, whose
+     * internal subset can declare attribute defaults the sanitiser then drops;
+     * control characters, which a parser may stop at, leaving the rest stored
+     * but unparsed; and anything but whitespace after the root's closing `>`.
      */
     if ( false !== stripos( $markup, '<!DOCTYPE' ) ) {
         return false;
@@ -603,14 +557,12 @@ function easy_svg_markup_is_clean( $markup ) {
 }
 
 /**
- * The check on `wp_upload_bits()`, which XML-RPC media uploads and some plugins
- * use to write a file.
+ * The check on `wp_upload_bits()`, which XML-RPC uploads and plugins write to.
  *
- * Its filter can only refuse the bytes, never replace them, so an SVG passes
- * only when the sanitiser would leave it exactly as it is; anything else is
- * refused with a sentence pointing at the media library, which cleans files.
- * Empty bits pass -- the importer reserves a file that way and fills it
- * afterwards, and the attachment check below sees the finished file.
+ * Its filter can only refuse bytes, never replace them, so an SVG passes only
+ * when the sanitiser would leave it exactly as it is. Empty bits pass: an
+ * importer reserves a file that way and fills it afterwards, and the
+ * attachment check below sees the finished file.
  *
  * @param array $upload { name, bits, time }.
  * @return array|string The upload unchanged, or an error message.
@@ -637,13 +589,10 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 /**
  * The last check: every new SVG attachment, however its file got there.
  *
- * However the file got there -- upload, importer, or a plugin that writes and
- * registers one -- it is sanitised in place with the checker the uploads use.
- * If the sanitiser cannot use it, the attachment and its file are deleted: a
- * file nobody could clean must not stay reachable under the uploads URL. A
- * second pass over an already-filtered upload is harmless. Files outside the
- * uploads directory and attachments with no local file are left alone --
- * offloaded media has nothing here, and deleting it would lose a library entry.
+ * If the sanitiser cannot use the file, the attachment and the file are
+ * deleted: a file nobody could clean must not stay reachable under the uploads
+ * URL. Files outside the uploads directory and attachments with no local file
+ * are left alone, because offloaded media has nothing here to clean.
  *
  * @param int $attachment_id The new attachment.
  */
@@ -664,11 +613,9 @@ function easy_svg_check_new_attachment( $attachment_id ) {
     }
 
     /*
-     * Only files under the uploads directory. A plugin may register an SVG it
-     * ships in its own folder as an attachment; that file is part of the
-     * plugin, not an upload, and neither rewriting it nor deleting the library
-     * entry is this check's call. Compared as resolved paths, so `../` cannot
-     * make a file elsewhere look like it is inside.
+     * A plugin may register an SVG it ships in its own folder; that file is
+     * part of the plugin, not an upload, and not this check's to rewrite or
+     * delete. Resolved paths, so `../` cannot make an outside file look inside.
      */
     $uploads = wp_upload_dir( null, false );
     $base    = empty( $uploads['basedir'] ) ? false : realpath( $uploads['basedir'] );
@@ -721,11 +668,9 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
 }
 
 /*
- * The icon manager. Not behind `is_admin()`: the Icon block is SERVER-rendered
- * and `wp_get_icon()` resolves the name as the page is built, so an admin-only
- * registration would show every icon in the editor and nothing to a visitor.
- * Priority 5 for the store and 10 for the icons, both after core's collections
- * at 0; that order is forced, the icons are read out of the post type.
+ * The icon manager. Not behind `is_admin()`: the Icon block is SERVER-rendered,
+ * so an admin-only registration would show every icon in the editor and none
+ * to a visitor. Priority 5 then 10 -- the icons are read out of the post type.
  */
 require_once __DIR__ . '/includes/icon-manager.php';
 
@@ -739,10 +684,9 @@ if ( easy_svg_feature_enabled( 'icons' ) ) {
 }
 
 /*
- * The icon list is cached between requests (see `easy_svg_stored_icons()`), and
- * these drop it. On the post type rather than in the screen's handlers, and on
- * every request rather than in wp-admin only: WP-CLI, importers and REST
- * clients write icons too, and their icons must appear just the same.
+ * The icon list is cached between requests (see `easy_svg_stored_icons()`).
+ * Hooked on the post type and on every request, not in the screen's handlers:
+ * WP-CLI, importers and REST clients write icons too.
  */
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'save_post_' . EASY_SVG_ICON_POST_TYPE, 'easy_svg_forget_icons' );
@@ -758,14 +702,10 @@ if ( easy_svg_feature_enabled( 'icons' ) ) {
 if ( ! function_exists( 'esw_add_support' ) ) {
     function esw_add_support( $mimes ) {
         /*
-         * On multisite the network admin's "Upload file types" (the
-         * `upload_filetypes` network option) is policy: core enforces it on
-         * `upload_mimes`. Adding svg unconditionally would override a network
-         * admin who left it out -- and it would make this plugin's own "does
-         * this site allow SVG" checks (esw_upload_check, the prefilter refusal)
-         * meaningless, because svg would always be in the list. So on a network
-         * that does not list svg, leave $mimes as it is. A site can opt out of
-         * this deference with the filter, in which case svg is always added.
+         * The network admin's "Upload file types" (`upload_filetypes`) is
+         * policy. Adding svg unconditionally would override an admin who left
+         * it out, and would make this plugin's own "does this site allow SVG"
+         * checks meaningless, because svg would always be in the list.
          */
         if (
             is_multisite() &&
@@ -801,10 +741,9 @@ if ( ! function_exists( 'esw_upload_check' ) ) {
     function esw_upload_check( $checked, $file, $filename, $mimes ) {
 
         /*
-         * Only about SVGs. fileinfo often cannot name an SVG (one without an
-         * XML declaration reads as text), and core then drops its type; this
-         * gives the type back so the upload filter can sanitise the file. Any
-         * other file is returned as core judged it.
+         * fileinfo often cannot name an SVG -- one without an XML declaration
+         * reads as text -- and core then drops its type. This gives the type
+         * back so the upload filter can sanitise the file.
          */
         if ( ! easy_svg_is_svg_name( $filename ) || ! empty( $checked['type'] ) ) {
             return $checked;
