@@ -582,6 +582,23 @@ $stored = (string) file_get_contents( $file['tmp_name'] );
 unlink( $file['tmp_name'] );
 check( 'BELL: a widened-in animate href does not survive the upload', ! isset( $after['error'] ) && false === strpos( $stored, 'javascript:' ) );
 
+/*
+ * And behind a namespace prefix.
+ *
+ * The neutraliser compares localName and would have defused `<s:animate` all
+ * along; its TRIGGER was a raw `stripos( '<animate' )`, which never let it
+ * look. Measured before the fix: with the element on the allow-list, the
+ * prefixed form passed through untouched, javascript: and all.
+ */
+add_filter( 'esw_svg_allowed_tags', static function ( $tags ) { $tags[] = 's:animate'; return $tags; } );
+$prefixed = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:s="http://www.w3.org/2000/svg"><a href="#x"><rect/></a>'
+          . '<s:animate attributeName="href" values="javascript:alert(1)"/></svg>';
+$file     = file_array( $prefixed, 'prefixed.svg' );
+$after    = $callback( $file );
+$stored   = (string) file_get_contents( $file['tmp_name'] );
+unlink( $file['tmp_name'] );
+check( 'BELL: a prefixed animate href does not survive the upload either', ! isset( $after['error'] ) && false === strpos( $stored, 'javascript:' ) );
+
 // ─── Files that are not what they claim ──────────────────────────────────────
 
 $file  = file_array( '<html><script>alert(1)</script></html>', 'evil.svg' );
