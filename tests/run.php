@@ -368,11 +368,26 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 // Admin menu registration, recorded in the order it happens -- which is the
 // property that matters here, not just that a page exists. WordPress points a
 // top-level link at whichever submenu entry was registered FIRST.
+/** The URL of a file inside the plugin, as WordPress builds it. */
+function plugins_url( string $path = '', string $plugin = '' ): string {
+	return 'https://example.test/wp-content/plugins/easy-svg/' . ltrim( $path, '/' );
+}
+function plugin_basename( string $file ): string {
+	return 'easy-svg/' . basename( $file );
+}
+function admin_url( string $path = '' ): string {
+	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+}
+
+$GLOBALS['menu_icon']     = '';   // what the top-level entry was given
+$GLOBALS['menu_position']  = null; // and where it asked to sit
 $GLOBALS['menu_pages']    = [];   // slug => callback
 $GLOBALS['submenu_pages'] = [];   // [ parent, slug, callback ], in order
 $GLOBALS['options_pages'] = [];   // slug
 function add_menu_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '', string $icon = '', $position = null ) {
 	$GLOBALS['menu_pages'][ $slug ] = $callback;
+	$GLOBALS['menu_icon']           = $icon;
+	$GLOBALS['menu_position']       = $position;
 	return 'toplevel_page_' . $slug;
 }
 function add_submenu_page( string $parent, string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
@@ -2279,6 +2294,27 @@ $GLOBALS['options_pages'] = array();
 fire( 'admin_menu' );
 
 check( 'BELL: nothing registers a second settings screen under Settings', array() === $GLOBALS['options_pages'] );
+
+/*
+ * The menu icon is a FILE, not a base64 data URI.
+ *
+ * WordPress hands a data-URI SVG to svg-painter.js, which repaints every fill
+ * to the admin colour scheme. That is right for a monochrome glyph and the end
+ * of a brand mark with fifteen colours in it -- and it would be found by
+ * somebody looking at a grey bulb, not by a test asking whether an icon was
+ * set at all.
+ */
+check( 'BELL: the menu icon is served as a file', 0 === strpos( (string) $GLOBALS['menu_icon'], 'https://' ) && str_ends_with( (string) $GLOBALS['menu_icon'], '.svg' ) );
+check( 'SILENCE: and is not a data URI, which core would recolour', false === strpos( (string) $GLOBALS['menu_icon'], 'data:image' ) );
+check( 'SILENCE: the file it names ships with the plugin', is_readable( $root . '/assets/menu-icon.svg' ) );
+
+/*
+ * And the entry sits below everything core registers. A bare integer is a
+ * SLOT: a second plugin asking for the same number replaces what is in it, so
+ * the position is a decimal string that no integer can collide with.
+ */
+check( 'BELL: the Icons entry asks for a place below Settings', (float) $GLOBALS['menu_position'] > 80.0 );
+check( 'BELL: and asks for it as a string, so it cannot take another plugin\'s slot', is_string( $GLOBALS['menu_position'] ) && false !== strpos( (string) $GLOBALS['menu_position'], '.' ) );
 check( 'SILENCE: and the sanitiser the panel REST writes through is still here', function_exists( 'easy_svg_sanitize_settings' ) );
 
 /*

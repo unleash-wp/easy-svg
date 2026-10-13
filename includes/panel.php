@@ -35,20 +35,96 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * whichever submenu entry was registered FIRST -- at 10, clicking "Icons" opens
  * a post list instead of the panel, and plugin load order decides it.
  */
+/**
+ * The plugin's own row on the Plugins screen: a way in, beside Deactivate.
+ *
+ * Somebody who just activated this is on that screen, and the thing they want
+ * next is the Icons page. WordPress puts our links before its own, which is
+ * where a reader looks first.
+ *
+ * @param array $links
+ * @return array
+ */
+function easy_svg_plugin_action_links( $links ) {
+	$ours = sprintf(
+		'<a href="%s">%s</a>',
+		esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ),
+		esc_html__( 'Icons', 'easy-svg' )
+	);
+
+	return array_merge( array( 'easy_svg_panel' => $ours ), (array) $links );
+}
+add_filter( 'plugin_action_links_' . plugin_basename( dirname( __DIR__ ) . '/easy-svg.php' ), 'easy_svg_plugin_action_links' );
+
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
+/*
+ * And again at the very end, to take the last place rather than ask for it.
+ *
+ * A position only decides where an entry is INSERTED, and every plugin that
+ * registers after this one lands below it however high the number: measured on
+ * a site with thirteen plugins, position 99.7 put Icons 22nd of 26.
+ */
+add_action( 'admin_menu', 'easy_svg_panel_menu_to_the_end', 9999 );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
 
+/**
+ * Move the Icons entry to the end of the admin menu.
+ *
+ * `$menu` is keyed BY position and WordPress sorts it by those keys, so the
+ * last place is one key past whatever the highest is -- not a bigger number
+ * guessed in advance. Nothing else is touched: every other entry keeps its own
+ * key, and a plugin that insists on being last after this will be, which is
+ * the polite end of this argument.
+ */
+function easy_svg_panel_menu_to_the_end(): void {
+	global $menu;
+
+	if ( ! is_array( $menu ) ) {
+		return;
+	}
+
+	$ours = null;
+	foreach ( $menu as $position => $entry ) {
+		if ( is_array( $entry ) && isset( $entry[2] ) && EASY_SVG_PANEL_SLUG === $entry[2] ) {
+			$ours = $entry;
+			unset( $menu[ $position ] );
+			break;
+		}
+	}
+
+	if ( null === $ours ) {
+		return;
+	}
+
+	$keys = array_map( 'intval', array_keys( $menu ) );
+	$last = $keys ? max( $keys ) + 1 : 100;
+
+	$menu[ (string) $last ] = $ours;
+}
+
 function easy_svg_panel_menu(): void {
+	/*
+	 * A file, not a data URI: WordPress hands a base64 SVG to svg-painter.js,
+	 * which repaints every fill to the admin colour scheme -- right for a
+	 * monochrome glyph and the end of a brand mark that has fifteen colours in
+	 * it. As a URL it is left alone, and the browser caches it instead of
+	 * carrying it in the markup of every admin page.
+	 *
+	 * Position as a string: a bare 99 is a slot, and a second plugin that wants
+	 * the same slot REPLACES whatever is in it. A decimal cannot collide with
+	 * core's own integers, and past Settings (80) is as far down as a plugin
+	 * can politely put itself.
+	 */
 	add_menu_page(
 		__( 'Icons', 'easy-svg' ),
 		__( 'Icons', 'easy-svg' ),
 		'manage_options',
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render',
-		easy_svg_panel_icon_uri( '#a7aaad' ),
-		58
+		plugins_url( 'assets/menu-icon.svg', dirname( __DIR__ ) . '/easy-svg.php' ),
+		'99.7'
 	);
 
 	/*

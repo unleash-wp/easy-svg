@@ -149,6 +149,16 @@ function easy_svg_forget_icons(): void {
 }
 
 require dirname( __DIR__ ) . '/includes/settings.php';
+function plugin_basename( string $file ): string {
+	return 'easy-svg/' . basename( $file );
+}
+function admin_url( string $path = '' ): string {
+	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+}
+function plugins_url( string $path = '', string $plugin = '' ): string {
+	return 'https://example.test/wp-content/plugins/easy-svg/' . ltrim( $path, '/' );
+}
+
 require dirname( __DIR__ ) . '/includes/panel.php';
 
 $passed = 0;
