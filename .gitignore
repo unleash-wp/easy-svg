@@ -2,3 +2,6 @@
 git
 node_modules
 node_modules/
+e2e/.auth/
+/playwright-report/
+/test-results/
