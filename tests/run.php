@@ -1812,6 +1812,22 @@ foreach ( scandir( $root . '/languages' ) ?: array() as $lang_file ) {
 	}
 }
 check( 'BELL: only translated locales are bundled (de_DE)', array() === $unexpected_lang_files );
+
+/*
+ * And something loads it.
+ *
+ * WordPress reads a plugin's translation on its own, but only out of
+ * WP_LANG_DIR/plugins -- where wordpress.org puts what translators contribute.
+ * The /languages folder in the download is reached by nothing without this
+ * call, so the catalogue above shipped and was never read: measured, the panel
+ * was German, because its JS catalogue is registered with an explicit path,
+ * while the admin menu beside it and every PHP string were not.
+ */
+$plugin_src = (string) file_get_contents( $root . '/easy-svg.php' );
+check(
+	'BELL: the bundled catalogue is loaded, or nothing ever reads it',
+	1 === preg_match( "/load_plugin_textdomain\(\s*'easy-svg',\s*false,\s*[^;]*languages/s", $plugin_src )
+);
 if ( array() !== $unexpected_lang_files ) {
 	echo '      unerwartet: ' . implode( ', ', $unexpected_lang_files ) . "\n";
 }
