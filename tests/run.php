@@ -2635,6 +2635,48 @@ ob_end_clean();
 check( 'a failing check is counted', $failed === $before + 1 );
 $failed = $before;
 
+/*
+ * The du->Sie imperative list, held to a named set.
+ *
+ * Measured 2026-10-14: the same script lives in three repositories, and the
+ * only substantive difference between the copies was seven verbs. easy-svg-pro
+ * had them, this one and easy-svg did not -- and rebuilding easy-svg with the
+ * wider list immediately produced "no formal wording for: ... Installiere das
+ * Plugin neu", a sentence its FORMAL catalogue had been shipping in the du
+ * form with nothing complaining.
+ *
+ * Why a check on the source and not a shared file: easy-svg is updated through
+ * wordpress.org and must not carry vendor-unleashwp/, so the repository with
+ * the most strings cannot inherit anything from this package. Three copies are
+ * the only shape available, so the thing to guard is that they say the same
+ * thing.
+ *
+ * The honest limit: this catches a verb being REMOVED, and makes the set
+ * explicit for whoever adds one. It cannot make an addition in one repository
+ * appear in the others -- that stays a human step, and this comment is where
+ * the next person finds out.
+ */
+$verbs_source = (string) @file_get_contents( __DIR__ . '/../scripts/make-de-variants.php' );
+$verbs_want   = [
+	'schalte', 'wähle', 'lege', 'leg', 'gib', 'nenne', 'versuche', 'versuch', 'aktiviere',
+	'kopiere', 'bündele', 'erweitere', 'prüfe', 'trage', 'klicke', 'lade', 'setze', 'öffne',
+	'füge', 'entferne', 'speichere', 'ziehe', 'drücke', 'besuche', 'aktualisiere', 'achte',
+	'beachte', 'starte', 'wende', 'kontaktiere', 'schreibe', 'lies', 'benenne',
+	'führe', 'rufe', 'melde', 'wiederhole', 'exportiere', 'importiere', 'installiere',
+	'du', 'dir', 'dich', 'dein',
+];
+$verbs_missing = [];
+foreach ( $verbs_want as $verb ) {
+	if ( ! str_contains( $verbs_source, "'" . $verb . '|' ) && ! str_contains( $verbs_source, '|' . $verb . "'" ) && ! str_contains( $verbs_source, '|' . $verb . '|' ) ) {
+		$verbs_missing[] = $verb;
+	}
+}
+check( 'the de_DE_formal script was found at all', '' !== $verbs_source );
+check(
+	'BELL: the du->Sie list still covers every word it is meant to (' . implode( ', ', $verbs_missing ) . ')',
+	[] === $verbs_missing
+);
+
 echo 0 === $failed
 	? "all {$passed} checks passed\n"
 	: "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";
