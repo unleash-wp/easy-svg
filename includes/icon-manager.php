@@ -249,8 +249,17 @@ function easy_svg_boot_icons() {
         return;
     }
 
+    /*
+     * Offered to add-ons before core sees them. Core's registry keeps a short
+     * allow-list and no filter of its own, so sizing or recolouring an icon has
+     * to happen to the markup handed over here; `easy_svg_icon_markup` is the
+     * same thing for the template tag's read path. Cast, because a filter that
+     * answers with a non-array must mean "nothing" rather than a fatal.
+     */
+    $icons = (array) apply_filters( 'easy_svg_registrable_icons', easy_svg_stored_icons() );
+
     easy_svg_register_icons(
-        easy_svg_stored_icons(),
+        $icons,
         'wp_register_icon_collection',
         'wp_register_icon'
     );

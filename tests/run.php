@@ -1195,6 +1195,33 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
 check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+
+/*
+ * The icon-registration contract.
+ *
+ * Declared for the reason the panel contract states: a filter cannot be probed
+ * for, so an add-on asks for the constant. And the registration has to read the
+ * FILTERED list -- a filter that is fired and then ignored is the worst of the
+ * three states, because an add-on sees its callback run and its work thrown
+ * away with nothing saying so.
+ */
+check( 'BELL: the icon-registration contract is declared', defined( 'EASY_SVG_ICONS_API' ) && is_int( EASY_SVG_ICONS_API ) );
+check( 'BELL: the icons API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_ICONS_API );
+$manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
+check(
+	'BELL: the library is offered to add-ons before core sees it',
+	str_contains( $manager, "apply_filters( 'easy_svg_registrable_icons', easy_svg_stored_icons() )" )
+);
+check(
+	'BELL: and what core is handed is the filtered list, not the stored one',
+	1 === preg_match( '/\\$icons = \\(array\\) apply_filters\\( .easy_svg_registrable_icons.*?easy_svg_register_icons\\(\\s*\\$icons,/s', $manager )
+);
+/*
+ * Cast, because a filter that answers with a string or null must mean "nothing
+ * to register" rather than a TypeError on every request of a site that
+ * installed a careless add-on.
+ */
+check( 'BELL: a filter that answers with a non-array cannot fatal the site', str_contains( $manager, '(array) apply_filters( \'easy_svg_registrable_icons\'' ) );
 check( 'BELL: at panel API 1 the panel offers its own tabs', array_keys( easy_svg_panel_menu_tabs() ) === array( 'settings', 'library' ) );
 // Exercised, not grepped for: an add-on's entry has to come back out.
 add_filter(
