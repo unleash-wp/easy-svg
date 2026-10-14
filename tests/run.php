@@ -1206,7 +1206,22 @@ check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 
  * away with nothing saying so.
  */
 check( 'BELL: the icon-registration contract is declared', defined( 'EASY_SVG_ICONS_API' ) && is_int( EASY_SVG_ICONS_API ) );
-check( 'BELL: the icons API is 2 (raise this line WITH the hooks it covers)', 2 === EASY_SVG_ICONS_API );
+check( 'BELL: the icons API is 3 (raise this line WITH the hooks it covers)', 3 === EASY_SVG_ICONS_API );
+$writes = (string) file_get_contents( $root . '/includes/icon-writes.php' );
+/*
+ * Replacing an icon's bytes goes through the sanitiser and the bounds an upload
+ * meets. An add-on repairing an icon still writes markup that will be inlined
+ * into every page using it, and this must not become the one way into the store
+ * that skips the decision every other way makes.
+ */
+check( 'BELL: new bytes for an icon meet accept_icon, like an upload', str_contains( $writes, 'easy_svg_accept_icon(' ) );
+check( 'BELL: and the site own size bound', str_contains( $writes, 'easy_svg_max_bytes()' ) );
+check( 'BELL: and its complexity bound', str_contains( $writes, "'easy_svg_svg_too_complex'" ) );
+/*
+ * The identity is not touched by a repair: the slug is what a saved Icon block
+ * carries, and the title is what people read.
+ */
+check( 'BELL: a markup update writes neither the slug nor the title', ! str_contains( $writes, "'post_name'" ) );
 /*
  * The rename WRITE is one function, not a copy per caller: kses off for that one
  * `wp_update_post()` (which re-saves the row whole, and kses knows no SVG) and

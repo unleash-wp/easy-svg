@@ -118,13 +118,17 @@ define( 'EASY_SVG_PANEL_API', 1 );
  * sizes or recolours an icon has to change the markup handed over at
  * registration; that is what the filter is for.
  *
+ * 3 adds `easy_svg_update_icon_markup( $id, $markup )`, which writes new bytes
+ * for an existing icon through the same sanitiser and the same bounds an upload
+ * meets -- so a repaired icon is not the one way in that skips them.
+ *
  * 2 adds `easy_svg_rename_icon( $id, $label )`. An add-on renaming an icon has
  * to turn kses off for that one write -- `wp_update_post()` re-saves the row
  * whole, and kses knows no SVG, so without it renaming empties the icon for any
  * administrator without `unfiltered_html` -- and has to drop the cached icon
  * list afterwards. Two traps nobody should meet twice.
  */
-define( 'EASY_SVG_ICONS_API', 2 );
+define( 'EASY_SVG_ICONS_API', 3 );
 
 // Settings: one option behind every feature toggle and the parse-size ceiling.
 require_once __DIR__ . '/includes/settings.php';
