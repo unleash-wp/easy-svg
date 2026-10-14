@@ -149,6 +149,9 @@ function easy_svg_forget_icons(): void {
 }
 
 require dirname( __DIR__ ) . '/includes/settings.php';
+// The rename WRITE lives here now, with the kses handling and the cache bust
+// the checks below drive. The handler in panel.php calls it.
+require dirname( __DIR__ ) . '/includes/icon-writes.php';
 require dirname( __DIR__ ) . '/includes/panel.php';
 
 $passed = 0;
