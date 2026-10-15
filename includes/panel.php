@@ -571,56 +571,23 @@ function easy_svg_panel_media_state( int $id ): string {
 function easy_svg_panel_library_rename( $request ) {
 	$body = (array) $request->get_json_params();
 	$id   = isset( $body['id'] ) ? max( 0, (int) $body['id'] ) : 0;
-	$post = $id > 0 ? get_post( $id ) : null;
-	if ( ! $post || ! defined( 'EASY_SVG_ICON_POST_TYPE' ) || EASY_SVG_ICON_POST_TYPE !== $post->post_type ) {
-		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
-	}
 
 	// Same bar as the add route: the title is stored text, so it is sanitised as
 	// text. What is left of it decides whether there is a rename at all -- a
 	// blank title would leave the tile with nothing to read but its slug.
 	$label = isset( $body['label'] ) ? sanitize_text_field( (string) $body['label'] ) : '';
-	if ( '' === $label ) {
+
+	// The write itself is easy_svg_rename_icon()'s: it carries the kses handling
+	// and the cache bust, and an add-on renaming an icon has to meet the same two.
+	$state = easy_svg_rename_icon( $id, $label );
+	if ( 'not_found' === $state ) {
+		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
+	}
+	if ( 'no_label' === $state ) {
 		return new WP_Error( 'easy_svg_bad_label', __( 'An icon needs a name.', 'easy-svg' ), array( 'status' => 422 ) );
 	}
-
-	/*
-	 * kses off for this one write, and only if it was on. wp_update_post()
-	 * re-saves the row whole, so the markup passes `content_save_pre` again and
-	 * kses would strip the SVG for any administrator without unfiltered_html --
-	 * renaming would quietly empty the icon. Only the new title is slashed.
-	 */
-	$kses_was_on = false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' );
-	if ( $kses_was_on ) {
-		kses_remove_filters();
-	}
-
-	try {
-		$updated = wp_update_post(
-			array(
-				'ID'         => $id,
-				'post_title' => wp_slash( $label ),
-			),
-			true
-		);
-	} finally {
-		if ( $kses_was_on ) {
-			kses_init_filters();
-		}
-	}
-
-	if ( is_wp_error( $updated ) || ! $updated ) {
+	if ( 'renamed' !== $state ) {
 		return new WP_Error( 'easy_svg_rename_failed', __( 'The icon could not be renamed.', 'easy-svg' ), array( 'status' => 500 ) );
-	}
-
-	/*
-	 * Drop the cached icon list, or the editor offers the old name for up to a
-	 * day. The `save_post_esw_icon` hook that does this is registered only while
-	 * the icons feature is on, and an icon post outlives the switch -- so it is
-	 * called here as well, where a second call is a no-op.
-	 */
-	if ( function_exists( 'easy_svg_forget_icons' ) ) {
-		easy_svg_forget_icons();
 	}
 
 	return new WP_REST_Response( easy_svg_panel_library_payload() );
