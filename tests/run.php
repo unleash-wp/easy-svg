@@ -1206,7 +1206,15 @@ check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 
  * away with nothing saying so.
  */
 check( 'BELL: the icon-registration contract is declared', defined( 'EASY_SVG_ICONS_API' ) && is_int( EASY_SVG_ICONS_API ) );
-check( 'BELL: the icons API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_ICONS_API );
+check( 'BELL: the icons API is 2 (raise this line WITH the hooks it covers)', 2 === EASY_SVG_ICONS_API );
+/*
+ * The rename WRITE is one function, not a copy per caller: kses off for that one
+ * `wp_update_post()` (which re-saves the row whole, and kses knows no SVG) and
+ * the cached icon list dropped afterwards. Two traps nobody should meet twice.
+ */
+check( 'BELL: renaming an icon is one exported write', str_contains( (string) file_get_contents( $root . '/includes/icon-writes.php' ), 'function easy_svg_rename_icon( $id, $label )' ) );
+check( 'BELL: and the REST handler calls it rather than repeating it', str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'easy_svg_rename_icon( $id, $label )' ) );
+check( 'BELL: the slug is still never touched by a rename', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), "'post_name'" ) );
 $manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
 check(
 	'BELL: the library is offered to add-ons before core sees it',
