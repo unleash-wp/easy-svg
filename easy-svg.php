@@ -109,6 +109,17 @@ define( 'EASY_SVG_API', 3 );
  */
 define( 'EASY_SVG_PANEL_API', 1 );
 
+/**
+ * The icon-registration contract: `easy_svg_registrable_icons`.
+ *
+ * Its own number for the reason the panel contract states -- a filter cannot be
+ * probed for, and two versions with and without one look the same. Core's icon
+ * registry keeps a short allow-list and offers no filter, so an add-on that
+ * sizes or recolours an icon has to change the markup handed over at
+ * registration; this is where that happens.
+ */
+define( 'EASY_SVG_ICONS_API', 1 );
+
 // Settings: one option behind every feature toggle and the parse-size ceiling.
 require_once __DIR__ . '/includes/settings.php';
 
