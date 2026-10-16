@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.3.3
+Stable tag: 5.3.2
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -107,7 +107,13 @@ The hooks below are part of that surface too, because this plugin's own add-on a
 
 = For add-on authors: which hooks are there? =
 
-`easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. That covers the template tag and everything that renders through it, a page builder's icon element included. The Icon block does not: WordPress holds the markup it was handed when the collection was registered, and draws that. Add a class or a `<title>` with this. Return your own string and you own the escaping.
+`easy_svg_icon_markup` filters the markup of one icon on its way out of `easy_svg_icon()`, as `( string $markup, string $slug, string $collection )`. That covers the template tag and everything that renders through it, a page builder's icon element included. The Icon block does not: WordPress holds the markup it was handed when the collection was registered, and draws that -- `easy_svg_registrable_icons` below is the hook for that half. Add a class or a `<title>` with this. Return your own string and you own the escaping.
+
+`easy_svg_update_icon_markup( int $id, string $markup )` replaces one stored icon's drawing and answers with a word: `updated`, `not_found`, `no_markup`, `refused` or `failed`. The bytes go through this site's sanitiser and the same size and complexity bounds an upload meets, so a repaired icon is not the one way into the store that skips them. Neither the slug nor the title moves: this changes the drawing, not which icon it is.
+
+`easy_svg_rename_icon( int $id, string $label )` changes one stored icon's visible name and answers with a word: `renamed`, `not_found`, `no_label` or `failed`. Use it rather than writing the post yourself: `wp_update_post()` re-saves the row whole, so the markup passes kses again and the icon is quietly emptied for anybody without `unfiltered_html`, and the cached icon list has to be dropped afterwards or the editor offers the old name for up to a day. The slug is never touched -- it is the icon's identity, and a saved Icon block carries it.
+
+`easy_svg_registrable_icons` filters the whole library on its way to WordPress's icon registry, as one list of `{ slug, label, content }`. This is the only place the Icon block's markup can be changed: core's registry keeps a short allow-list of its own and offers no filter, so sizing or recolouring an icon has to happen before it is registered. Drop an entry and that icon is not offered at all. Answer with something that is not a list and nothing is registered, which is the safe reading rather than a fatal. `EASY_SVG_ICONS_API` is defined when this hook exists, because a filter cannot be probed for.
 
 `easy_svg_panel_enqueue` fires once the Icons panel's script is registered, with that script's handle as its only argument. Make it a dependency of your own bundle and yours loads after ours, into the same panel.
 
@@ -147,10 +153,13 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
-= 5.3.3 =
+= 5.3.2 =
 * New: the panel says which halves are installed -- a badge beside the product name when the add-on is licensed, and both version numbers in the footer. Until now the only place that named the add-on's version was its own licence screen.
 * Change: the Icons entry now sits at the bottom of the admin menu and carries the UnleashWP mark instead of a generic glyph.
 * New: the plugin's row on the Plugins screen links straight to the Icons screen, and offers the paid add-on to a site that does not have it. The offer disappears the moment that add-on is installed.
+* New: for add-on authors, `easy_svg_update_icon_markup()` replaces an icon's drawing through the sanitiser and the bounds an upload meets, leaving its name and slug alone -- so an add-on can repair a broken SVG without becoming the way into the store that skips those checks. `EASY_SVG_ICONS_API` is 3.
+* New: for add-on authors, `easy_svg_rename_icon()` renames one stored icon, carrying the kses handling and the cache bust that writing the post by hand would have to repeat -- getting either wrong empties the icon or shows the old name for a day. `EASY_SVG_ICONS_API` is 2.
+* New: for add-on authors, `easy_svg_registrable_icons` filters the whole library on its way to WordPress's icon registry. That is the only place the Icon block's markup can be changed -- core's registry keeps an allow-list of its own and offers no filter -- so an add-on can size or recolour an icon there. `EASY_SVG_ICONS_API` says the hook is present, because a filter cannot be probed for.
 * Fix: icons drawn with strokes -- most outline sets -- showed as an empty box in the Icon block and anywhere a template calls `wp_get_icon()`. WordPress's icon registry keeps only paths and polygons and drops `stroke` entirely; the icon now carries its stroke as a class that a small stylesheet restores, and circles, rects, ellipses, lines and polylines are handed over as the paths they are. Nothing changes for icons that are plain filled paths.
 * New: the editor says so when an Icon block points at an icon that is no longer here. A collection leaves when a theme is switched, a plugin is deactivated or a folder is renamed, and until now the block simply drew nothing -- on the page as well, where the first person to notice was a visitor.
 * Fix: German, formal. One sentence addressed the reader informally on a site set to "Sie" -- the one shown when the sanitizer is missing. The tool that builds the formal catalogue did not recognise the verb, so it was copied through unchanged and nothing said otherwise.
@@ -234,9 +243,6 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/tags).
 
 == Upgrade Notice ==
-
-= 5.3.3 =
-Icons drawn with strokes -- most outline sets -- showed as an empty box in the Icon block and in any template calling wp_get_icon(). They render now, and the editor says so when a block points at an icon that is no longer on the site.
 
 = 5.3.2 =
 Security: an SVG could keep an animation that runs on load by hiding the element behind a namespace prefix. Also: the German translation this plugin ships is finally read, on "Sie", Austrian and Swiss sites too. No setting changes on update.

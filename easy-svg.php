@@ -3,7 +3,7 @@
 Plugin Name:  Easy SVG Support
 Plugin URI:   https://wordpress.org/plugins/easy-svg/
 Description:  Add SVG support for WordPress.
-Version:      5.3.3
+Version:      5.3.2
 Author:       UnleashWP
 Author URI:   https://www.unleash-wp.com
 Requires PHP: 8.0
@@ -108,6 +108,27 @@ define( 'EASY_SVG_API', 3 );
  * sanitiser alone, and because a filter cannot be probed for.
  */
 define( 'EASY_SVG_PANEL_API', 1 );
+
+/**
+ * The icon contract: `easy_svg_registrable_icons` and `easy_svg_rename_icon()`.
+ *
+ * Its own number for the reason the panel contract states -- a filter cannot be
+ * probed for, and two versions with and without one look the same. Core's icon
+ * registry keeps a short allow-list and offers no filter, so an add-on that
+ * sizes or recolours an icon has to change the markup handed over at
+ * registration; that is what the filter is for.
+ *
+ * 3 adds `easy_svg_update_icon_markup( $id, $markup )`, which writes new bytes
+ * for an existing icon through the same sanitiser and the same bounds an upload
+ * meets -- so a repaired icon is not the one way in that skips them.
+ *
+ * 2 adds `easy_svg_rename_icon( $id, $label )`. An add-on renaming an icon has
+ * to turn kses off for that one write -- `wp_update_post()` re-saves the row
+ * whole, and kses knows no SVG, so without it renaming empties the icon for any
+ * administrator without `unfiltered_html` -- and has to drop the cached icon
+ * list afterwards. Two traps nobody should meet twice.
+ */
+define( 'EASY_SVG_ICONS_API', 3 );
 
 // Settings: one option behind every feature toggle and the parse-size ceiling.
 require_once __DIR__ . '/includes/settings.php';
@@ -687,6 +708,8 @@ if ( easy_svg_feature_enabled( 'svg_upload' ) ) {
  * so an admin-only registration would show every icon in the editor and none
  * to a visitor. Priority 5 then 10 -- the icons are read out of the post type.
  */
+// The icon writes an add-on reaches for, before the store that also uses them.
+require_once __DIR__ . '/includes/icon-writes.php';
 require_once __DIR__ . '/includes/icon-manager.php';
 
 // The "Icons" admin panel (React/Chakra), which an add-on can extend through

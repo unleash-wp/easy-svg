@@ -159,6 +159,9 @@ function plugins_url( string $path = '', string $plugin = '' ): string {
 	return 'https://example.test/wp-content/plugins/easy-svg/' . ltrim( $path, '/' );
 }
 
+// The rename WRITE lives here now, with the kses handling and the cache bust
+// the checks below drive. The handler in panel.php calls it.
+require dirname( __DIR__ ) . '/includes/icon-writes.php';
 require dirname( __DIR__ ) . '/includes/panel.php';
 
 $passed = 0;

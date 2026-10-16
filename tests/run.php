@@ -1233,6 +1233,56 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
 check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+
+/*
+ * The icon-registration contract.
+ *
+ * Declared for the reason the panel contract states: a filter cannot be probed
+ * for, so an add-on asks for the constant. And the registration has to read the
+ * FILTERED list -- a filter that is fired and then ignored is the worst of the
+ * three states, because an add-on sees its callback run and its work thrown
+ * away with nothing saying so.
+ */
+check( 'BELL: the icon-registration contract is declared', defined( 'EASY_SVG_ICONS_API' ) && is_int( EASY_SVG_ICONS_API ) );
+check( 'BELL: the icons API is 3 (raise this line WITH the hooks it covers)', 3 === EASY_SVG_ICONS_API );
+$writes = (string) file_get_contents( $root . '/includes/icon-writes.php' );
+/*
+ * Replacing an icon's bytes goes through the sanitiser and the bounds an upload
+ * meets. An add-on repairing an icon still writes markup that will be inlined
+ * into every page using it, and this must not become the one way into the store
+ * that skips the decision every other way makes.
+ */
+check( 'BELL: new bytes for an icon meet accept_icon, like an upload', str_contains( $writes, 'easy_svg_accept_icon(' ) );
+check( 'BELL: and the site own size bound', str_contains( $writes, 'easy_svg_max_bytes()' ) );
+check( 'BELL: and its complexity bound', str_contains( $writes, "'easy_svg_svg_too_complex'" ) );
+/*
+ * The identity is not touched by a repair: the slug is what a saved Icon block
+ * carries, and the title is what people read.
+ */
+check( 'BELL: a markup update writes neither the slug nor the title', ! str_contains( $writes, "'post_name'" ) );
+/*
+ * The rename WRITE is one function, not a copy per caller: kses off for that one
+ * `wp_update_post()` (which re-saves the row whole, and kses knows no SVG) and
+ * the cached icon list dropped afterwards. Two traps nobody should meet twice.
+ */
+check( 'BELL: renaming an icon is one exported write', str_contains( (string) file_get_contents( $root . '/includes/icon-writes.php' ), 'function easy_svg_rename_icon( $id, $label )' ) );
+check( 'BELL: and the REST handler calls it rather than repeating it', str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), 'easy_svg_rename_icon( $id, $label )' ) );
+check( 'BELL: the slug is still never touched by a rename', ! str_contains( (string) file_get_contents( $root . '/includes/panel.php' ), "'post_name'" ) );
+$manager = (string) file_get_contents( $root . '/includes/icon-manager.php' );
+check(
+	'BELL: the library is offered to add-ons before core sees it',
+	str_contains( $manager, "apply_filters( 'easy_svg_registrable_icons', easy_svg_stored_icons() )" )
+);
+check(
+	'BELL: and what core is handed is the filtered list, not the stored one',
+	1 === preg_match( '/\\$icons = \\(array\\) apply_filters\\( .easy_svg_registrable_icons.*?easy_svg_register_icons\\(\\s*\\$icons,/s', $manager )
+);
+/*
+ * Cast, because a filter that answers with a string or null must mean "nothing
+ * to register" rather than a TypeError on every request of a site that
+ * installed a careless add-on.
+ */
+check( 'BELL: a filter that answers with a non-array cannot fatal the site', str_contains( $manager, '(array) apply_filters( \'easy_svg_registrable_icons\'' ) );
 check( 'BELL: at panel API 1 the panel offers its own tabs', array_keys( easy_svg_panel_menu_tabs() ) === array( 'settings', 'library' ) );
 // Exercised, not grepped for: an add-on's entry has to come back out.
 add_filter(
