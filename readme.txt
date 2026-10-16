@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.3.2
+Stable tag: 5.4.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -151,7 +151,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
-= 5.3.2 =
+= 5.4.0 =
 * New: for add-on authors, `easy_svg_update_icon_markup()` replaces an icon's drawing through the sanitiser and the bounds an upload meets, leaving its name and slug alone -- so an add-on can repair a broken SVG without becoming the way into the store that skips those checks. `EASY_SVG_ICONS_API` is 3.
 * New: for add-on authors, `easy_svg_rename_icon()` renames one stored icon, carrying the kses handling and the cache bust that writing the post by hand would have to repeat -- getting either wrong empties the icon or shows the old name for a day. `EASY_SVG_ICONS_API` is 2.
 * New: for add-on authors, `easy_svg_registrable_icons` filters the whole library on its way to WordPress's icon registry. That is the only place the Icon block's markup can be changed -- core's registry keeps an allow-list of its own and offers no filter -- so an add-on can size or recolour an icon there. `EASY_SVG_ICONS_API` says the hook is present, because a filter cannot be probed for.
@@ -236,8 +236,13 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 
 == Upgrade Notice ==
 
-= 5.3.2 =
-Security: an SVG could keep an animation that runs on load by hiding the element behind a namespace prefix. Also: the German translation this plugin ships is finally read, on "Sie", Austrian and Swiss sites too. No setting changes on update.
+= 5.4.0 =
+For add-on authors: three hooks reach the icon library -- the markup WordPress's
+Icon block draws, a rename that stays one write, and a drawing replaced through
+the sanitiser. Also the security fix of the prepared 5.3.2: an SVG could keep an
+animation that runs on load by hiding the element behind a namespace prefix, and
+the German translation this plugin ships is finally read, on "Sie", Austrian and
+Swiss sites too. No setting changes on update.
 
 = 5.3.1 =
 Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
