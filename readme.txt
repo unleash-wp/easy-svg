@@ -4,7 +4,7 @@ Tags: svg, svg upload, sanitize, icons, media
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 5.3.2
+Stable tag: 5.4.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -153,7 +153,7 @@ On GitHub: [github.com/unleash-wp/easy-svg](https://github.com/unleash-wp/easy-s
 
 == Changelog ==
 
-= 5.3.2 =
+= 5.4.0 =
 * New: the panel says which halves are installed -- a badge beside the product name when the add-on is licensed, and both version numbers in the footer. Until now the only place that named the add-on's version was its own licence screen.
 * Change: the Icons entry now sits at the bottom of the admin menu and carries the UnleashWP mark instead of a generic glyph.
 * New: the plugin's row on the Plugins screen links straight to the Icons screen, and offers the paid add-on to a site that does not have it. The offer disappears the moment that add-on is installed.
@@ -244,8 +244,13 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 
 == Upgrade Notice ==
 
-= 5.3.2 =
-Security: an SVG could keep an animation that runs on load by hiding the element behind a namespace prefix. Also: the German translation this plugin ships is finally read, on "Sie", Austrian and Swiss sites too. No setting changes on update.
+= 5.4.0 =
+For add-on authors: three hooks reach the icon library -- the markup WordPress's
+Icon block draws, a rename that stays one write, and a drawing replaced through
+the sanitiser. Also the security fix of the prepared 5.3.2: an SVG could keep an
+animation that runs on load by hiding the element behind a namespace prefix, and
+the German translation this plugin ships is finally read, on "Sie", Austrian and
+Swiss sites too. No setting changes on update.
 
 = 5.3.1 =
 Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
