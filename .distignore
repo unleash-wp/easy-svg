@@ -54,3 +54,8 @@
 /e2e
 /playwright-report
 /test-results
+/.playwright-mcp
+
+# A build input, not a catalogue: scripts/make-de-variants.php derives the
+# formal German from it and scripts/ does not ship either.
+/languages/de_DE_formal.map.json

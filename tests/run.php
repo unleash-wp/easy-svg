@@ -61,6 +61,23 @@ function apply_filters( string $hook, $value, ...$args ) {
 	}
 	return $value;
 }
+/*
+ * Styles, as three recorders rather than three no-ops. A no-op would let a
+ * rule be added to a handle nothing enqueued -- which produces no CSS and no
+ * error -- and the suite would still pass.
+ */
+$GLOBALS['styles'] = [ 'registered' => [], 'enqueued' => [], 'inline' => [] ];
+function wp_register_style( string $handle, $src, array $deps = [], $ver = false, string $media = 'all' ): bool {
+	$GLOBALS['styles']['registered'][ $handle ] = $ver;
+	return true;
+}
+function wp_enqueue_style( string $handle, string $src = '', array $deps = [], $ver = false, string $media = 'all' ): void {
+	$GLOBALS['styles']['enqueued'][] = $handle;
+}
+function wp_add_inline_style( string $handle, string $data ): bool {
+	$GLOBALS['styles']['inline'][ $handle ] = ( $GLOBALS['styles']['inline'][ $handle ] ?? '' ) . $data;
+	return true;
+}
 function __return_false(): bool {
 	return false;
 }
@@ -368,11 +385,32 @@ function wp_kses( string $content, $allowed_html, array $allowed_protocols = [] 
 // Admin menu registration, recorded in the order it happens -- which is the
 // property that matters here, not just that a page exists. WordPress points a
 // top-level link at whichever submenu entry was registered FIRST.
+/** The URL of a file inside the plugin, as WordPress builds it. */
+function plugins_url( string $path = '', string $plugin = '' ): string {
+	return 'https://example.test/wp-content/plugins/easy-svg/' . ltrim( $path, '/' );
+}
+function plugin_basename( string $file ): string {
+	return 'easy-svg/' . basename( $file );
+}
+function admin_url( string $path = '' ): string {
+	return 'https://example.test/wp-admin/' . ltrim( $path, '/' );
+}
+function esc_url( string $url ): string {
+	return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
+}
+function esc_html__( string $text, string $domain = '' ): string {
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+}
+
+$GLOBALS['menu_icon']     = '';   // what the top-level entry was given
+$GLOBALS['menu_position']  = null; // and where it asked to sit
 $GLOBALS['menu_pages']    = [];   // slug => callback
 $GLOBALS['submenu_pages'] = [];   // [ parent, slug, callback ], in order
 $GLOBALS['options_pages'] = [];   // slug
 function add_menu_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '', string $icon = '', $position = null ) {
 	$GLOBALS['menu_pages'][ $slug ] = $callback;
+	$GLOBALS['menu_icon']           = $icon;
+	$GLOBALS['menu_position']       = $position;
 	return 'toplevel_page_' . $slug;
 }
 function add_submenu_page( string $parent, string $page_title, string $menu_title, string $capability, string $slug, $callback = '' ) {
@@ -2329,6 +2367,65 @@ $GLOBALS['options_pages'] = array();
 fire( 'admin_menu' );
 
 check( 'BELL: nothing registers a second settings screen under Settings', array() === $GLOBALS['options_pages'] );
+
+/*
+ * The menu icon is a FILE, not a base64 data URI.
+ *
+ * WordPress hands a data-URI SVG to svg-painter.js, which repaints every fill
+ * to the admin colour scheme. That is right for a monochrome glyph and the end
+ * of a brand mark with fifteen colours in it -- and it would be found by
+ * somebody looking at a grey bulb, not by a test asking whether an icon was
+ * set at all.
+ */
+check( 'BELL: the menu icon is served as a file', 0 === strpos( (string) $GLOBALS['menu_icon'], 'https://' ) && str_ends_with( (string) $GLOBALS['menu_icon'], '.svg' ) );
+check( 'SILENCE: and is not a data URI, which core would recolour', false === strpos( (string) $GLOBALS['menu_icon'], 'data:image' ) );
+check( 'SILENCE: the file it names ships with the plugin', is_readable( $root . '/assets/menu-icon.svg' ) );
+
+/*
+ * And the entry sits below everything core registers. A bare integer is a
+ * SLOT: a second plugin asking for the same number replaces what is in it, so
+ * the position is a decimal string that no integer can collide with.
+ */
+check( 'BELL: the Icons entry asks for a place below Settings', (float) $GLOBALS['menu_position'] > 80.0 );
+
+/*
+ * The add-on link, and the one condition on it.
+ *
+ * An upsell that stays after somebody has paid is the kind of thing people
+ * write reviews about, so it is gone the moment the add-on is installed -- and
+ * "installed" is the free plugin's own test for that, the function the add-on
+ * defines.
+ */
+$links_without_pro = easy_svg_plugin_action_links( array( 'deactivate' => '<a>x</a>' ) );
+check( 'BELL: a site without the add-on is offered it', isset( $links_without_pro['easy_svg_pro'] ) );
+check( 'BELL: and the link leaves the admin in a new tab, without handing over the referrer', false !== strpos( (string) ( $links_without_pro['easy_svg_pro'] ?? '' ), 'rel="noopener noreferrer"' ) );
+check( 'BELL: the way in comes first, before WordPress\'s own links', array( 'easy_svg_panel', 'easy_svg_pro', 'deactivate' ) === array_keys( $links_without_pro ) );
+
+// The add-on, present. Declared here because the suite has no Pro to load, and
+// the free plugin asks for exactly this function.
+if ( ! function_exists( 'easy_svg_pro_pro_enabled' ) ) {
+	eval( 'function easy_svg_pro_pro_enabled() { return true; }' );
+}
+$links_with_pro = easy_svg_plugin_action_links( array( 'deactivate' => '<a>x</a>' ) );
+check( 'BELL: a site that HAS the add-on is not sold it again', ! isset( $links_with_pro['easy_svg_pro'] ) );
+check( 'SILENCE: and still gets the way in', isset( $links_with_pro['easy_svg_panel'] ) );
+
+/*
+ * The menu icon's own rules, and the one thing that can silently stop them
+ * applying: a selector that names the wrong screen. The look itself was
+ * measured in a browser -- icon centre and label centre on the same line --
+ * and this is the half a suite can hold.
+ */
+ob_start();
+easy_svg_panel_menu_icon_css();
+$menu_echoed = (string) ob_get_clean();
+$menu_css    = (string) ( $GLOBALS['styles']['inline']['easy-svg-menu-icon'] ?? '' );
+check( 'SILENCE: the menu rules are enqueued, not echoed into the head', '' === $menu_echoed );
+check( 'BELL: on a handle something actually enqueued', in_array( 'easy-svg-menu-icon', $GLOBALS['styles']['enqueued'], true ) );
+check( 'BELL: the menu icon rules name this plugin\'s own entry', false !== strpos( $menu_css, '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image' ) );
+check( 'BELL: and size the image rather than leaving it to core\'s 20px', 1 === preg_match( '/img\{[^}]*width:2[0-9]px/', $menu_css ) );
+check( 'SILENCE: nothing is forced with !important', false === strpos( $menu_css, '!important' ) );
+check( 'BELL: and asks for it as a string, so it cannot take another plugin\'s slot', is_string( $GLOBALS['menu_position'] ) && false !== strpos( (string) $GLOBALS['menu_position'], '.' ) );
 check( 'SILENCE: and the sanitiser the panel REST writes through is still here', function_exists( 'easy_svg_sanitize_settings' ) );
 
 /*
@@ -2587,6 +2684,48 @@ check( 'this deliberate failure proves the harness works', false );
 ob_end_clean();
 check( 'a failing check is counted', $failed === $before + 1 );
 $failed = $before;
+
+/*
+ * The du->Sie imperative list, held to a named set.
+ *
+ * Measured 2026-10-14: the same script lives in three repositories, and the
+ * only substantive difference between the copies was seven verbs. easy-svg-pro
+ * had them, this one and easy-svg did not -- and rebuilding easy-svg with the
+ * wider list immediately produced "no formal wording for: ... Installiere das
+ * Plugin neu", a sentence its FORMAL catalogue had been shipping in the du
+ * form with nothing complaining.
+ *
+ * Why a check on the source and not a shared file: easy-svg is updated through
+ * wordpress.org and must not carry vendor-unleashwp/, so the repository with
+ * the most strings cannot inherit anything from this package. Three copies are
+ * the only shape available, so the thing to guard is that they say the same
+ * thing.
+ *
+ * The honest limit: this catches a verb being REMOVED, and makes the set
+ * explicit for whoever adds one. It cannot make an addition in one repository
+ * appear in the others -- that stays a human step, and this comment is where
+ * the next person finds out.
+ */
+$verbs_source = (string) @file_get_contents( __DIR__ . '/../scripts/make-de-variants.php' );
+$verbs_want   = [
+	'schalte', 'wähle', 'lege', 'leg', 'gib', 'nenne', 'versuche', 'versuch', 'aktiviere',
+	'kopiere', 'bündele', 'erweitere', 'prüfe', 'trage', 'klicke', 'lade', 'setze', 'öffne',
+	'füge', 'entferne', 'speichere', 'ziehe', 'drücke', 'besuche', 'aktualisiere', 'achte',
+	'beachte', 'starte', 'wende', 'kontaktiere', 'schreibe', 'lies', 'benenne',
+	'führe', 'rufe', 'melde', 'wiederhole', 'exportiere', 'importiere', 'installiere',
+	'du', 'dir', 'dich', 'dein',
+];
+$verbs_missing = [];
+foreach ( $verbs_want as $verb ) {
+	if ( ! str_contains( $verbs_source, "'" . $verb . '|' ) && ! str_contains( $verbs_source, '|' . $verb . "'" ) && ! str_contains( $verbs_source, '|' . $verb . '|' ) ) {
+		$verbs_missing[] = $verb;
+	}
+}
+check( 'the de_DE_formal script was found at all', '' !== $verbs_source );
+check(
+	'BELL: the du->Sie list still covers every word it is meant to (' . implode( ', ', $verbs_missing ) . ')',
+	[] === $verbs_missing
+);
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"

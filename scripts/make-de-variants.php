@@ -74,6 +74,11 @@ function apply_map( string $po, array $map ): array {
 		. 'schalte|wähle|lege|leg|gib|nenne|versuche|versuch|aktiviere|kopiere|bündele|erweitere'
 		. '|prüfe|trage|klicke|lade|setze|öffne|füge|entferne|speichere|ziehe|drücke|besuche'
 		. '|aktualisiere|achte|beachte|starte|wende|kontaktiere|schreibe|lies|benenne'
+		// "Führe `wp …` aus" slipped through a list that had every other verb on
+		// it: the formal catalogue said "Führe" and nothing complained. Added in
+		// easy-svg-pro first and backported, which is why tests/run.php now
+		// holds the list to a named set in each repository that has one.
+		. '|führe|rufe|melde|wiederhole|exportiere|importiere|installiere'
 		// Not "stelle": "an Ort und Stelle" is a noun, and a false positive
 		// here asks for a map entry that changes nothing, which reads like an
 		// oversight rather than a decision.

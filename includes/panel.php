@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 const EASY_SVG_PANEL_SLUG = 'easy-svg-icons';
 
 /**
+ * Where the add-on is sold. One place, and filterable: it is an address on a
+ * website, and the plugin should not need a release when that page moves.
+ */
+const EASY_SVG_PRO_URL = 'https://www.unleash-wp.com';
+
+/**
  * The "Icons" mark: tiles with one circle, so it reads as a collection of icons
  * rather than a generic app grid. Monochrome on purpose -- WordPress tints the
  * menu icon by state, so the shape takes a single $fill from its context.
@@ -35,20 +41,153 @@ function easy_svg_panel_icon_uri( string $fill ): string {
  * whichever submenu entry was registered FIRST -- at 10, clicking "Icons" opens
  * a post list instead of the panel, and plugin load order decides it.
  */
+/**
+ * The plugin's own row on the Plugins screen: a way in, beside Deactivate.
+ *
+ * Somebody who just activated this is on that screen, and the thing they want
+ * next is the Icons page. WordPress puts our links before its own, which is
+ * where a reader looks first.
+ *
+ * @param array $links
+ * @return array
+ */
+function easy_svg_plugin_action_links( $links ) {
+	$ours = array(
+		'easy_svg_panel' => sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ),
+			esc_html__( 'Icons', 'easy-svg' )
+		),
+	);
+
+	/*
+	 * And the add-on, for a site that does not have it.
+	 *
+	 * Gone the moment it is installed: an upsell that stays after somebody has
+	 * paid is the kind of thing people write reviews about. The address is
+	 * filterable because it is marketing, and marketing moves.
+	 */
+	if ( ! function_exists( 'easy_svg_pro_pro_enabled' ) ) {
+		$ours['easy_svg_pro'] = sprintf(
+			// Core's own red, the one wp-admin uses for a link that leaves the
+			// ordinary flow. Picked rather than invented so it sits in the row
+			// like a WordPress link and not like a banner.
+			'<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#d63638;font-weight:600">%s</a>',
+			esc_url( (string) apply_filters( 'easy_svg_pro_url', EASY_SVG_PRO_URL ) ),
+			esc_html__( 'Buy Easy SVG Pro', 'easy-svg' )
+		);
+	}
+
+	return array_merge( $ours, (array) $links );
+}
+add_filter( 'plugin_action_links_' . plugin_basename( dirname( __DIR__ ) . '/easy-svg.php' ), 'easy_svg_plugin_action_links' );
+
 add_action( 'admin_menu', 'easy_svg_panel_menu', 9 );
+/*
+ * And again at the very end, to take the last place rather than ask for it.
+ *
+ * A position only decides where an entry is INSERTED, and every plugin that
+ * registers after this one lands below it however high the number: measured on
+ * a site with thirteen plugins, position 99.7 put Icons 22nd of 26.
+ */
+add_action( 'admin_menu', 'easy_svg_panel_menu_to_the_end', 9999 );
+
+/**
+ * The menu icon, sized and centred.
+ *
+ * Core's rule for a file icon is `width:20px` plus 9px of padding on top, which
+ * is built for a glyph that fills its box edge to edge. This mark is a bulb with
+ * air around it, so at 20px it reads small and the padding pushes it off the
+ * line of the label. Flex centring puts it on that line at any row height, and
+ * the padding goes rather than being compensated for.
+ *
+ * On every admin screen, because that is where the menu is -- three rules, in
+ * the head, for one element.
+ */
+function easy_svg_panel_menu_icon_css(): void {
+	$selector = '#adminmenu .toplevel_page_' . EASY_SVG_PANEL_SLUG . ' .wp-menu-image';
+
+	/*
+	 * Enqueued rather than echoed into admin_head. The selector is built from a
+	 * constant and escapes nothing a CSS context would want escaped, so the
+	 * echo was safe -- but it reads to a reviewer, and to Plugin Check, as
+	 * output that was never escaped, and arguing with that on a wordpress.org
+	 * review is a worse use of everyone's time than using the enqueue the
+	 * platform already has.
+	 */
+	$handle = 'easy-svg-menu-icon';
+	wp_register_style( $handle, false, array(), (string) filemtime( __FILE__ ) );
+	wp_enqueue_style( $handle );
+	wp_add_inline_style(
+		$handle,
+		$selector . '{display:flex;align-items:center;justify-content:center;padding:0}'
+		. $selector . ' img{width:26px;height:26px;padding:0;max-width:none}'
+		// Folded menu and the mobile bar: the row is taller there, and the
+		// same two rules keep it centred rather than needing their own.
+		. '.folded ' . $selector . ',#adminmenu .wp-submenu ' . $selector . '{padding:0}'
+	);
+}
+add_action( 'admin_enqueue_scripts', 'easy_svg_panel_menu_icon_css' );
 add_filter( 'submenu_file', 'easy_svg_panel_current_submenu' );
 add_action( 'admin_enqueue_scripts', 'easy_svg_panel_assets' );
 add_action( 'rest_api_init', 'easy_svg_panel_rest' );
 
+/**
+ * Move the Icons entry to the end of the admin menu.
+ *
+ * `$menu` is keyed BY position and WordPress sorts it by those keys, so the
+ * last place is one key past whatever the highest is -- not a bigger number
+ * guessed in advance. Nothing else is touched: every other entry keeps its own
+ * key, and a plugin that insists on being last after this will be, which is
+ * the polite end of this argument.
+ */
+function easy_svg_panel_menu_to_the_end(): void {
+	global $menu;
+
+	if ( ! is_array( $menu ) ) {
+		return;
+	}
+
+	$ours = null;
+	foreach ( $menu as $position => $entry ) {
+		if ( is_array( $entry ) && isset( $entry[2] ) && EASY_SVG_PANEL_SLUG === $entry[2] ) {
+			$ours = $entry;
+			unset( $menu[ $position ] );
+			break;
+		}
+	}
+
+	if ( null === $ours ) {
+		return;
+	}
+
+	$keys = array_map( 'intval', array_keys( $menu ) );
+	$last = $keys ? max( $keys ) + 1 : 100;
+
+	$menu[ (string) $last ] = $ours;
+}
+
 function easy_svg_panel_menu(): void {
+	/*
+	 * A file, not a data URI: WordPress hands a base64 SVG to svg-painter.js,
+	 * which repaints every fill to the admin colour scheme -- right for a
+	 * monochrome glyph and the end of a brand mark that has fifteen colours in
+	 * it. As a URL it is left alone, and the browser caches it instead of
+	 * carrying it in the markup of every admin page.
+	 *
+	 * Position as a string: a bare 99 is a slot, and a second plugin that wants
+	 * the same slot REPLACES whatever is in it. A decimal cannot collide with
+	 * core's own integers, and past Settings (80) is as far down as a plugin
+	 * can politely put itself.
+	 */
 	add_menu_page(
 		__( 'Icons', 'easy-svg' ),
 		__( 'Icons', 'easy-svg' ),
 		'manage_options',
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render',
-		easy_svg_panel_icon_uri( '#a7aaad' ),
-		58
+		plugins_url( 'assets/menu-icon.svg', dirname( __DIR__ ) . '/easy-svg.php' ),
+		'99.7'
 	);
 
 	/*
@@ -176,6 +315,10 @@ function easy_svg_panel_assets( $hook ): void {
 			// single version source this plugin has.
 			'version'      => (string) ( get_file_data( $main, array( 'Version' => 'Version' ) )['Version'] ?? '' ),
 			'proActive'    => $pro_active,
+			// The add-on's own version, when it is here. The panel shows one
+			// product and two plugins make it, and the licence screen was the
+			// only place that said which version of the paid half is running.
+			'proVersion'   => function_exists( 'easy_svg_pro_version' ) ? (string) easy_svg_pro_version() : '',
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
 			// The cap's ceiling, so the field and the slider end where the
