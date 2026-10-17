@@ -7,6 +7,13 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+  # The action posts its report as a PR comment; without this it logs
+  # "Resource not accessible by integration" and the findings live only in the
+  # job log.
+  pull-requests: write
+
 jobs:
   plugin-check:
     runs-on: ubuntu-latest
@@ -23,11 +30,15 @@ jobs:
       #
       # Measured on this commit: 63 files, no .github, no composer.json,
       # `vendor/` present because it ships.
+      # The prefix is the plugin SLUG, not a scratch name. Plugin Check derives
+      # the expected text domain from the directory it is pointed at, so a
+      # `release/` prefix made it demand a text domain of `release` and report
+      # three errors that were about the harness rather than the plugin.
       - name: Assemble the tree that ships
         run: |
-          git archive HEAD --prefix=release/ | tar -x
-          echo "Files in the shipped tree: $(find release -type f | wc -l)"
-          test -f release/easy-svg.php
+          git archive HEAD --prefix=easy-svg/ | tar -x
+          echo "Files in the shipped tree: $(find easy-svg -type f | wc -l)"
+          test -f easy-svg/easy-svg.php
 
       # No exclusions on the first run, deliberately. The exclusion list has to
       # come from what this actually reports, with a reason per entry -- a list
@@ -35,4 +46,4 @@ jobs:
       - name: Plugin Check
         uses: WordPress/plugin-check-action@v1.1.9
         with:
-          build-dir: ./release
+          build-dir: ./easy-svg
