@@ -120,6 +120,26 @@ check( 'SILENCE: and is not left behind to point at nothing', false === strpos( 
 check( 'SILENCE: markup that is not an svg is refused', '' === easy_svg_core_icon( '<p>hallo</p>' )['content'] );
 check( 'SILENCE: and so is markup that does not parse', '' === easy_svg_core_icon( '<svg><path d="M0 0h2"' )['content'] );
 
+// ─── Nodes that are not elements ─────────────────────────────────────────────
+
+/*
+ * A `<g>` holds more than shapes: comments, and the whitespace between tags.
+ * The flattener walks childNodes and pushes `transform` and `fill` down, so the
+ * walk has to move every child while touching only the elements -- calling
+ * setAttribute on a comment is a fatal, and skipping the non-elements loses the
+ * author's own notes. The DOM loops here are typed only as DOMNode, so neither
+ * half is provable by reading the signatures.
+ */
+
+$mixed = easy_svg_core_icon(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><!-- hand drawn --> <g transform="translate(2 2)" fill="#f00"><!-- inner --> <path d="M0 0h2"/> </g></svg>'
+);
+check( 'BELL: a comment between the shapes does not stop the group flattening', false === strpos( $mixed['content'], '<g' ) );
+check( 'BELL: the transform still reaches the path it sat above', false !== strpos( $mixed['content'], 'transform="translate(2 2)"' ) );
+check( 'BELL: and so does the fill', false !== strpos( $mixed['content'], 'fill="#f00"' ) );
+check( 'BELL: the comments themselves are carried over, not dropped', 2 === substr_count( $mixed['content'], '<!--' ) );
+check( 'SILENCE: and none of it is reported lost', array() === $mixed['lost'] );
+
 echo 0 === $failed
     ? "all {$passed} checks passed\n"
     : "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";

@@ -6,3 +6,7 @@ e2e/.auth/
 /playwright-report/
 /test-results/
 /.playwright-mcp/
+
+# The analyser, installed by CI into its own folder. The pinned lock is
+# committed; what it installs is not.
+/tools/phpstan/vendor/

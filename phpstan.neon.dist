@@ -1,0 +1,68 @@
+# Static analysis of this plugin's own PHP. Run in CI; see
+# .github/workflows/phpstan.yml for how the tool itself is installed.
+#
+# Level 5 is where this code stands today with nothing suppressed and nothing
+# baselined. Level 6 would add 86 findings, all of them missing generics on
+# array PHPDoc -- a different piece of work, not a defect to hide behind an
+# exception list.
+
+includes:
+    - tools/phpstan/vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 5
+
+    # The window the plugin header promises, both ends. Analysed against one
+    # version only, code that breaks on the other end is invisible here -- and
+    # the other end is where the 40,000 sites are.
+    phpVersion:
+        min: 80000
+        max: 80400
+
+    paths:
+        - easy-svg.php
+        - uninstall.php
+        - includes
+
+    # The plugin has no autoloader; every file is required from the main one.
+    bootstrapFiles:
+        - easy-svg.php
+
+    # The bundled sanitiser's classes are named in the main file.
+    scanDirectories:
+        - vendor/enshrined
+
+    # WordPress's stubs declare property and return types core's own docblocks
+    # leave open -- `wp_insert_post` with $wp_error promises int<1,max>, so a
+    # belt-and-braces `! $id` reads as dead code. Those guards defend against a
+    # contract this plugin does not own, across WordPress versions it does not
+    # pin, and they cost nothing. Turning the certainty off is one decision in
+    # one place rather than seven ignores.
+    treatPhpDocTypesAsCertain: false
+
+    # Each of these is a decision recorded elsewhere in the repository, with
+    # the count pinned: a new occurrence anywhere fails, and a fixed one fails
+    # too, because an unmatched ignore is an error (phpstan's default).
+    ignoreErrors:
+        # `is_object()` is the live guard -- get_page_by_path can answer an
+        # array, and the deleted_post hook hands over whatever it has. The stub
+        # is certain about WP_Post's declared properties; it says nothing about
+        # an object that is not a WP_Post at all. One entry per file, because a
+        # pinned count needs a single path.
+        -
+            identifier: isset.property
+            path: includes/icon-manager.php
+            count: 1
+        -
+            identifier: isset.property
+            path: includes/icons.php
+            count: 2
+        -
+            # A fractional position, deliberately a string: tests/run.php pins
+            # it ("so it cannot take another plugin's slot") and the look was
+            # measured in a browser. WordPress keys the menu on
+            # `(string) $position` either way. A type checker does not get to
+            # overturn a measurement.
+            identifier: argument.type
+            path: includes/panel.php
+            count: 1
