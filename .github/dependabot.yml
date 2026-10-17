@@ -1,0 +1,46 @@
+# Nobody was watching these dependencies for advisories, so nothing told us
+# about one. Weekly rather than daily, grouped, and capped: a flood of pull
+# requests nobody triages is the same as no watcher at all.
+version: 2
+updates:
+  # The one dependency the plugin's safety rests on is a PHP one:
+  # enshrined/svg-sanitize is what stands between an uploaded file and the
+  # site. Note that `vendor/` is committed and ships inside the zip, so a pull
+  # request here moves composer.json and composer.lock but NOT the vendored
+  # copy -- it tells you an advisory exists; refreshing vendor/ is a hand step.
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+
+  # The admin panel bundle: Chakra, React, DOMPurify, and the build chain.
+  # Expect these pull requests to be RED, by design: `build/panel.js` is
+  # committed and ci.yml rebuilds it and fails when the result differs. A bump
+  # that changes the bundle needs `npm run build` and that file committed --
+  # Dependabot does not rebuild bundles. Red here means "finish it by hand",
+  # not "the watcher is broken".
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+
+  # Workflow actions run with this repository's secrets, including the
+  # wordpress.org deploy credentials. Several are two majors behind today;
+  # the first run proposes those bumps with a CI run of their own.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
