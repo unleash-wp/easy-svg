@@ -40,9 +40,29 @@ jobs:
           echo "Files in the shipped tree: $(find easy-svg -type f | wc -l)"
           test -f easy-svg/easy-svg.php
 
-      # No exclusions on the first run, deliberately. The exclusion list has to
-      # come from what this actually reports, with a reason per entry -- a list
-      # written from guesses is how a check becomes a thing nobody reads.
+      # Nothing is excluded, and that is the point: warnings do not fail this
+      # job, so they stay readable instead of being suppressed. Errors do fail
+      # it. What the first clean run reported, and what was decided:
+      #
+      #   9x  `esw_` prefix on six functions and three hooks. Plugin Check wants
+      #       the prefix to match the slug (`easy_svg`). Three of them --
+      #       esw_svg_allowed_tags, esw_svg_allowed_attributes,
+      #       esw_svg_remove_remote_references -- are PUBLIC: renaming them
+      #       breaks every site and add-on that filters them. Accepted, and left
+      #       visible rather than excluded, because an exclusion would also hide
+      #       a genuinely new unprefixed function.
+      #
+      #   1x  `/vendor` exists without `composer.json`. True of the shipped
+      #       tree: .distignore excludes composer.json and ships vendor/. Whether
+      #       wordpress.org should receive the manifest is the owner's call.
+      #
+      #   1x  load_plugin_textdomain() discouraged since WP 4.6 for .org-hosted
+      #       plugins. Left alone: this plugin ships its own German translation
+      #       and the loading path was fixed recently, so changing it is an i18n
+      #       decision rather than a lint fix.
+      #
+      #   1x  upgrade notice over 300 characters -- fixed in this branch. The
+      #       full text was already in the changelog, so nothing was lost.
       - name: Plugin Check
         uses: WordPress/plugin-check-action@v1.1.9
         with:
