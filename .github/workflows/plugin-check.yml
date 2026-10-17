@@ -1,0 +1,38 @@
+name: Plugin Check
+# Separate from CI on purpose: this one boots WordPress and is slower than a
+# lint, and it checks a different artefact -- the tree that ships, not the tree
+# we work in.
+on:
+  push: { branches: [master] }
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The RELEASE tree, not the repository.
+      #
+      # `.gitattributes` carries the same export-ignore list as `.distignore`,
+      # and tests/run.php checks the two against each other -- so `git archive`
+      # produces exactly what the deploy rsyncs into SVN. Checking the working
+      # tree instead would check files that never ship and miss the question
+      # that matters: what does wordpress.org receive.
+      #
+      # Measured on this commit: 63 files, no .github, no composer.json,
+      # `vendor/` present because it ships.
+      - name: Assemble the tree that ships
+        run: |
+          git archive HEAD --prefix=release/ | tar -x
+          echo "Files in the shipped tree: $(find release -type f | wc -l)"
+          test -f release/easy-svg.php
+
+      # No exclusions on the first run, deliberately. The exclusion list has to
+      # come from what this actually reports, with a reason per entry -- a list
+      # written from guesses is how a check becomes a thing nobody reads.
+      - name: Plugin Check
+        uses: WordPress/plugin-check-action@v1.1.9
+        with:
+          build-dir: ./release
