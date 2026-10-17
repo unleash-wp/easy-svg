@@ -246,9 +246,9 @@ Older versions: see the [tags on GitHub](https://github.com/unleash-wp/easy-svg/
 
 = 5.4.0 =
 Security: an SVG could keep an animation that runs on load by hiding the element
-behind a namespace prefix. The German translation this plugin ships is finally
-read, on "Sie", Austrian and Swiss sites too. Three new hooks reach the icon
-library -- see the changelog. No setting changes on update.
+behind a namespace prefix. The German translation this plugin ships is now read
+on formal, Austrian and Swiss sites too. Three new hooks reach the icon library.
+No setting changes on update.
 
 = 5.3.1 =
 Housekeeping: a complete uninstall, corrected menu paths in the readme, and room for community translations. No behaviour changed on a running site.
