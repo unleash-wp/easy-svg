@@ -33,7 +33,7 @@ jobs:
       # vendor/ at the top level is committed and SHIPS to every customer, so a
       # dev dependency there would travel with the plugin.
       - name: Install the analyser
-        run: composer install --working-dir=tools/phpstan --no-interaction --no-progress
+        run: composer install --working-dir=tools/phpstan --no-interaction --no-progress --no-scripts --no-plugins
 
       # The stubs are large; the default 128M limit ends the run mid-analysis
       # with one "process crashed" line, which reads exactly like a clean sheet
