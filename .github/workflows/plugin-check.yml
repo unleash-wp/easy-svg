@@ -4,8 +4,18 @@ name: Plugin Check
 # we work in.
 on:
   push: { branches: [master] }
-  pull_request: {}
+  pull_request:
+    # The one path that cannot change an answer: nothing reads it but
+    # Dependabot, and .github never reaches the zip.
+    paths-ignore: ['.github/dependabot.yml']
   workflow_dispatch: {}
+
+# A second push supersedes the run before it; without this the superseded run
+# keeps a runner busy answering a question nobody waits for. Not on master: a
+# cancelled push run leaves a commit that is already in with no proof.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
