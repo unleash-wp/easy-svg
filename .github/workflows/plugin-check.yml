@@ -1,0 +1,69 @@
+name: Plugin Check
+# Separate from CI on purpose: this one boots WordPress and is slower than a
+# lint, and it checks a different artefact -- the tree that ships, not the tree
+# we work in.
+on:
+  push: { branches: [master] }
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  # The action posts its report as a PR comment; without this it logs
+  # "Resource not accessible by integration" and the findings live only in the
+  # job log.
+  pull-requests: write
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The RELEASE tree, not the repository.
+      #
+      # `.gitattributes` carries the same export-ignore list as `.distignore`,
+      # and tests/run.php checks the two against each other -- so `git archive`
+      # produces exactly what the deploy rsyncs into SVN. Checking the working
+      # tree instead would check files that never ship and miss the question
+      # that matters: what does wordpress.org receive.
+      #
+      # Measured on this commit: 63 files, no .github, no composer.json,
+      # `vendor/` present because it ships.
+      # The prefix is the plugin SLUG, not a scratch name. Plugin Check derives
+      # the expected text domain from the directory it is pointed at, so a
+      # `release/` prefix made it demand a text domain of `release` and report
+      # three errors that were about the harness rather than the plugin.
+      - name: Assemble the tree that ships
+        run: |
+          git archive HEAD --prefix=easy-svg/ | tar -x
+          echo "Files in the shipped tree: $(find easy-svg -type f | wc -l)"
+          test -f easy-svg/easy-svg.php
+
+      # Nothing is excluded, and that is the point: warnings do not fail this
+      # job, so they stay readable instead of being suppressed. Errors do fail
+      # it. What the first clean run reported, and what was decided:
+      #
+      #   9x  `esw_` prefix on six functions and three hooks. Plugin Check wants
+      #       the prefix to match the slug (`easy_svg`). Three of them --
+      #       esw_svg_allowed_tags, esw_svg_allowed_attributes,
+      #       esw_svg_remove_remote_references -- are PUBLIC: renaming them
+      #       breaks every site and add-on that filters them. Accepted, and left
+      #       visible rather than excluded, because an exclusion would also hide
+      #       a genuinely new unprefixed function.
+      #
+      #   1x  `/vendor` exists without `composer.json`. True of the shipped
+      #       tree: .distignore excludes composer.json and ships vendor/. Whether
+      #       wordpress.org should receive the manifest is the owner's call.
+      #
+      #   1x  load_plugin_textdomain() discouraged since WP 4.6 for .org-hosted
+      #       plugins. Left alone: this plugin ships its own German translation
+      #       and the loading path was fixed recently, so changing it is an i18n
+      #       decision rather than a lint fix.
+      #
+      #   1x  upgrade notice over 300 characters -- fixed in this branch. The
+      #       full text was already in the changelog, so nothing was lost.
+      - name: Plugin Check
+        uses: WordPress/plugin-check-action@v1.1.9
+        with:
+          build-dir: ./easy-svg
