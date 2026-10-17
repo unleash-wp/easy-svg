@@ -222,6 +222,11 @@ function easy_svg_neutralize_href_animation( $markup ) {
     $xpath  = new DOMXPath( $doc );
     $doomed = array();
     foreach ( $xpath->query( '//*' ) as $element ) {
+        // `//*` yields elements, but DOMXPath says only DOMNode, so the
+        // attribute reads below are unprovable without this.
+        if ( ! $element instanceof DOMElement ) {
+            continue;
+        }
         if ( ! in_array( strtolower( $element->localName ), $animation, true ) ) {
             continue;
         }

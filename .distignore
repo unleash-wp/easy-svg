@@ -24,6 +24,8 @@
 /AGENTS.md
 /docs
 /tests
+/phpstan.neon.dist
+/tools
 
 # Non-runtime files inside the bundled library. Its LICENSE stays.
 # svg-scanner.php is a command-line tool, not part of the sanitiser.

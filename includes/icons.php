@@ -298,6 +298,10 @@ function easy_svg_harden_icon_markup( $markup ) {
     // Snapshot first: removing nodes while walking a live list skips some.
     $doomed = array();
     foreach ( $xpath->query( '//*' ) as $element ) {
+        // `//*` yields elements; DOMXPath promises only DOMNode.
+        if ( ! $element instanceof DOMElement ) {
+            continue;
+        }
         if ( in_array( strtolower( $element->localName ), EASY_SVG_ICON_UNSAFE_ELEMENTS, true ) ) {
             $doomed[] = $element;
         }
@@ -309,6 +313,9 @@ function easy_svg_harden_icon_markup( $markup ) {
     }
 
     foreach ( $xpath->query( '//*' ) as $element ) {
+        if ( ! $element instanceof DOMElement ) {
+            continue;
+        }
         $drop = array();
         foreach ( $element->attributes as $attribute ) {
             $name = strtolower( $attribute->localName );

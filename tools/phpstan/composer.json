@@ -1,0 +1,10 @@
+{
+    "description": "Static analysis, installed only in CI. Kept out of the plugin's own composer.json on purpose: vendor/ is committed and SHIPS, so a dev dependency there would travel to every customer.",
+    "require-dev": {
+        "phpstan/phpstan": "2.3.1",
+        "szepeviktor/phpstan-wordpress": "2.0.4"
+    },
+    "config": {
+        "lock": true
+    }
+}

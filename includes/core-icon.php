@@ -199,7 +199,11 @@ function easy_svg_core_icon( $markup ) {
     // parent before that parent is flattened in turn ───────────────────────
     $groups = array();
     foreach ( $xpath->query( '//*[local-name()="g"]' ) as $group ) {
-        $groups[] = $group;
+        // `//*` yields elements; DOMXPath promises only DOMNode, and
+        // easy_svg_flatten_group reads attributes.
+        if ( $group instanceof DOMElement ) {
+            $groups[] = $group;
+        }
     }
     foreach ( array_reverse( $groups ) as $group ) {
         easy_svg_flatten_group( $group );
@@ -207,6 +211,9 @@ function easy_svg_core_icon( $markup ) {
 
     // ── Shapes the registry has no tag for ─────────────────────────────────
     foreach ( $xpath->query( '//*' ) as $element ) {
+        if ( ! $element instanceof DOMElement ) {
+            continue;
+        }
         $name = strtolower( $element->localName );
         if ( in_array( $name, array( 'svg', 'path', 'polygon' ), true ) ) {
             continue;
@@ -257,7 +264,9 @@ function easy_svg_core_icon( $markup ) {
 function easy_svg_stroke_presentation( $xpath, $root, &$lost ) {
     $drawing = array();
     foreach ( $xpath->query( '//*[local-name()!="svg"]' ) as $element ) {
-        $drawing[] = $element;
+        if ( $element instanceof DOMElement ) {
+            $drawing[] = $element;
+        }
     }
     if ( array() === $drawing ) {
         return array( 'classes' => array() );
@@ -359,7 +368,9 @@ function easy_svg_flatten_group( $group ) {
     }
 
     foreach ( $children as $child ) {
-        if ( XML_ELEMENT_NODE === $child->nodeType ) {
+        // The same test as XML_ELEMENT_NODE === $child->nodeType, in the form
+        // that also tells a reader -- and a checker -- what may be called.
+        if ( $child instanceof DOMElement ) {
             if ( '' !== $transform ) {
                 $own = trim( (string) $child->getAttribute( 'transform' ) );
                 $child->setAttribute( 'transform', trim( $transform . ' ' . $own ) );

@@ -1,0 +1,32 @@
+name: Static analysis
+# workflow_dispatch as well, for the same reason as CI: re-running after a
+# change OUTSIDE the code should not need an empty commit.
+on:
+  push: { branches: [master] }
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  phpstan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          # The floor the plugin header promises. The analysed window is set in
+          # phpstan.neon.dist and covers both ends; this is only the PHP that
+          # runs the tool.
+          php-version: '8.0'
+          tools: composer
+
+      # Installed into tools/phpstan, NOT into the plugin's own composer.json.
+      # vendor/ at the top level is committed and SHIPS to every customer, so a
+      # dev dependency there would travel with the plugin.
+      - name: Install the analyser
+        run: composer install --working-dir=tools/phpstan --no-interaction --no-progress
+
+      # The stubs are large; the default 128M limit ends the run mid-analysis
+      # with one "process crashed" line, which reads exactly like a clean sheet
+      # if you only look at the count.
+      - name: Analyse
+        run: tools/phpstan/vendor/bin/phpstan analyse --no-progress --memory-limit=1G
