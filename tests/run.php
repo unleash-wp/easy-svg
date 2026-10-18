@@ -1230,9 +1230,14 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
  * The panel contract, pinned for the same reason as the one above. Pro gates
  * its menu entries and its raised ceiling on this number and cannot probe for
  * either, so on an older free plugin its contributions would do nothing.
+ *
+ * 2 covers what `registerTab()` takes beyond a tab -- `area`, a tab's own
+ * `icon`, its `capability` -- plus `registerDirty()`, which the shell asks
+ * before it unmounts a form. 1 covered the tabs and the ceiling only, and an
+ * add-on pinned to 1 keeps working: `group` stays an alias for `area`.
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
-check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+check( 'BELL: the panel API is 2 (raise this line WITH the hooks it covers)', 2 === EASY_SVG_PANEL_API );
 
 /*
  * The icon-registration contract.
