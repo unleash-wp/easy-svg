@@ -108,9 +108,9 @@ define( 'EASY_SVG_API', 3 );
  * sanitiser alone, and because a filter cannot be probed for.
  *
  * 2 adds what `registerTab()` takes beyond a tab: `area` for the five labelled
- * areas, an `icon` the add-on brings itself, a `capability` per tab, and
- * `registerDirty()` so the shell can ask before it unmounts a form. An add-on
- * on an older free plugin keeps its tabs -- 1 carries those -- and says so.
+ * areas, an `icon` the add-on brings itself, and a `capability` per tab. An
+ * add-on on an older free plugin keeps its tabs -- 1 carries those -- and says
+ * so.
  */
 define( 'EASY_SVG_PANEL_API', 2 );
 
