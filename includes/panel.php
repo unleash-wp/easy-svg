@@ -307,6 +307,10 @@ function easy_svg_panel_assets( $hook ): void {
 		'easy-svg-panel',
 		'EasySvgPanelData',
 		array(
+			// The contract level, so an add-on can tell what this panel takes
+			// without probing for it. The constant itself, not a repeat of the
+			// number: the PHP side and the JS side cannot drift apart that way.
+			'panelApi'     => (int) EASY_SVG_PANEL_API,
 			'restRoot'     => esc_url_raw( trailingslashit( rest_url() ) ),
 			'nonce'        => wp_create_nonce( 'wp_rest' ),
 			'icon'         => easy_svg_panel_icon_uri( '#203159' ),

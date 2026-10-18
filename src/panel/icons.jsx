@@ -78,6 +78,29 @@ const PATHS = {
       <circle cx="7.5" cy="17.5" r="1.8" />
     </>
   ),
+  // Pro names these three; the map did not have them, so each drew an empty
+  // square in the rail from Pro 1.7.0 until now. Pro can bring its own drawing
+  // since panel contract 2 -- these stay for a Pro that is pinned to 1.
+  styles: (
+    <>
+      <path d="M12 3s5.5 6.1 5.5 9.5a5.5 5.5 0 0 1-11 0C6.5 9.1 12 3 12 3z" />
+    </>
+  ),
+  bulk: (
+    <>
+      <rect x="3" y="4" width="5.5" height="5.5" rx="1.2" />
+      <rect x="3" y="14.5" width="5.5" height="5.5" rx="1.2" />
+      <path d="M11.5 6.75H21M11.5 17.25H21" />
+      <path d="m4.4 6.6 1.2 1.2 2-2.2" />
+    </>
+  ),
+  history: (
+    <>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2" />
+      <path d="M3.5 4.5V8h3.5" />
+      <path d="M12 8v4.3l3 1.8" />
+    </>
+  ),
   upsell: (
     <>
       <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
@@ -96,10 +119,16 @@ export function BurgerIcon() {
   )
 }
 
-// An unknown name draws an EMPTY slot, not a fallback glyph. A tab registered
-// by a future plugin should not borrow a meaning it did not ask for, and
-// dropping the element instead would shift that row's label out of line with
-// every other one.
-export function TabIcon({ name }) {
-  return <svg {...BASE}>{PATHS[name] || null}</svg>
+// A keyword this map resolves, or the drawing itself.
+//
+// Taking the drawing is what makes the rail extensible: this file lives in the
+// FREE plugin, so an add-on naming a keyword that is not here could not supply
+// the shape -- it got a blank square and had to wait for a free release. Three
+// of Pro's tabs sat like that.
+//
+// An unknown KEYWORD still draws an EMPTY slot, not a fallback glyph. A tab
+// should not borrow a meaning it did not ask for, and dropping the element
+// instead would shift that row's label out of line with every other one.
+export function TabIcon({ icon }) {
+  return <svg {...BASE}>{('string' === typeof icon ? PATHS[icon] : icon) || null}</svg>
 }

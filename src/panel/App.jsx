@@ -117,8 +117,9 @@ export default function App({ config }) {
     .map((t) => {
       const asked = Number(t.order)
       const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
-      // icon is a keyword this rail resolves, so an extra tab can look like
-      // the rest without Pro bundling any icon of ours.
+      // icon is a keyword this rail resolves, or the drawing itself -- so an
+      // extra tab can look like the rest, or bring a shape this plugin has
+      // never heard of, without waiting for a release here.
       const group = ['general', 'pro'].includes(t.group) ? t.group : 'pro'
       return { id: t.id, icon: t.icon, group, label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
     })
@@ -280,7 +281,7 @@ export default function App({ config }) {
           _dark: { bg: 'ui.surface', color: 'ui.heading' },
         }}
       >
-        <TabIcon name={t.icon} />
+        <TabIcon icon={t.icon} />
         {/*
           The name narrows and fades with the rail instead of disappearing the
           moment the click lands. display:none did that -- the labels were gone
