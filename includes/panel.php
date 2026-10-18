@@ -523,11 +523,19 @@ function easy_svg_panel_rest(): void {
 					'max_mb'     => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
-						// The CEILING, which an add-on raises -- not a literal 20. With
-						// the number hard-coded here the route refused every value a
-						// licensed site is offered, while the panel reported a save.
-						'maximum'     => easy_svg_max_mb_ceiling(),
-						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable.', 'easy-svg' ),
+						/*
+						 * No `maximum`. It carried the ceiling, so WordPress answered
+						 * 400 before easy_svg_sanitize_settings() -- which clamps to
+						 * 1..ceiling -- ever ran. With a save button that was
+						 * survivable: the field clamped itself on blur and the click
+						 * sent an allowed number. The panel saves as you type now, so
+						 * the typed number is what goes out, and a refusal turns an
+						 * explainable clamp into an error nobody can act on.
+						 *
+						 * Nothing is loosened: the sanitiser still pins the stored
+						 * value, which is the only guarantee that ever mattered.
+						 */
+						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it.', 'easy-svg' ),
 					),
 				),
 			),

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Stack, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, SaveBar, SkeletonRows, useDirty } from '../../ui.jsx'
+import { Section, FieldRow, SaveState, SkeletonRows, useAutosave } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
 
@@ -12,9 +12,10 @@ import { makeApi } from '../api.js'
 // offered more than the save accepts would clamp silently.
 const DEFAULT_MAX_MB = 20
 
-// Coerce the server payload to a stable shape. max_mb MUST be a Number: useDirty
-// compares with Object.is, and a string '2' never equals the number 2, so a raw
-// input value would read dirty forever.
+// Coerce the server payload to a stable shape. max_mb MUST be a Number: the
+// autosave compares with Object.is to skip a write that changes nothing, and a
+// string '2' never equals the number 2, so a raw input value would write on
+// every keystroke.
 const normalize = (s) => {
   const mb = Number(s?.max_mb)
   return {
@@ -51,11 +52,62 @@ function ToggleRow({ id, checked, onChange, label, description }) {
 export default function Settings({ ctx }) {
   const MAX_MB = Number(ctx.maxMbCeiling) > 0 ? Number(ctx.maxMbCeiling) : DEFAULT_MAX_MB
   const api = makeApi(ctx)
-  const [form, setForm] = useState(null)
-  const snap = useRef(null)
-  const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
-  const [saving, setSaving] = useState(false)
+  /*
+   * The size the server last confirmed, so an accepted write can be told from
+   * one that only repeats what is already stored. The server is the authority
+   * on the cap (includes/settings.php); with its answer taken as the truth the
+   * field visibly jumps to the allowed number, and the line below says why.
+   */
+  const confirmedSize = useRef(null)
+
+  const auto = useAutosave(async (patch) => {
+    const sent = patch.max_mb
+    const was = confirmedSize.current
+    const resp = await api.post('/settings', patch)
+    const n = normalize(resp)
+    confirmedSize.current = n.max_mb
+    setFieldSeq((seq) => seq + 1)
+
+    if (undefined === sent) {
+      return n
+    }
+    if (sent !== n.max_mb) {
+      setInfo(
+        sprintf(
+          // translators: 1: the saved cap in MB, 2: the highest allowed cap in MB.
+          __('The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d).', 'easy-svg'),
+          n.max_mb,
+          MAX_MB
+        )
+      )
+    } else if (null !== was && sent !== was) {
+      /*
+       * Cleared only when the number actually moved, and never before the
+       * server has confirmed one. The field clamps itself on blur and that
+       * write arrives carrying the number the server already stored, so
+       * clearing on every accepted write wiped the line explaining the jump a
+       * few milliseconds after it appeared -- measured, with `was` still null.
+       */
+      setInfo('')
+    }
+    return n
+  })
+  const form = auto.value
+
+  /*
+   * Redraw the number after a refused write. useAutosave puts the last
+   * confirmed value back, but NumberInput keeps the text that was typed apart
+   * from its value and never rewrites it -- so the refused number stayed on
+   * screen over a state that had already moved back. Same remount the clamp
+   * uses, for the same reason.
+   */
+  useEffect(() => {
+    if ('error' === auto.state) {
+      setFieldSeq((seq) => seq + 1)
+    }
+  }, [auto.state])
+  const [err, setErr] = useState('')
   /*
    * The number field's key, bumped only when the value changes from outside
    * it: NumberInput keeps typed text apart from its value and never rewrites
@@ -74,9 +126,7 @@ export default function Settings({ ctx }) {
     api
       .get('/settings', { signal: ac.signal })
       .then((data) => {
-        const n = normalize(data)
-        snap.current = n
-        setForm(n)
+        auto.prime(normalize(data))
       })
       .catch((e) => {
         if ('AbortError' !== e.name) {
@@ -86,8 +136,6 @@ export default function Settings({ ctx }) {
     return () => ac.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const { dirty, markSaved } = useDirty(form, snap)
 
   if (err && !form) {
     return <Notice bad role="alert">{err}</Notice>
@@ -100,47 +148,20 @@ export default function Settings({ ctx }) {
     )
   }
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  // A switch is written at once. Only the field that changed is sent: the
+  // route merges the body onto what is stored, so a patch is enough.
+  const toggle = (k, v) => auto.set({ [k]: !!v })
 
-  async function save() {
-    setSaving(true)
-    setErr('')
-    setInfo('')
-    // Nearest allowed value, not the default: 0 used to come back as 2 with
-    // nothing said. An empty field still means "the default".
-    const typed = form.max_mb === '' ? NaN : Number(form.max_mb)
-    const sent = Number.isFinite(typed) ? Math.min(MAX_MB, Math.max(1, Math.round(typed))) : 2
-    try {
-      const resp = await api.post('/settings', {
-        svg_upload: !!form.svg_upload,
-        icons: !!form.icons,
-        max_mb: sent,
-      })
-      const n = normalize(resp)
-      setForm(n)
-      markSaved(n)
-      setFieldSeq((seq) => seq + 1)
-      if (typed !== n.max_mb) {
-        setInfo(
-          sprintf(
-            // translators: 1: the saved cap in MB, 2: the highest allowed cap in MB.
-            __('The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d).', 'easy-svg'),
-            n.max_mb,
-            MAX_MB
-          )
-        )
-      }
-    } catch (e) {
-      setErr(e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function reset() {
-    setForm(snap.current)
-    setErr('')
-    setInfo('')
+  /*
+   * The number, after a pause or on blur. NOT clamped here: the server owns
+   * the cap (includes/settings.php) and its answer is what the screen ends up
+   * showing, so 500 goes out as 500 and comes back as the allowed number --
+   * which is the whole point of taking the response as the truth, and what
+   * makes the clamp visible instead of silent. An empty field is the default.
+   */
+  const setSize = (raw) => {
+    const typed = '' === raw ? NaN : Number(raw)
+    auto.set({ max_mb: Number.isFinite(typed) ? Math.round(typed) : 2 }, { typed: true })
   }
 
   return (
@@ -152,14 +173,14 @@ export default function Settings({ ctx }) {
         <ToggleRow
           id="esw-setting-svg-upload"
           checked={!!form.svg_upload}
-          onChange={(v) => set('svg_upload', v)}
+          onChange={(v) => toggle('svg_upload', v)}
           label={__('Allow SVG uploads in the media library', 'easy-svg')}
           description={__('Editors can upload .svg files; each one is sanitised on the way in.', 'easy-svg')}
         />
         <ToggleRow
           id="esw-setting-icons"
           checked={!!form.icons}
-          onChange={(v) => set('icons', v)}
+          onChange={(v) => toggle('icons', v)}
           label={__('Enable the icon library', 'easy-svg')}
           description={__('Adds the Icon library tab and the Icon block.', 'easy-svg')}
         />
@@ -194,9 +215,10 @@ export default function Settings({ ctx }) {
                   colorPalette="brand"
                   value={[Number(form.max_mb) || 1]}
                   onValueChange={(e) => {
-                    set('max_mb', e.value[0])
+                    setSize(e.value[0])
                     setFieldSeq((seq) => seq + 1)
                   }}
+                  onValueChangeEnd={() => auto.flush()}
                   aria-label={[__('Maximum SVG size (MB)', 'easy-svg')]}
                 >
                   <Slider.Control>
@@ -212,7 +234,7 @@ export default function Settings({ ctx }) {
                   max={MAX_MB}
                   value={String(form.max_mb)}
                   onValueChange={(e) => {
-                    set('max_mb', e.value === '' ? '' : Number(e.value))
+                    setSize(e.value)
                     /*
                      * The field clamps itself on blur but leaves the typed text
                      * standing: 120 stayed on screen while 100 was the number
@@ -235,6 +257,7 @@ export default function Settings({ ctx }) {
                   </NumberInput.Control>
                   <NumberInput.Input
                     id="esw-setting-max-mb"
+                    onBlur={() => auto.flush()}
                     bg="ui.sunk"
                     borderColor="ui.border"
                     borderRadius="forge"
@@ -256,16 +279,11 @@ export default function Settings({ ctx }) {
       {err ? <Notice bad role="alert">{err}</Notice> : null}
       {info ? <Notice role="status">{info}</Notice> : null}
 
-      <SaveBar
-        dirty={dirty}
-        saving={saving}
-        onSave={save}
-        onReset={reset}
-        dirtyLabel={__('Unsaved changes', 'easy-svg')}
-        savedLabel={__('All changes saved', 'easy-svg')}
-        saveLabel={__('Save', 'easy-svg')}
-        savingLabel={__('Saving…', 'easy-svg')}
-        resetLabel={__('Reset', 'easy-svg')}
+      <SaveState
+        state={auto.state}
+        error={auto.error}
+        savingLabel={__('Saving', 'easy-svg')}
+        savedLabel={__('Saved', 'easy-svg')}
       />
     </Stack>
   )

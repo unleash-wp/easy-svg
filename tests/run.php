@@ -2594,8 +2594,25 @@ $app_src = (string) @file_get_contents( $root . '/src/panel/App.jsx' );
 check( 'BELL: the upsell tab is dropped once the licence is in', str_contains( $app_src, 'config.proLicensed ? [] : [UPSELL_TAB]' ) );
 check( 'BELL: and the upsell can reach the licence tab', str_contains( (string) @file_get_contents( $root . '/src/panel/tabs/Upsell.jsx' ), 'canActivate' ) );
 
-// The save bar closes a column of cards, so it carries their corners.
-check( 'BELL: the save bar shares the card radius', str_contains( (string) @file_get_contents( $root . '/src/ui.jsx' ), 'borderBottomRadius="forge"' ) );
+/*
+ * There is no save bar. The panel saves as you go, so the bar and the dirty
+ * tracking behind it are gone -- and with them K1 (a tab change losing what
+ * you typed), M4 (a bar rendered from a truthy object, unlabelled and
+ * permanently disabled) and M15 (a grey Save button that reads as broken).
+ *
+ * Checked against the source rather than the bundle: a build can be stale,
+ * and what ships is built from this.
+ */
+$ui_src = (string) @file_get_contents( $root . '/src/ui.jsx' );
+check( 'BELL: the save bar is gone', ! str_contains( $ui_src, 'export function SaveBar' ) );
+check( 'BELL: and the dirty tracking with it', ! str_contains( $ui_src, 'export function useDirty' ) );
+check( 'BELL: autosave took their place', str_contains( $ui_src, 'export function useAutosave' ) );
+// Kept on purpose: the autosave uses it to skip a write that changes nothing.
+check( 'SILENCE: shallowEqual stays', str_contains( $ui_src, 'export function shallowEqual' ) );
+check(
+	'BELL: and no tab still asks for either of them',
+	! preg_match( '/\b(SaveBar|useDirty)\b/', implode( ' ', array_map( static fn( $f ) => (string) @file_get_contents( $f ), (array) glob( $root . '/src/panel/tabs/*.jsx' ) ) ) )
+);
 
 /*
  * The library screen says how many icons there really are.
