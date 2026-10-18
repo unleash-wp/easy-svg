@@ -13,23 +13,65 @@ import logo from '../brand/unleashwp-logo-full.svg?raw'
 // The XML prolog is legal in a file and illegal inside an inline <svg>.
 const LOGO = logo.replace(/<\?xml[^?]*\?>/, '').trim()
 
+/*
+ * The rail is cut by what a tab is FOR, in this order.
+ *
+ * It used to be cut by which half of the product paid for it -- two bands,
+ * "General" and "Pro" -- which answers a question nobody has while working.
+ * An area with no tabs on this site draws no heading, so an unlicensed site
+ * does not get an empty "Design".
+ *
+ * The id is the contract value an add-on passes as `area`; the label and the
+ * sentence are this plugin's, so an add-on never has to translate them.
+ */
+const AREAS = [
+  { id: 'icons', label: __('Icons', 'easy-svg'), blurb: __('Upload SVGs safely and keep your icons in one place.', 'easy-svg') },
+  { id: 'design', label: __('Design', 'easy-svg'), blurb: __('Change how icons look, one at a time or many at once.', 'easy-svg') },
+  { id: 'inspect', label: __('Inspect', 'easy-svg'), blurb: __('Check the SVG files on this site and clean up what needs it.', 'easy-svg') },
+  { id: 'security', label: __('Security', 'easy-svg'), blurb: __('Who may upload SVG, how large it may be, and what it may contain.', 'easy-svg') },
+  { id: 'setup', label: __('Setup', 'easy-svg'), blurb: __('Switch features on and manage your licence.', 'easy-svg') },
+]
+const AREA_IDS = AREAS.map((a) => a.id)
+// Where a tab goes when it does not say, or says something this plugin does
+// not know. Not dropping it: a tab nobody can reach is worse than one in the
+// wrong place, and this is the case an add-on built against contract 1 lands in.
+const DEFAULT_AREA = 'setup'
+
+/*
+ * Pro built against contract 1 passes `group: 'pro'` and no area at all. These
+ * are the ids it registers, so they can be placed properly rather than swept
+ * into the catch-all -- a customer who updated the free plugin first should
+ * not find their paid tabs stacked under "Setup".
+ */
+const LEGACY_AREA = { packs: 'icons', styles: 'design', bulk: 'design', history: 'icons', features: 'setup' }
+
+function areaOf(tab) {
+  if (AREA_IDS.includes(tab.area)) return tab.area
+  if (LEGACY_AREA[tab.id]) return LEGACY_AREA[tab.id]
+  // `group` is the level-1 name for this field and stays an alias, for an
+  // add-on that happens to pass an area id through it.
+  if (AREA_IDS.includes(tab.group)) return tab.group
+  return DEFAULT_AREA
+}
+
 // Free's own tabs, always functional. English msgids, domain 'easy-svg'; the
 // German (and every other) locale ships as a JS translation file.
+// `order` is within the area, not across the rail.
 const FREE_TABS = [
-  { id: 'settings', icon: 'settings', group: 'general', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
-  { id: 'library', icon: 'library', group: 'general', order: 20, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
+  { id: 'library', icon: 'library', area: 'icons', order: 10, label: __('Icon library', 'easy-svg'), render: (ctx) => <Library ctx={ctx} /> },
+  { id: 'settings', icon: 'settings', area: 'security', order: 10, label: __('Settings', 'easy-svg'), render: (ctx) => <Settings ctx={ctx} /> },
 ]
 
 // The Pro catalogue. Free draws these as locked upsell tabs; when Pro is active
 // AND licensed it registers real render()s for these ids through window.EasySvgPanel.
 const PRO_TABS = [
-  { id: 'sets', icon: 'sets', group: 'pro', order: 30, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', group: 'pro', order: 50, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'audit', icon: 'audit', group: 'pro', order: 60, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'licence', icon: 'licence', group: 'pro', order: 90, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'sets', icon: 'sets', area: 'icons', order: 20, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
+  { id: 'audit', icon: 'audit', area: 'inspect', order: 10, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', area: 'security', order: 20, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', area: 'setup', order: 20, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
 ]
 
-const UPSELL_TAB = { id: 'upsell', icon: 'upsell', group: 'pro', order: 95, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
+const UPSELL_TAB = { id: 'upsell', icon: 'upsell', area: 'setup', order: 90, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }
 
 const RAIL_KEY = 'easy-svg:rail-collapsed'
 
@@ -105,28 +147,41 @@ export default function App({ config }) {
   // Tabs Pro registered that are NOT in the catalogue (e.g. Features): shown only
   // when Pro is active and licensed, using the label/order it passed.
   //
-  // The order Pro passes is clamped into the pro band. The rail emits a group
-  // eyebrow on every group change in sorted order, so an extra that sorted in
-  // among the free tabs would read general → pro → general: "General" printed
-  // twice, the second with a duplicate React key.
-  const PRO_BAND_START = 30
-  const PRO_EXTRA_DEFAULT = 65
+  // The order it passes is kept as it is. It used to be clamped into the pro
+  // band, because the rail drew an eyebrow on every band change and an extra
+  // sorting in among the free tabs printed "General" twice. Ordering happens
+  // WITHIN an area now, so there is nothing to clamp.
+  const EXTRA_DEFAULT_ORDER = 50
   const knownIds = new Set([...FREE_TABS, ...PRO_TABS, UPSELL_TAB].map((t) => t.id))
   const extras = (reg && config.proLicensed ? reg.list() : [])
     .filter((t) => !knownIds.has(t.id))
     .map((t) => {
       const asked = Number(t.order)
-      const order = Math.max(Number.isFinite(asked) ? asked : PRO_EXTRA_DEFAULT, PRO_BAND_START)
       // icon is a keyword this rail resolves, or the drawing itself -- so an
       // extra tab can look like the rest, or bring a shape this plugin has
       // never heard of, without waiting for a release here.
-      const group = ['general', 'pro'].includes(t.group) ? t.group : 'pro'
-      return { id: t.id, icon: t.icon, group, label: t.label || t.id, order, locked: false, render: (c) => t.render(c) }
+      return {
+        id: t.id,
+        icon: t.icon,
+        area: areaOf(t),
+        label: t.label || t.id,
+        order: Number.isFinite(asked) ? asked : EXTRA_DEFAULT_ORDER,
+        locked: false,
+        render: (c) => t.render(c),
+      }
     })
 
   const tabs = [
     ...FREE_TABS,
-    ...PRO_TABS.map((t) => {
+    /*
+     * A licensed site shows only what Pro actually registered.
+     *
+     * Pro leaves a tab unregistered when its feature is switched off, and
+     * drawing the catalogue entry locked there would put the placeholder back
+     * -- a page whose content is a pointer at the Features list. Unlicensed,
+     * the catalogue stays: that is what it is for.
+     */
+    ...PRO_TABS.filter((t) => !config.proLicensed || !reg || !!reg.get(t.id)).map((t) => {
       const got = reg && reg.get(t.id)
       // The licence tab is how a site activates, so a registered real one is
       // always usable; otherwise you could never enter a key to unlock the
@@ -155,7 +210,9 @@ export default function App({ config }) {
     ...extras,
     // A licensed site has no use for a tab selling what it already owns.
     ...(config.proLicensed ? [] : [UPSELL_TAB]),
-  ].sort((a, b) => a.order - b.order)
+  ]
+    .map((t) => ({ ...t, area: areaOf(t) }))
+    .sort((a, b) => AREA_IDS.indexOf(a.area) - AREA_IDS.indexOf(b.area) || a.order - b.order)
 
   // zag reads `orientation` as a concrete string (it drives arrow-key direction
   // and the data-orientation styling), so resolve the responsive intent to a
@@ -167,10 +224,13 @@ export default function App({ config }) {
   // on a desktop paints one frame of horizontal tab chrome before flipping to
   // the rail.
   const orientation = useBreakpointValue({ base: 'horizontal', md: 'vertical' }, { ssr: false }) ?? 'horizontal'
-  const groupLabels = { general: __('General', 'easy-svg'), pro: __('Pro', 'easy-svg') }
   // An unknown ?tab= (a stale bookmark, a tab whose feature was switched off)
   // opens the first one instead of an empty well.
   const activeValue = tabs.some((t) => t.id === active) ? active : tabs[0]?.id
+  // The heading names the area the open tab is in. It read a fixed "Icons"
+  // before, on every screen including the licence and the allow-list.
+  const activeArea =
+    AREAS.find((a) => a.id === tabs.find((t) => t.id === activeValue)?.area) || AREAS[0]
 
   /*
    * The address bar follows the tab, so the menu entry stays highlighted, the
@@ -193,19 +253,19 @@ export default function App({ config }) {
     }
   }, [activeValue])
 
-  // Flatten the rail into triggers with a non-interactive group eyebrow before
-  // each new group. The eyebrow is aria-hidden (the tablist stays a clean list
-  // of tabs for assistive tech) and shows only in the vertical rail.
+  // Flatten the rail into triggers with a non-interactive heading before each
+  // new area. It is aria-hidden (the tablist stays a clean list of tabs for
+  // assistive tech) and shows only in the vertical rail.
   const rail = []
-  let lastGroup = null
+  let lastArea = null
   tabs.forEach((t) => {
-    if (t.group !== lastGroup) {
+    if (t.area !== lastArea) {
       // Collapsed there is no room for the word, and dropping it entirely would
       // run the two groups together, so the break becomes a rule.
       rail.push(
         collapsed ? (
           <Box
-            key={`eyebrow-${t.group}`}
+            key={`eyebrow-${t.area}`}
             aria-hidden="true"
             display={{ base: 'none', md: 'block' }}
             mx="2"
@@ -216,7 +276,7 @@ export default function App({ config }) {
           />
         ) : (
           <Box
-            key={`eyebrow-${t.group}`}
+            key={`eyebrow-${t.area}`}
             aria-hidden="true"
             display={{ base: 'none', md: 'block' }}
             textStyle="caption"
@@ -227,11 +287,11 @@ export default function App({ config }) {
             pt={rail.length ? '4' : '1'}
             pb="1.5"
           >
-            {groupLabels[t.group] || t.group}
+            {AREAS.find((a) => a.id === t.area)?.label || t.area}
           </Box>
         )
       )
-      lastGroup = t.group
+      lastArea = t.area
     }
     rail.push(
       <Tabs.Trigger
@@ -527,10 +587,10 @@ export default function App({ config }) {
             <Box mb="5">
               <HStack gap="3" align="center">
                 {config.icon ? <Image src={config.icon} alt="" boxSize="28px" borderRadius="forge" /> : null}
-                <Heading as="h1" textStyle="h1">{__('Icons', 'easy-svg')}</Heading>
+                <Heading as="h1" textStyle="h1">{activeArea.label}</Heading>
               </HStack>
               <Text color="ui.muted" fontSize="sm" maxW="72ch" mt="1">
-                {__('Upload SVGs safely and keep your icons in one place. Every screen for this plugin is in the menu on the left.', 'easy-svg')}
+                {activeArea.blurb}
               </Text>
             </Box>
 
