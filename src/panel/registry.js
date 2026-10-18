@@ -13,6 +13,12 @@
 //               a blank square an add-on could not fill
 //   order       number, within its area
 //
+// A tab's CAPABILITY is not passed here: it is declared in PHP, through the
+// `easy_svg_panel_menu_tabs` filter, which takes
+// `array( 'label' => .., 'capability' => .. )` beside the plain label it took
+// before. The menu and the rail then agree, because both read the one answer
+// PHP gave -- and a capability a browser could pass would be worth nothing.
+//
 // window.EasySvgPanel.api carries that level, so an add-on that must also run
 // on an older free plugin can ask rather than guess.
 //

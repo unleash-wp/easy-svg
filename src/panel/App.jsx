@@ -211,6 +211,19 @@ export default function App({ config }) {
     // A licensed site has no use for a tab selling what it already owns.
     ...(config.proLicensed ? [] : [UPSELL_TAB]),
   ]
+    /*
+     * What this user may see, decided in PHP and drawn here.
+     *
+     * The panel opens for anybody who may see at least one tab, so it can now
+     * open for somebody who may not see the rest. A tab nobody told us about
+     * asks for manage_options, which is what every tab asked for before any of
+     * this existed. The REST routes each check for themselves regardless --
+     * the screen is never the authority.
+     *
+     * No `caps` at all means a page that predates this, not a user who may see
+     * nothing: filtering then would empty the rail on every screen it reaches.
+     */
+    .filter((t) => !config.caps || !!config.caps[config.tabCaps?.[t.id] || 'manage_options'])
     .map((t) => ({ ...t, area: areaOf(t) }))
     .sort((a, b) => AREA_IDS.indexOf(a.area) - AREA_IDS.indexOf(b.area) || a.order - b.order)
 
