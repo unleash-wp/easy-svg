@@ -219,6 +219,16 @@ export function useAutosave(save, { delay = 600 } = {}) {
   const [value, setValue] = useState(null)
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
+  /*
+   * The way back from a change that TOOK something away.
+   *
+   * Autosave is worse than the button it replaced in exactly one case: a stray
+   * click that removes something lands at once and cannot be called back. So
+   * the caller marks those -- and only those -- with `undo: true`. Switching a
+   * feature ON takes nothing, so it offers nothing; a toast that appears on
+   * every change is clicked away before it is read.
+   */
+  const [undo, setUndo] = useState(null)
 
   // Refs, not state: the timer and the queue must not redraw anything, and the
   // callbacks below must see the latest of each without being rebuilt.
@@ -231,12 +241,19 @@ export function useAutosave(save, { delay = 600 } = {}) {
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
+  const undoTimer = useRef(null)
+  useEffect(() => () => clearTimeout(undoTimer.current), [])
+
   const run = useCallback(async () => {
     if (inFlight.current || !pending.current) {
       return
     }
     const patch = pending.current
     pending.current = null
+    // Read BEFORE the write: afterwards `confirmed` is the new value and there
+    // is nothing left to go back to.
+    const before = undoOf.current
+    undoOf.current = null
     inFlight.current = true
     setState('saving')
     try {
@@ -249,6 +266,12 @@ export function useAutosave(save, { delay = 600 } = {}) {
       }
       setError('')
       setState('saved')
+      if (before) {
+        setUndo({ patch: before })
+        clearTimeout(undoTimer.current)
+        // Long enough to notice and reach, short enough not to become furniture.
+        undoTimer.current = setTimeout(() => setUndo(null), 8000)
+      }
     } catch (e) {
       // Back to the last value the server confirmed, and say so.
       if (null !== confirmed.current) {
@@ -265,8 +288,27 @@ export function useAutosave(save, { delay = 600 } = {}) {
     }
   }, [])
 
+  // The keys this write is about to overwrite, as the server last confirmed
+  // them -- collected at set() time, because by run() the queue may have
+  // merged another patch on top.
+  const undoOf = useRef(null)
+
   const set = useCallback(
-    (patch, { typed = false } = {}) => {
+    (patch, { typed = false, undoable = false } = {}) => {
+      if (undoable && confirmed.current) {
+        const was = {}
+        let any = false
+        Object.keys(patch).forEach((k) => {
+          if (!Object.is(confirmed.current[k], patch[k])) {
+            was[k] = confirmed.current[k]
+            any = true
+          }
+        })
+        // Nothing actually moved: no write worth undoing.
+        if (any) {
+          undoOf.current = { ...(undoOf.current || {}), ...was }
+        }
+      }
       setValue((v) => ({ ...(v || {}), ...patch }))
       pending.current = { ...(pending.current || {}), ...patch }
       clearTimeout(timer.current)
@@ -293,7 +335,52 @@ export function useAutosave(save, { delay = 600 } = {}) {
     setError('')
   }, [])
 
-  return { value, state, error, set, flush, prime, confirmed }
+  const prime_ = prime
+  /*
+   * Undo is a write like any other: same route, same queue, same rules. It is
+   * marked undoable itself, so taking a removal back can be taken back again.
+   */
+  const runUndo = useCallback(() => {
+    if (!undo) {
+      return
+    }
+    const patch = undo.patch
+    setUndo(null)
+    clearTimeout(undoTimer.current)
+    set(patch, { undoable: true })
+  }, [undo, set])
+
+  return { value, state, error, set, flush, prime: prime_, confirmed, undo: undo ? runUndo : null }
+}
+
+/** The way back from a change that took something away, for eight seconds. */
+export function UndoToast({ onUndo, label, undoLabel }) {
+  if (!onUndo) {
+    return null
+  }
+  return (
+    <Box
+      role="status"
+      aria-live="polite"
+      position="sticky"
+      bottom="4"
+      alignSelf="flex-start"
+      borderWidth="1px"
+      borderColor="ui.border"
+      borderRadius="forge"
+      bg="ui.surface"
+      boxShadow="0 2px 8px rgba(32,49,89,.12)"
+      px="4"
+      py="2"
+    >
+      <Text as="span" fontSize="sm" color="ui.text" mr="3">
+        {label}
+      </Text>
+      <Button variant="ghost" size="sm" onClick={onUndo}>
+        {undoLabel}
+      </Button>
+    </Box>
+  )
 }
 
 /*

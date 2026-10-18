@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Stack, HStack, NumberInput, Slider, Switch, Text } from '@chakra-ui/react'
 import { __, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, SaveState, SkeletonRows, useAutosave } from '../../ui.jsx'
+import { Section, FieldRow, SaveState, SkeletonRows, UndoToast, useAutosave } from '../../ui.jsx'
 import { Notice } from '../parts.jsx'
 import { makeApi } from '../api.js'
 
@@ -148,9 +148,15 @@ export default function Settings({ ctx }) {
     )
   }
 
-  // A switch is written at once. Only the field that changed is sent: the
-  // route merges the body onto what is stored, so a patch is enough.
-  const toggle = (k, v) => auto.set({ [k]: !!v })
+  /*
+   * A switch is written at once. Only the field that changed is sent: the
+   * route merges the body onto what is stored, so a patch is enough.
+   *
+   * Switching one OFF is marked undoable -- that is the stray click that takes
+   * something away, and the one case autosave is worse at than the button it
+   * replaced. Switching on takes nothing, so it offers nothing.
+   */
+  const toggle = (k, v) => auto.set({ [k]: !!v }, { undoable: !v })
 
   /*
    * The number, after a pause or on blur. NOT clamped here: the server owns
@@ -284,6 +290,12 @@ export default function Settings({ ctx }) {
         error={auto.error}
         savingLabel={__('Saving', 'easy-svg')}
         savedLabel={__('Saved', 'easy-svg')}
+      />
+
+      <UndoToast
+        onUndo={auto.undo}
+        label={__('Switched off.', 'easy-svg')}
+        undoLabel={__('Undo', 'easy-svg')}
       />
     </Stack>
   )

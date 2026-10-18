@@ -231,3 +231,65 @@ test('two writes that overlap both arrive', async ({ page }) => {
   await expect(upload, 'the first switch did not reach the server').toBeChecked({ checked: wantUpload })
   await expect(icons, 'the second switch did not reach the server').toBeChecked({ checked: wantIcons })
 })
+
+/*
+ * Undo, and the narrow cut it has to keep.
+ *
+ * Autosave is worse than the button it replaced in exactly one case: a stray
+ * click that TAKES something away lands at once and cannot be called back.
+ * The toast is the price of having removed the question -- so it belongs to
+ * that case and to no other. A toast that appears on every change is clicked
+ * away before it is read, and then it is missing precisely when it matters.
+ */
+const SWITCHES = `${PANEL} [data-scope="switch"][data-part="root"]`
+const UNDO = /^(undo|rückgängig)$/i
+
+async function setSwitch(page, index, on) {
+  const root = page.locator(SWITCHES).nth(index)
+  const state = on ? 'checked' : 'unchecked'
+  if (state !== (await root.getAttribute('data-state'))) {
+    await root.click()
+    await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: SAVED })).toBeVisible()
+  }
+}
+
+test('switching a feature off offers to undo it, and the undo sticks', async ({ page }) => {
+  await page.goto(SETTINGS)
+  await expect(page.locator(SWITCHES).first()).toBeVisible()
+
+  // From a known state: on, with no toast of its own to confuse the next step.
+  await setSwitch(page, 0, true)
+
+  await page.locator(SWITCHES).nth(0).click()
+  const undo = page.getByRole('button', { name: UNDO })
+  await expect(undo, 'switching a feature off offered no way back').toBeVisible()
+
+  await undo.click()
+  await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: SAVED })).toBeVisible()
+
+  // Undo is a write like any other, so it has to have reached the server.
+  await page.reload()
+  await expect(page.locator(SWITCHES).first()).toHaveAttribute('data-state', 'checked')
+})
+
+/*
+ * The one that keeps the cut narrow. Without it the toast drifts onto every
+ * change over time, and nobody notices until it is everywhere.
+ */
+test('switching a feature on offers nothing, because nothing was taken', async ({ page }) => {
+  await page.goto(SETTINGS)
+  await expect(page.locator(SWITCHES).first()).toBeVisible()
+
+  await setSwitch(page, 0, false)
+  // Whatever the step above may have put on screen is gone before the real one.
+  await expect(page.getByRole('button', { name: UNDO })).toHaveCount(0, { timeout: 15000 })
+
+  await page.locator(SWITCHES).nth(0).click()
+  await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: SAVED })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: UNDO }),
+    'switching something ON offered to undo it'
+  ).toHaveCount(0)
+
+  await setSwitch(page, 0, true)
+})
