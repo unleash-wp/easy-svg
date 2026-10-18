@@ -45,6 +45,18 @@ test('a tab that brings its own drawing has it drawn', async ({ page }) => {
         setTimeout(plant, 25)
         return
       }
+      /*
+       * Set HERE, not at the top of this script: wp_localize_script emits its
+       * own `var EasySvgPanelData = {…}`, which replaces anything assigned
+       * before it runs. By now it has run, App holds that same object by
+       * reference, and registerTab's notify re-renders with it.
+       *
+       * It flips the RAIL's flag so the branch under test is reached -- the
+       * rail draws a tab it does not know only when the add-on is licensed,
+       * and the free plugin's own CI runs without the add-on at all. It buys
+       * nothing else: every REST route checks the licence server-side.
+       */
+      window.EasySvgPanelData.proLicensed = true
       const el = window.wp.element.createElement
       reg.registerTab({
         id: 'e2e-own-icon',
