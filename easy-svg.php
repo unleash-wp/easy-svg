@@ -106,8 +106,13 @@ define( 'EASY_SVG_API', 3 );
  * The panel contract: `easy_svg_panel_enqueue`, `easy_svg_panel_menu_tabs` and
  * `easy_svg_max_mb_ceiling`. Its own number because EASY_SVG_API covers the
  * sanitiser alone, and because a filter cannot be probed for.
+ *
+ * 2 adds what `registerTab()` takes beyond a tab: `area` for the five labelled
+ * areas, an `icon` the add-on brings itself, and a `capability` per tab. An
+ * add-on on an older free plugin keeps its tabs -- 1 carries those -- and says
+ * so.
  */
-define( 'EASY_SVG_PANEL_API', 1 );
+define( 'EASY_SVG_PANEL_API', 2 );
 
 /**
  * The icon contract: `easy_svg_registrable_icons` and `easy_svg_rename_icon()`.

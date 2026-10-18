@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Button as CButton,
@@ -7,7 +7,6 @@ import {
   VisuallyHidden,
   Box,
   Flex,
-  HStack,
   VStack,
   Text,
   Heading,
@@ -190,50 +189,216 @@ export function Section({ title, description, children }) {
   )
 }
 
-// A sticky action bar for a settings pane: status on the left (announced to
-// screen readers), Reset + Save on the right. Props-only and context-free, so a
-// pro tab in its own ChakraProvider can render it. `dirty` drives everything:
-// Save is disabled when clean or while `saving`, Reset only shows when dirty.
-export function SaveBar({
-  dirty,
-  saving,
-  onSave,
-  onReset,
-  dirtyLabel,
-  savedLabel,
-  saveLabel,
-  savingLabel,
-  resetLabel,
-}) {
+/*
+ * Autosave for a settings pane. Replaces SaveBar + useDirty.
+ *
+ * The panel saves as you go: a switch writes at once, a typed field 600ms
+ * after the last keystroke and immediately when it loses focus. There is no
+ * save button and nothing to lose at a tab change, which is what K1 was.
+ *
+ *   const auto = useAutosave(async (patch) => api.post('/settings', patch))
+ *   auto.set({ icons: true })            // a switch: written now
+ *   auto.set({ max_mb: 7 }, { typed: true })  // a field: written after a pause
+ *   auto.flush()                         // onBlur
+ *
+ * Three things it owns, because every caller got at least one of them wrong:
+ *
+ * - One write at a time, per pane. Two quick changes used to race and the
+ *   slower one won, so the screen showed a value the server did not have.
+ *   A write that arrives while one is in flight waits and runs after it.
+ * - The response is the truth, not the form. Every success re-baselines from
+ *   what came back, the way markSaved(serverResponse) did -- so a value the
+ *   server clamped is visible immediately rather than on the next load.
+ * - A failed write puts the field back to the last value the server confirmed.
+ *   An optimistic value nobody accepted is a lie, and leaving it on screen is
+ *   how somebody closes the tab believing it saved.
+ *
+ * `state` is 'idle' | 'saving' | 'saved' | 'error' for the pane's live region.
+ */
+export function useAutosave(save, { delay = 600 } = {}) {
+  const [value, setValue] = useState(null)
+  const [state, setState] = useState('idle')
+  const [error, setError] = useState('')
+  /*
+   * The way back from a change that TOOK something away.
+   *
+   * Autosave is worse than the button it replaced in exactly one case: a stray
+   * click that removes something lands at once and cannot be called back. So
+   * the caller marks those -- and only those -- with `undo: true`. Switching a
+   * feature ON takes nothing, so it offers nothing; a toast that appears on
+   * every change is clicked away before it is read.
+   */
+  const [undo, setUndo] = useState(null)
+
+  // Refs, not state: the timer and the queue must not redraw anything, and the
+  // callbacks below must see the latest of each without being rebuilt.
+  const confirmed = useRef(null)
+  const pending = useRef(null)
+  const timer = useRef(null)
+  const inFlight = useRef(false)
+  const saveRef = useRef(save)
+  saveRef.current = save
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  const undoTimer = useRef(null)
+  useEffect(() => () => clearTimeout(undoTimer.current), [])
+
+  const run = useCallback(async () => {
+    if (inFlight.current || !pending.current) {
+      return
+    }
+    const patch = pending.current
+    pending.current = null
+    // Read BEFORE the write: afterwards `confirmed` is the new value and there
+    // is nothing left to go back to.
+    const before = undoOf.current
+    undoOf.current = null
+    inFlight.current = true
+    setState('saving')
+    try {
+      const resp = await saveRef.current(patch)
+      // Undefined means "the caller has nothing to correct": keep what is on
+      // screen rather than blanking the pane.
+      if (undefined !== resp && null !== resp) {
+        confirmed.current = resp
+        setValue(resp)
+      }
+      setError('')
+      setState('saved')
+      if (before) {
+        setUndo({ patch: before })
+        clearTimeout(undoTimer.current)
+        // Long enough to notice and reach, short enough not to become furniture.
+        undoTimer.current = setTimeout(() => setUndo(null), 8000)
+      }
+    } catch (e) {
+      // Back to the last value the server confirmed, and say so.
+      if (null !== confirmed.current) {
+        setValue(confirmed.current)
+      }
+      setError(e?.message || String(e))
+      setState('error')
+    } finally {
+      inFlight.current = false
+      // Anything that arrived while this was in flight goes now, in order.
+      if (pending.current) {
+        run()
+      }
+    }
+  }, [])
+
+  // The keys this write is about to overwrite, as the server last confirmed
+  // them -- collected at set() time, because by run() the queue may have
+  // merged another patch on top.
+  const undoOf = useRef(null)
+
+  const set = useCallback(
+    (patch, { typed = false, undoable = false } = {}) => {
+      if (undoable && confirmed.current) {
+        const was = {}
+        let any = false
+        Object.keys(patch).forEach((k) => {
+          if (!Object.is(confirmed.current[k], patch[k])) {
+            was[k] = confirmed.current[k]
+            any = true
+          }
+        })
+        // Nothing actually moved: no write worth undoing.
+        if (any) {
+          undoOf.current = { ...(undoOf.current || {}), ...was }
+        }
+      }
+      setValue((v) => ({ ...(v || {}), ...patch }))
+      pending.current = { ...(pending.current || {}), ...patch }
+      clearTimeout(timer.current)
+      if (typed) {
+        timer.current = setTimeout(run, delay)
+        return
+      }
+      run()
+    },
+    [run, delay]
+  )
+
+  // For onBlur, and for anything that must not wait out the pause.
+  const flush = useCallback(() => {
+    clearTimeout(timer.current)
+    run()
+  }, [run])
+
+  // What a load hands over: the server's answer is the baseline from the start.
+  const prime = useCallback((v) => {
+    confirmed.current = v
+    setValue(v)
+    setState('idle')
+    setError('')
+  }, [])
+
+  const prime_ = prime
+  /*
+   * Undo is a write like any other: same route, same queue, same rules. It is
+   * marked undoable itself, so taking a removal back can be taken back again.
+   */
+  const runUndo = useCallback(() => {
+    if (!undo) {
+      return
+    }
+    const patch = undo.patch
+    setUndo(null)
+    clearTimeout(undoTimer.current)
+    set(patch, { undoable: true })
+  }, [undo, set])
+
+  return { value, state, error, set, flush, prime: prime_, confirmed, undo: undo ? runUndo : null }
+}
+
+/** The way back from a change that took something away, for eight seconds. */
+export function UndoToast({ onUndo, label, undoLabel }) {
+  if (!onUndo) {
+    return null
+  }
   return (
     <Box
+      role="status"
+      aria-live="polite"
       position="sticky"
-      bottom="0"
-      zIndex="10"
-      borderTopWidth="1px"
+      bottom="4"
+      alignSelf="flex-start"
+      borderWidth="1px"
       borderColor="ui.border"
+      borderRadius="forge"
       bg="ui.surface"
-      borderBottomRadius="forge"
-      py="3"
-      px={{ base: '4', md: '6' }}
-      boxShadow="0 -1px 2px rgba(32,49,89,.06)"
+      boxShadow="0 2px 8px rgba(32,49,89,.12)"
+      px="4"
+      py="2"
     >
-      <HStack justify="space-between" gap="4">
-        <Text as="span" role="status" aria-live="polite" fontSize="sm" color={dirty ? 'ui.text' : 'ui.muted'}>
-          {dirty ? dirtyLabel : savedLabel}
-        </Text>
-        <HStack gap="3">
-          {dirty && onReset ? (
-            <Button variant="ghost" size="sm" onClick={onReset}>
-              {resetLabel}
-            </Button>
-          ) : null}
-          <Button variant="primary" size="sm" onClick={onSave} disabled={!dirty || saving}>
-            {saving ? savingLabel : saveLabel}
-          </Button>
-        </HStack>
-      </HStack>
+      <Text as="span" fontSize="sm" color="ui.text" mr="3">
+        {label}
+      </Text>
+      <Button variant="ghost" size="sm" onClick={onUndo}>
+        {undoLabel}
+      </Button>
     </Box>
+  )
+}
+
+/*
+ * What a pane says while it writes, beside its heading. Polite, so it does not
+ * interrupt; the failure is an alert, because it needs reading.
+ */
+export function SaveState({ state, error, savingLabel, savedLabel }) {
+  if ('error' === state) {
+    return (
+      <Text as="span" role="alert" fontSize="sm" color="ui.bad">
+        {error}
+      </Text>
+    )
+  }
+  return (
+    <Text as="span" role="status" aria-live="polite" fontSize="sm" color="ui.muted">
+      {'saving' === state ? savingLabel : 'saved' === state ? savedLabel : ''}
+    </Text>
   )
 }
 
@@ -257,19 +422,6 @@ export function shallowEqual(a, b) {
     }
   }
   return true
-}
-
-// Dirty tracking without extra React state. Pattern: on load, stash the server
-// payload in a ref (`const snap = useRef(null)`), then
-// `const { dirty, markSaved } = useDirty(form, snap)`. `dirty` is true when the
-// live form differs from the snapshot; call `markSaved(serverResponse)` after a
-// successful save to re-baseline (omit the arg to baseline the current value).
-export function useDirty(current, snapshotRef) {
-  const dirty = !shallowEqual(current, snapshotRef.current)
-  const markSaved = (saved) => {
-    snapshotRef.current = saved === undefined ? current : saved
-  }
-  return { dirty, markSaved }
 }
 
 // A drop target. The caller owns the look, because free's icon grid and pro's

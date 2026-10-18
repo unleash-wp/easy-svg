@@ -180,10 +180,23 @@ function easy_svg_panel_menu(): void {
 	 * core's own integers, and past Settings (80) is as far down as a plugin
 	 * can politely put itself.
 	 */
+	$tabs = easy_svg_panel_tabs_for_user();
+	if ( array() === $tabs ) {
+		return;
+	}
+
+	/*
+	 * The parent asks for a capability this user holds, taken from a tab they
+	 * can already see. A parent on `manage_options` would hide every entry
+	 * under it however low their own capability was -- WordPress draws no
+	 * submenu whose parent the user cannot reach.
+	 */
+	$parent_cap = (string) reset( $tabs )['capability'];
+
 	add_menu_page(
 		__( 'Icons', 'easy-svg' ),
 		__( 'Icons', 'easy-svg' ),
-		'manage_options',
+		$parent_cap,
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render',
 		plugins_url( 'assets/menu-icon.svg', dirname( __DIR__ ) . '/easy-svg.php' ),
@@ -200,7 +213,7 @@ function easy_svg_panel_menu(): void {
 		EASY_SVG_PANEL_SLUG,
 		__( 'Icons', 'easy-svg' ),
 		__( 'Icons', 'easy-svg' ),
-		'manage_options',
+		$parent_cap,
 		EASY_SVG_PANEL_SLUG,
 		'easy_svg_panel_render'
 	);
@@ -210,12 +223,12 @@ function easy_svg_panel_menu(): void {
 	 * page with `?tab=` in the slug, so WordPress builds the URL and marks the
 	 * entry current by itself. Pro contributes its own through the filter.
 	 */
-	foreach ( easy_svg_panel_menu_tabs() as $tab => $label ) {
+	foreach ( $tabs as $tab => $meta ) {
 		add_submenu_page(
 			EASY_SVG_PANEL_SLUG,
-			$label,
-			$label,
-			'manage_options',
+			$meta['label'],
+			$meta['label'],
+			$meta['capability'],
 			EASY_SVG_PANEL_SLUG . '&tab=' . $tab,
 			'easy_svg_panel_render'
 		);
@@ -235,7 +248,7 @@ function easy_svg_panel_current_submenu( $submenu_file ) {
 		return $submenu_file;
 	}
 	$tab = sanitize_key( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	if ( ! isset( easy_svg_panel_menu_tabs()[ $tab ] ) ) {
+	if ( ! isset( easy_svg_panel_tabs_for_user()[ $tab ] ) ) {
 		return $submenu_file;
 	}
 	return EASY_SVG_PANEL_SLUG . '&tab=' . $tab;
@@ -244,7 +257,7 @@ function easy_svg_panel_current_submenu( $submenu_file ) {
 /**
  * The tabs that get their own entry in the menu, as slug => label.
  *
- * @return array<string,string>
+ * @return array<string,string|array<string,string>>
  */
 function easy_svg_panel_menu_tabs(): array {
 	return (array) apply_filters(
@@ -256,8 +269,77 @@ function easy_svg_panel_menu_tabs(): array {
 	);
 }
 
+/**
+ * The same tabs, each with the capability it asks for, and only the ones this
+ * user may see.
+ *
+ * A tab may pass `array( 'label' => .., 'capability' => .. )` instead of a
+ * plain label. A plain label still works and means `manage_options`, which is
+ * what every tab asked for before this existed -- an add-on built against the
+ * older contract keeps the access it had rather than silently widening it.
+ *
+ * @return array<string,array{label:string,capability:string}>
+ */
+function easy_svg_panel_tabs_for_user(): array {
+	$out = array();
+	foreach ( easy_svg_panel_menu_tabs() as $slug => $tab ) {
+		$label      = is_array( $tab ) ? (string) ( $tab['label'] ?? $slug ) : (string) $tab;
+		$capability = is_array( $tab ) ? (string) ( $tab['capability'] ?? 'manage_options' ) : 'manage_options';
+		if ( ! current_user_can( $capability ) ) {
+			continue;
+		}
+		$out[ $slug ] = array(
+			'label'      => $label,
+			'capability' => $capability,
+		);
+	}
+	return $out;
+}
+
+/**
+ * Whether this user may open the panel at all: may they see at least one tab?
+ *
+ * Not `manage_options` any more. The add-on puts a tab here that an editor is
+ * meant to reach -- replacing icons -- and the panel has to be able to open
+ * for them without handing them the rest of it. Somebody who may see no tab
+ * gets no page, no menu entry and no bundle, which is still every subscriber.
+ *
+ * The REST routes are untouched: each checks its own capability, because the
+ * screen is never the authority.
+ */
+function easy_svg_panel_user_may_open(): bool {
+	return array() !== easy_svg_panel_tabs_for_user();
+}
+
+/**
+ * Every known tab and the capability it asks for, this user's or not.
+ *
+ * @return array<string,string>
+ */
+function easy_svg_panel_tab_capabilities(): array {
+	$out = array();
+	foreach ( easy_svg_panel_menu_tabs() as $slug => $tab ) {
+		$out[ $slug ] = is_array( $tab ) ? (string) ( $tab['capability'] ?? 'manage_options' ) : 'manage_options';
+	}
+	return $out;
+}
+
+/**
+ * Which of those capabilities this user holds, plus `manage_options` for the
+ * tabs that have no menu entry of their own.
+ *
+ * @return array<string,bool>
+ */
+function easy_svg_panel_user_caps(): array {
+	$out = array( 'manage_options' => current_user_can( 'manage_options' ) );
+	foreach ( easy_svg_panel_tab_capabilities() as $capability ) {
+		$out[ $capability ] = current_user_can( $capability );
+	}
+	return $out;
+}
+
 function easy_svg_panel_render(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
+	if ( ! easy_svg_panel_user_may_open() ) {
 		return;
 	}
 	echo '<div class="wrap"><div id="easy-svg-panel"></div></div>';
@@ -307,6 +389,16 @@ function easy_svg_panel_assets( $hook ): void {
 		'easy-svg-panel',
 		'EasySvgPanelData',
 		array(
+			// The contract level, so an add-on can tell what this panel takes
+			// without probing for it. The constant itself, not a repeat of the
+			// number: the PHP side and the JS side cannot drift apart that way.
+			'panelApi'     => (int) EASY_SVG_PANEL_API,
+			// What each tab asks for, and which of those this user holds, so
+			// the rail can leave out what the menu already leaves out. The
+			// verdict is PHP's; the screen only draws it, and every REST route
+			// still checks for itself.
+			'tabCaps'      => easy_svg_panel_tab_capabilities(),
+			'caps'         => easy_svg_panel_user_caps(),
 			'restRoot'     => esc_url_raw( trailingslashit( rest_url() ) ),
 			'nonce'        => wp_create_nonce( 'wp_rest' ),
 			'icon'         => easy_svg_panel_icon_uri( '#203159' ),
@@ -431,11 +523,19 @@ function easy_svg_panel_rest(): void {
 					'max_mb'     => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
-						// The CEILING, which an add-on raises -- not a literal 20. With
-						// the number hard-coded here the route refused every value a
-						// licensed site is offered, while the panel reported a save.
-						'maximum'     => easy_svg_max_mb_ceiling(),
-						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable.', 'easy-svg' ),
+						/*
+						 * No `maximum`. It carried the ceiling, so WordPress answered
+						 * 400 before easy_svg_sanitize_settings() -- which clamps to
+						 * 1..ceiling -- ever ran. With a save button that was
+						 * survivable: the field clamped itself on blur and the click
+						 * sent an allowed number. The panel saves as you type now, so
+						 * the typed number is what goes out, and a refusal turns an
+						 * explainable clamp into an error nobody can act on.
+						 *
+						 * Nothing is loosened: the sanitiser still pins the stored
+						 * value, which is the only guarantee that ever mattered.
+						 */
+						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it.', 'easy-svg' ),
 					),
 				),
 			),

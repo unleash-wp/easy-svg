@@ -178,6 +178,30 @@ function check( string $what, bool $ok ): void {
 
 // ─── permission ───────────────────────────────────────────────────────────────
 $GLOBALS['is_admin_cap'] = false;
+/*
+ * A number above the ceiling is CLAMPED, not refused.
+ *
+ * The route carried `'maximum' => ceiling` in its schema, so WordPress
+ * answered 400 before easy_svg_sanitize_settings() -- which clamps -- ever
+ * ran. With a save button that was survivable: the field clamped itself on
+ * blur and the click sent an allowed number. The panel saves as you type now,
+ * so the typed number is what goes out, and a 400 turns an explainable clamp
+ * into an error nobody can act on.
+ *
+ * Nothing is loosened by dropping it: the sanitiser still pins the stored
+ * value to 1..ceiling, which is the only guarantee that ever mattered.
+ */
+easy_svg_panel_rest();
+$settings_args = array();
+foreach ( (array) ( $GLOBALS['routes']['easy-svg/v1/settings'] ?? array() ) as $entry ) {
+	if ( isset( $entry['args']['max_mb'] ) ) {
+		$settings_args = $entry['args']['max_mb'];
+	}
+}
+check( 'BELL: the settings route declares max_mb', array() !== $settings_args );
+check( 'BELL: and does not refuse a number above the ceiling', ! isset( $settings_args['maximum'] ) );
+check( 'SILENCE: while still refusing one below the floor', 1 === ( $settings_args['minimum'] ?? 0 ) );
+
 check( 'BELL: a non-admin is refused', false === easy_svg_panel_rest_permission() );
 $GLOBALS['is_admin_cap'] = true;
 check( 'BELL: an admin is allowed', true === easy_svg_panel_rest_permission() );
@@ -402,18 +426,24 @@ check(
 	'BELL: no settings key is required, because an absent one must keep its stored value',
 	array() === array_filter( $settings_args, static fn( $a ) => ! empty( $a['required'] ) )
 );
-check( 'BELL: max_mb carries the same ceiling the sanitiser clamps to', easy_svg_max_mb_ceiling() === ( $settings_args['max_mb']['maximum'] ?? 0 ) );
-
 /*
- * And it follows the filter. A hard-coded 20 here refused every value a site
- * with a raised ceiling is offered -- the sanitiser would have accepted it, so
- * the panel showed the number it sent and the option never changed.
+ * The ceiling is enforced by the sanitiser, not by the schema.
+ *
+ * It used to sit here as `maximum`, and WordPress then answered 400 before
+ * easy_svg_sanitize_settings() ran at all. That was survivable while a save
+ * button stood between the typing and the request; the panel saves as you
+ * type now, so the typed number is what goes out and a refusal turns an
+ * explainable clamp into an error nobody can act on.
+ *
+ * What has to stay true is the bound itself, wherever it is applied -- so it
+ * is checked where it now lives, including when a filter raises it.
  */
+check( 'BELL: a number above the ceiling is clamped to it', easy_svg_max_mb_ceiling() === easy_svg_sanitize_settings( array( 'max_mb' => 9999 ) )['max_mb'] );
+check( 'BELL: and one below the floor comes up to it', 1 === easy_svg_sanitize_settings( array( 'max_mb' => 0 ) )['max_mb'] );
+
 add_filter( 'easy_svg_max_mb_ceiling', static fn() => 100 );
-$GLOBALS['routes'] = array();
-easy_svg_panel_rest();
-$raised = $GLOBALS['routes']['easy-svg/v1/settings'][1]['args'] ?? array();
-check( 'BELL: a raised ceiling raises the bound the route enforces', 100 === ( $raised['max_mb']['maximum'] ?? 0 ) );
+check( 'BELL: a raised ceiling raises the bound that is enforced', 100 === easy_svg_sanitize_settings( array( 'max_mb' => 9999 ) )['max_mb'] );
+check( 'SILENCE: and a value under the raised ceiling is left alone', 55 === easy_svg_sanitize_settings( array( 'max_mb' => 55 ) )['max_mb'] );
 $GLOBALS['hooks']['easy_svg_max_mb_ceiling'] = array();
 
 $media_args = $GLOBALS['routes']['easy-svg/v1/library/media']['args'] ?? array();

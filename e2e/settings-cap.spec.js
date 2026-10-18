@@ -59,13 +59,15 @@ test.describe('the upload size cap', () => {
     await expect(number).toHaveValue(ceiling)
   })
 
-  test('a saved cap comes back after a reload', async ({ page }) => {
+  // No button and no "unsaved changes": the panel writes as you go, so leaving
+  // the field is the whole gesture. What has to stay true is the end of it --
+  // the number is on the server afterwards, not only on the screen.
+  test('a cap comes back after a reload, with nothing clicked', async ({ page }) => {
     await page.goto(SETTINGS)
     const number = page.locator(`${PANEL} input[inputmode="decimal"], ${PANEL} input[type="number"]`).first()
     await number.fill('9')
     await number.blur()
-    await page.getByRole('button', { name: /^Speichern|^Save/i }).click()
-    await expect(page.getByText(/Alle Änderungen gespeichert|All changes saved/i)).toBeVisible()
+    await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: /^(saved|gespeichert)$/i })).toBeVisible()
 
     await page.reload()
     await expect(page.locator(`${PANEL} input[inputmode="decimal"], ${PANEL} input[type="number"]`).first()).toHaveValue('9')

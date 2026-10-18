@@ -407,6 +407,14 @@ $GLOBALS['menu_position']  = null; // and where it asked to sit
 $GLOBALS['menu_pages']    = [];   // slug => callback
 $GLOBALS['submenu_pages'] = [];   // [ parent, slug, callback ], in order
 $GLOBALS['options_pages'] = [];   // slug
+/*
+ * An administrator, which is who every check in this file is. The panel asks
+ * now, because a tab may name its own capability and the menu is built from
+ * who may see what; tests/panel-access.php is where the other users live.
+ */
+function current_user_can( string $capability ): bool {
+	return in_array( $capability, array( 'manage_options', 'activate_plugins', 'upload_files' ), true );
+}
 function add_menu_page( string $page_title, string $menu_title, string $capability, string $slug, $callback = '', string $icon = '', $position = null ) {
 	$GLOBALS['menu_pages'][ $slug ] = $callback;
 	$GLOBALS['menu_icon']           = $icon;
@@ -1230,9 +1238,13 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
  * The panel contract, pinned for the same reason as the one above. Pro gates
  * its menu entries and its raised ceiling on this number and cannot probe for
  * either, so on an older free plugin its contributions would do nothing.
+ *
+ * 2 covers what `registerTab()` takes beyond a tab: `area`, a tab's own `icon`
+ * and its `capability`. 1 covered the tabs and the ceiling only, and an add-on
+ * pinned to 1 keeps working: `group` stays an alias for `area`.
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
-check( 'BELL: the panel API is 1 (raise this line WITH the hooks it covers)', 1 === EASY_SVG_PANEL_API );
+check( 'BELL: the panel API is 2 (raise this line WITH the hooks it covers)', 2 === EASY_SVG_PANEL_API );
 
 /*
  * The icon-registration contract.
@@ -1308,7 +1320,7 @@ $readme_text = (string) file_get_contents( $root . '/readme.txt' );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
 check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
-check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 1\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
+check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 2\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
 // The cap never shipped. A readme explaining its removal would document,
 // to 40,000 sites, a feature they never had.
 check( 'SILENCE: the readme does not mention the cap that never shipped', false === strpos( $readme_text, 'easy_svg_icon_limit' ) && false === stripos( $readme_text, 'capped' ) && 1 !== preg_match( '/\bAPI 2\b|that 2 introduced/', $readme_text ) );
@@ -2103,6 +2115,14 @@ $panel_status = 1;
 exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/panel-rest.php' ) . ' 2>&1', $panel_out, $panel_status );
 check( 'the panel REST checks pass: ' . ( $panel_out[ count( $panel_out ) - 1 ] ?? 'no output' ), 0 === $panel_status );
 
+// Who may open the panel, and which tabs they see. Its own process because it
+// stubs add_menu_page()/current_user_can() to record what a given user gets,
+// which this file's stubs do not do.
+$access_out    = array();
+$access_status = 1;
+exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/panel-access.php' ) . ' 2>&1', $access_out, $access_status );
+check( 'the panel access checks pass: ' . ( $access_out[ count( $access_out ) - 1 ] ?? 'no output' ), 0 === $access_status );
+
 /*
  * And nothing in tests/ is left out. A list written today stops covering the
  * file added tomorrow, and the file it stops covering is never the one you
@@ -2112,7 +2132,7 @@ $suite_files = array_map(
 	static fn( string $path ): string => basename( $path, '.php' ),
 	(array) glob( __DIR__ . '/*.php' )
 );
-$orphans = array_values( array_diff( $suite_files, array( 'run', 'runner', 'icons', 'panel-rest', 'core-icon' ) ) );
+$orphans = array_values( array_diff( $suite_files, array( 'run', 'runner', 'icons', 'panel-rest', 'core-icon', 'panel-access' ) ) );
 check(
 	'BELL: every suite in tests/ is run by this file' . ( $orphans ? ' -- orphaned: ' . implode( ', ', $orphans ) : '' ),
 	array() === $orphans
@@ -2574,8 +2594,25 @@ $app_src = (string) @file_get_contents( $root . '/src/panel/App.jsx' );
 check( 'BELL: the upsell tab is dropped once the licence is in', str_contains( $app_src, 'config.proLicensed ? [] : [UPSELL_TAB]' ) );
 check( 'BELL: and the upsell can reach the licence tab', str_contains( (string) @file_get_contents( $root . '/src/panel/tabs/Upsell.jsx' ), 'canActivate' ) );
 
-// The save bar closes a column of cards, so it carries their corners.
-check( 'BELL: the save bar shares the card radius', str_contains( (string) @file_get_contents( $root . '/src/ui.jsx' ), 'borderBottomRadius="forge"' ) );
+/*
+ * There is no save bar. The panel saves as you go, so the bar and the dirty
+ * tracking behind it are gone -- and with them K1 (a tab change losing what
+ * you typed), M4 (a bar rendered from a truthy object, unlabelled and
+ * permanently disabled) and M15 (a grey Save button that reads as broken).
+ *
+ * Checked against the source rather than the bundle: a build can be stale,
+ * and what ships is built from this.
+ */
+$ui_src = (string) @file_get_contents( $root . '/src/ui.jsx' );
+check( 'BELL: the save bar is gone', ! str_contains( $ui_src, 'export function SaveBar' ) );
+check( 'BELL: and the dirty tracking with it', ! str_contains( $ui_src, 'export function useDirty' ) );
+check( 'BELL: autosave took their place', str_contains( $ui_src, 'export function useAutosave' ) );
+// Kept on purpose: the autosave uses it to skip a write that changes nothing.
+check( 'SILENCE: shallowEqual stays', str_contains( $ui_src, 'export function shallowEqual' ) );
+check(
+	'BELL: and no tab still asks for either of them',
+	! preg_match( '/\b(SaveBar|useDirty)\b/', implode( ' ', array_map( static fn( $f ) => (string) @file_get_contents( $f ), (array) glob( $root . '/src/panel/tabs/*.jsx' ) ) ) )
+);
 
 /*
  * The library screen says how many icons there really are.
