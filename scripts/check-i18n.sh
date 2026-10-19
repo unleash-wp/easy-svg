@@ -37,7 +37,7 @@ for po in languages/*.po; do
   # The header and the plugin's own name, URI and author are not translated:
   # they read the same in every language.
   missing="$(msgattrib --untranslated --no-wrap "$TMP/po/$name" \
-    | awk 'BEGIN { RS = ""; FS = "\n" } !/of the plugin/ && !/^msgid ""\nmsgstr ""/ { for (i = 1; i <= NF; i++) if ($i ~ /^msgid "/) print $i }')"
+    | awk 'BEGIN { RS = ""; FS = "\n" } !/of the plugin/ && !/(^|\n)msgid ""\nmsgstr ""/ { for (i = 1; i <= NF; i++) if ($i ~ /^msgid "/) print $i }')"
   if [ -n "$missing" ]; then
     fail=1
     echo "RED  $name is missing $(printf '%s\n' "$missing" | wc -l | tr -d ' ') strings:"
