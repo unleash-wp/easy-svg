@@ -105,6 +105,9 @@ const addedMessage = (added) =>
  * it enforces is the same one the Settings tab shows.
  */
 const FILE_ACCEPT = '.svg,image/svg+xml'
+// How many files one pick may carry. Ark's FileUpload takes ONE without it,
+// whatever `multiple` says -- the chooser said "files" and took a single file.
+const MAX_FILES = 100
 
 // What /library/media accepts in one request, mirrored here so the picker can
 // send a larger selection as several. The server refuses more than this; it does
@@ -536,6 +539,8 @@ export default function Library({ ctx }) {
   }
   // The set on screen, when it takes files: then an upload goes there.
   const intoSet = collections.find((c) => c.id === view && !c.readonly && 'function' === typeof c.provider?.add) || null
+  // A set that imports bundles takes a ZIP too, in every chooser and drop.
+  const acceptFiles = intoSet && 'function' === typeof intoSet.provider.importFile ? `${FILE_ACCEPT},.zip,application/zip` : FILE_ACCEPT
 
   async function saveName() {
     const label = (naming?.value || '').trim()
@@ -719,14 +724,61 @@ export default function Library({ ctx }) {
     if (intoSet) {
       clear()
       setReport(null)
+      const importer = 'function' === typeof intoSet.provider.importFile
       const icons = []
+      const bundles = []
+      const rows = []
       for (const file of files) {
-        icons.push({ name: file.name.replace(/\.svg$/i, ''), markup: await readText(file).catch(() => '') })
+        // A ZIP, or an SVG that is a font of glyphs, is a bundle of icons: the
+        // set's own import reads it. Everything else is one icon.
+        if (/\.zip$/i.test(file.name)) {
+          bundles.push(file)
+          continue
+        }
+        const text = await readText(file).catch(() => '')
+        if (/<glyph\b/i.test(text)) {
+          bundles.push(file)
+          continue
+        }
+        icons.push({ name: file.name.replace(/\.svg$/i, ''), markup: text })
       }
-      const done = await act(() => intoSet.provider.add({ icons, to: intoSet.id, collection: intoSet }))
-      if (Array.isArray(done?.rows)) {
-        setReport(done.rows)
-      }
+      await act(async () => {
+        const said = []
+        const undos = []
+        const take = (done) => {
+          said.push(done?.message || __('Done.', 'easy-svg'))
+          rows.push(...(done?.rows || []))
+          if ('function' === typeof done?.undo) {
+            undos.push(done.undo)
+          }
+        }
+        if (icons.length) {
+          take(await intoSet.provider.add({ icons, to: intoSet.id, collection: intoSet }))
+        }
+        for (const file of bundles) {
+          if (!importer) {
+            rows.push({ file: file.name, ok: false, message: __('This set cannot import a bundle.', 'easy-svg') })
+            continue
+          }
+          try {
+            take(await intoSet.provider.importFile({ file, collection: intoSet }))
+          } catch (e) {
+            rows.push({ file: file.name, ok: false, message: e.message })
+          }
+        }
+        return {
+          message: said.join(' · ') || __('Nothing was added.', 'easy-svg'),
+          undo: undos.length
+            ? async () => {
+                for (const undo of undos.slice().reverse()) {
+                  await undo()
+                }
+                return { message: __('Undone.', 'easy-svg') }
+              }
+            : null,
+        }
+      })
+      setReport(rows.length ? rows : null)
       setPickRound((n) => n + 1)
       return
     }
@@ -785,6 +837,14 @@ export default function Library({ ctx }) {
         .map((item) => item.id)
         .filter((id) => !!id)
       if (!ids.length) {
+        return
+      }
+      // With a set on screen that takes media, the files go into that set.
+      if (intoSet && 'function' === typeof intoSet.provider.addMedia) {
+        clear()
+        setReport(null)
+        const done = await act(() => intoSet.provider.addMedia({ ids, collection: intoSet }))
+        setReport(Array.isArray(done?.rows) && done.rows.length ? done.rows : null)
         return
       }
       setBusy(true)
@@ -948,7 +1008,15 @@ export default function Library({ ctx }) {
 
   const fileInput = (
     <>
-      <input ref={fileRef} type="file" accept={FILE_ACCEPT} multiple hidden tabIndex={-1} onChange={onPick} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept={acceptFiles}
+        multiple
+        hidden
+        tabIndex={-1}
+        onChange={onPick}
+      />
       <input
         ref={replaceRef}
         data-replace-input
@@ -1111,7 +1179,8 @@ export default function Library({ ctx }) {
   const uploadSurface = (first) => (
     <FileUpload.Root
       key={pickRound}
-      accept={FILE_ACCEPT}
+      accept={acceptFiles}
+      maxFiles={MAX_FILES}
       multiple
       disabled={busy}
       alignItems="stretch"
