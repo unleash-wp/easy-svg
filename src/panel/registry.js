@@ -33,6 +33,15 @@
 // add-on already sanitised and hardened. The library lists them on the left
 // and filters the grid; it offers no rename or delete on them.
 //
+// A provider may also take moves. A tile dropped on one of its collections
+// that is not `readonly` -- or sent there through the tile's Move-to menu --
+// calls
+//
+//   move({ refs: ['easy-svg/slug' | 'set/slug', ...], to: collectionId })
+//     => Promise<{ message: string, undo?: () => Promise<{ message }> }>
+//
+// and the library says the message, with Undo when there is a way back.
+//
 // window.EasySvgPanel.api carries that level, so an add-on that must also run
 // on an older free plugin can ask rather than guess.
 //

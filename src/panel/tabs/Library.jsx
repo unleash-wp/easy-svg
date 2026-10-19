@@ -8,6 +8,8 @@ import {
   FileUpload,
   HStack,
   InputGroup,
+  Menu,
+  Portal,
   SimpleGrid,
   Stack,
   Text,
@@ -36,6 +38,10 @@ const sanitizeSvg = (markup) => {
 const iconCall = (slug) => `easy_svg_icon( '${slug}' )`
 
 const nameOf = (ic) => ic.label || ic.slug
+
+// What a tile carries when it is dragged, and the address it moves by.
+const MOVE_TYPE = 'application/x-easy-svg-icon'
+const refOf = (ic) => ic.ref || `easy-svg/${ic.slug}`
 
 // A taken name is stored as `star-2`, and that slug is what a call must use, so
 // the message names it instead of saying only that something was added.
@@ -99,6 +105,11 @@ const CopyGlyph = () => (
   <Glyph>
     <rect x="9" y="9" width="12" height="12" rx="2" />
     <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+  </Glyph>
+)
+const MoveGlyph = () => (
+  <Glyph>
+    <path d="M3 7h13l-3-3M21 17H8l3 3" />
   </Glyph>
 )
 const RenameGlyph = () => (
@@ -176,6 +187,9 @@ export default function Library({ ctx }) {
   // 'all', 'library' or a collection id.
   const [collections, setCollections] = useState([])
   const [view, setView] = useState('all')
+  // The last move's answer, and its way back when the add-on gave one.
+  const [moved, setMoved] = useState(null)
+  const reloadCollections = useRef(() => {})
 
   useEffect(() => {
     const reg = getRegistry()
@@ -188,13 +202,20 @@ export default function Library({ ctx }) {
       ac = new AbortController()
       const signal = ac.signal
       Promise.all(
-        reg.collectionProviders().map((p) => Promise.resolve(p.load({ signal })).catch(() => []))
+        reg
+          .collectionProviders()
+          .map((p) =>
+            Promise.resolve(p.load({ signal }))
+              .then((list) => (Array.isArray(list) ? list.map((c) => ({ ...c, provider: p })) : []))
+              .catch(() => [])
+          )
       ).then((lists) => {
         if (!signal.aborted) {
           setCollections(lists.flat().filter((c) => c && c.id && Array.isArray(c.icons)))
         }
       })
     }
+    reloadCollections.current = load
     load()
     const off = reg.subscribe(load)
     return () => {
@@ -301,7 +322,7 @@ export default function Library({ ctx }) {
   const inCollection = (c) =>
     c.icons
       .filter((ic) => !term || `${ic.label || ''} ${ic.slug || ''} ${ic.ref || ''}`.toLowerCase().includes(term))
-      .map((ic) => ({ ...ic, id: ic.key || ic.ref, readonly: true }))
+      .map((ic) => ({ ...ic, id: ic.key || ic.ref, readonly: true, collection: c.id }))
   const shown =
     'library' === view
       ? all
@@ -309,6 +330,67 @@ export default function Library({ ctx }) {
         ? [...all, ...collections.flatMap(inCollection)]
         : collections.filter((c) => c.id === view).flatMap(inCollection)
   const own = shown.filter((ic) => !ic.readonly)
+  // Where a tile may go: a collection that is not read only, of a provider
+  // that takes moves.
+  const targets = collections.filter((c) => !c.readonly && c.provider && 'function' === typeof c.provider.move)
+
+  async function moveTo(collection, refs) {
+    if (!collection || !refs.length) {
+      return
+    }
+    setBusy(true)
+    setErr('')
+    try {
+      const done = await collection.provider.move({ refs, to: collection.id })
+      setMoved({ message: done?.message || __('Moved.', 'easy-svg'), undo: 'function' === typeof done?.undo ? done.undo : null })
+      reloadCollections.current()
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function undoMove() {
+    const undo = moved?.undo
+    if (!undo) {
+      return
+    }
+    setBusy(true)
+    try {
+      const back = await undo()
+      setMoved({ message: back?.message || __('Undone.', 'easy-svg'), undo: null })
+      reloadCollections.current()
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const dropOn = (collection) =>
+    targets.includes(collection)
+      ? {
+          onDragOver: (e) => {
+            if (Array.from(e.dataTransfer?.types || []).includes(MOVE_TYPE)) {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            }
+          },
+          onDrop: (e) => {
+            const raw = e.dataTransfer?.getData(MOVE_TYPE)
+            if (!raw) {
+              return
+            }
+            e.preventDefault()
+            try {
+              moveTo(collection, JSON.parse(raw).refs || [])
+            } catch {
+              /* not a tile of this screen */
+            }
+          },
+        }
+      : {}
   // Every shown id, not a size comparison: a count can read "all" while the
   // picked ids belong to a list that is no longer on screen.
   const allPicked = own.length > 0 && own.every((ic) => picked.has(ic.id))
@@ -919,16 +1001,27 @@ export default function Library({ ctx }) {
             toolbar above stays put with four hundred icons in the library. maxH
             is a little over four rows: enough that there is visibly more below.
           */}
+          {moved ? (
+            <HStack data-move-result role="status" gap="3" wrap="wrap">
+              <Text fontSize="sm">{moved.message}</Text>
+              {moved.undo ? (
+                <Button size="sm" variant="ghost" onClick={undoMove} disabled={busy}>
+                  {__('Undo', 'easy-svg')}
+                </Button>
+              ) : null}
+            </HStack>
+          ) : null}
           <Stack direction={{ base: 'column', md: 'row' }} gap="4" align="stretch">
           {collections.length ? (
             <Stack data-collections as="nav" aria-label={__('Collections', 'easy-svg')} gap="0.5" minW={{ md: '180px' }} pt="4">
               {[
                 { id: 'all', label: __('All icons', 'easy-svg'), count: libraryTotal + collections.reduce((n, c) => n + c.icons.length, 0) },
                 { id: 'library', label: __('Icon library', 'easy-svg'), count: libraryTotal },
-                ...collections.map((c) => ({ id: c.id, label: c.label || c.id, count: c.icons.length, readonly: !!c.readonly })),
+                ...collections.map((c) => ({ id: c.id, label: c.label || c.id, count: c.icons.length, readonly: !!c.readonly, collection: c })),
               ].map((entry) => (
                 <Button
                   key={entry.id}
+                  {...(entry.collection ? dropOn(entry.collection) : {})}
                   size="sm"
                   variant={view === entry.id ? 'subtle' : 'ghost'}
                   justifyContent="space-between"
@@ -982,6 +1075,8 @@ export default function Library({ ctx }) {
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
                   onRemove={() => setConfirming({ id: ic.id })}
+                  targets={targets.filter((c) => c.id !== ic.collection)}
+                  onMoveTo={(c) => moveTo(c, [refOf(ic)])}
                 />
               ))}
 
@@ -1055,12 +1150,19 @@ function IconTile({
   onEditSave,
   onCopy,
   onRemove,
+  targets = [],
+  onMoveTo,
 }) {
   const name = nameOf(ic)
   const isEditing = null !== editing
   return (
     <Box
       data-icon-key={ic.key || ic.ref || `easy-svg/${ic.slug}`}
+      draggable={!isEditing && !busy}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(MOVE_TYPE, JSON.stringify({ refs: [refOf(ic)] }))
+        e.dataTransfer.effectAllowed = 'copyMove'
+      }}
       bg="ui.surface"
       borderWidth="1px"
       borderColor={picked ? 'ui.primary' : 'ui.border'}
@@ -1179,6 +1281,42 @@ function IconTile({
               >
                 <CopyGlyph />
               </IconAction>
+              {targets.length ? (
+                <Menu.Root>
+                  {/* The Trigger is the button itself: Ark anchors the menu
+                      to its ref, which IconAction does not pass on. */}
+                  <Menu.Trigger
+                    disabled={busy}
+                    aria-label={
+                      // translators: %s: icon name.
+                      sprintf(__('Move %s to a set', 'easy-svg'), name)
+                    }
+                    title={sprintf(__('Move %s to a set', 'easy-svg'), name)}
+                    display="inline-flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    borderRadius="forge"
+                    color="ui.muted"
+                    cursor="pointer"
+                    _hover={{ color: 'ui.primary', bg: 'ui.ghostHover' }}
+                    _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+                    {...TILE_ACTION_SIZE}
+                  >
+                    <MoveGlyph />
+                  </Menu.Trigger>
+                  <Portal>
+                    <Menu.Positioner>
+                      <Menu.Content>
+                        {targets.map((c) => (
+                          <Menu.Item key={c.id} value={c.id} onSelect={() => onMoveTo(c)}>
+                            {c.label || c.id}
+                          </Menu.Item>
+                        ))}
+                      </Menu.Content>
+                    </Menu.Positioner>
+                  </Portal>
+                </Menu.Root>
+              ) : null}
               {/* A collection's icon is renamed or deleted where it lives. */}
               {ic.readonly ? null : (
                 <>
