@@ -435,7 +435,7 @@ export default function Library({ ctx }) {
         ? [...all, ...collections.flatMap(inCollection)]
         : collections.filter((c) => c.id === view).flatMap(inCollection)
   // Every shown tile can be picked: moving and exporting reach any of them.
-  // Removing in bulk reaches only the library's own, which this screen stores.
+  // Removing reaches the library's own and a writable set's, never a folder's.
   const own = shown
   // Where a tile may go: a collection that is not read only, of a provider
   // that takes moves.
@@ -494,6 +494,9 @@ export default function Library({ ctx }) {
 
   // Picked icons of collections that take a recolour, one call per collection.
   const recolourable = pickedTiles.filter((ic) => ic.canRecolour)
+  // Picked set icons leave their sets; a folder's or theme's stay where they are.
+  const removable = pickedTiles.filter((ic) => ic.canRemove)
+  const removing = pickedLibrary.length + removable.length
 
   async function recolourPicked() {
     const groups = new Map()
@@ -520,6 +523,65 @@ export default function Library({ ctx }) {
           : null,
       }
     })
+  }
+
+  // Per collection and in the batches a move takes, so a provider that asks
+  // what each icon is still called from is never handed more than it answers.
+  async function removeFromSets(tiles) {
+    const groups = new Map()
+    tiles.forEach((ic) => groups.set(ic.source, [...(groups.get(ic.source) || []), refOf(ic)]))
+    const said = []
+    const undos = []
+    const done = await act(async () => {
+      for (const [collection, refs] of groups) {
+        for (let i = 0; i < refs.length; i += MOVE_BATCH) {
+          const answer = await collection.provider.remove({ refs: refs.slice(i, i + MOVE_BATCH), collection })
+          said.push(answer?.message || __('Removed.', 'easy-svg'))
+          if ('function' === typeof answer?.undo) {
+            undos.push(answer.undo)
+          }
+        }
+      }
+      return {
+        message: said.join(' · '),
+        undo: undos.length
+          ? async () => {
+              for (const undo of undos.slice().reverse()) {
+                await undo()
+              }
+              return { message: __('Undone.', 'easy-svg') }
+            }
+          : null,
+      }
+    })
+    if (done) {
+      setPicked(new Set())
+    }
+    return done
+  }
+
+  // Set icons come back with Undo, so they go at once; a library icon does
+  // not, so a pick holding one asks first.
+  function removePicked() {
+    if (pickedLibrary.length) {
+      setConfirming({ bulk: true })
+      return
+    }
+    removeFromSets(removable)
+  }
+
+  async function confirmRemove() {
+    if (!confirming?.bulk) {
+      await remove(confirmIds)
+      return
+    }
+    const sets = removable
+    const library = pickedLibrary
+    if (sets.length && !(await removeFromSets(sets))) {
+      setConfirming(null)
+      return
+    }
+    await remove(library)
   }
 
   async function exportPicked() {
@@ -1160,8 +1222,8 @@ export default function Library({ ctx }) {
               {confirming && confirming.bulk
                 ? sprintf(
                     // translators: %d: number of icons selected.
-                    _n('Remove %d icon?', 'Remove %d icons?', confirmIds.length, 'easy-svg'),
-                    confirmIds.length
+                    _n('Remove %d icon?', 'Remove %d icons?', removing, 'easy-svg'),
+                    removing
                   )
                 : sprintf(
                     // translators: %s: icon name.
@@ -1173,6 +1235,18 @@ export default function Library({ ctx }) {
           <Dialog.Body>
             <Dialog.Description fontSize="14px" color="ui.muted">
               {__('This cannot be undone. Templates and blocks that render it will show nothing.', 'easy-svg')}
+              {confirming && confirming.bulk && removable.length
+                ? ` ${sprintf(
+                    // translators: %d: number of picked icons that belong to a set.
+                    _n(
+                      '%d of them only leaves its set, and Undo brings it back.',
+                      '%d of them only leave their sets, and Undo brings them back.',
+                      removable.length,
+                      'easy-svg'
+                    ),
+                    removable.length
+                  )}`
+                : null}
             </Dialog.Description>
           </Dialog.Body>
           <Dialog.Footer gap="3">
@@ -1184,7 +1258,7 @@ export default function Library({ ctx }) {
               bg="ui.bad"
               _hover={{ bg: 'ui.bad', opacity: 0.9 }}
               _disabled={{ opacity: 0.55, bg: 'ui.bad', color: 'white', cursor: 'default' }}
-              onClick={() => remove(confirmIds)}
+              onClick={confirmRemove}
               disabled={busy}
             >
               {busy ? __('Removing…', 'easy-svg') : __('Delete', 'easy-svg')}
@@ -1542,22 +1616,22 @@ export default function Library({ ctx }) {
                     {__('Export', 'easy-svg')}
                   </Button>
                 ) : null}
-                {pickedLibrary.length ? (
+                {removing ? (
                   <Button
                     size="sm"
                     variant="primary"
                     bg="ui.bad"
                     _hover={{ bg: 'ui.bad', opacity: 0.9 }}
-                    onClick={() => setConfirming({ bulk: true })}
+                    onClick={removePicked}
                     disabled={busy}
                   >
                     <TrashGlyph />
-                    {pickedLibrary.length === pickedTiles.length
+                    {removing === pickedTiles.length
                       ? __('Remove', 'easy-svg')
                       : sprintf(
-                          // translators: %d: number of picked icons that are the library's own.
-                          _n('Remove %d from the library', 'Remove %d from the library', pickedLibrary.length, 'easy-svg'),
-                          pickedLibrary.length
+                          // translators: %d: number of picked icons that can be removed; the rest are read only.
+                          _n('Remove %d', 'Remove %d', removing, 'easy-svg'),
+                          removing
                         )}
                   </Button>
                 ) : null}
