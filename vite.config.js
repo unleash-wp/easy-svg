@@ -1,5 +1,31 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+
+// Built aside, then renamed into build/ file by file: wp-env serves build/ live,
+// and a page loaded mid-build got no panel. The whole folder moves, because
+// vite copies public/fonts in beside the bundle.
+const ASIDE = 'node_modules/.cache/build-panel'
+function swapIn(into) {
+  const move = (from, to) => {
+    mkdirSync(to, { recursive: true })
+    for (const entry of readdirSync(from, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        move(join(from, entry.name), join(to, entry.name))
+      } else {
+        renameSync(join(from, entry.name), join(to, entry.name))
+      }
+    }
+  }
+  return {
+    name: 'swap-in',
+    closeBundle() {
+      move(ASIDE, into)
+      rmSync(ASIDE, { recursive: true, force: true })
+    },
+  }
+}
 
 // One self-contained IIFE bundle for the Icons panel (Chakra + Emotion inlined,
 // the UnleashWP look). React and ReactDOM are NOT bundled: WordPress ships them
@@ -7,12 +33,12 @@ import react from '@vitejs/plugin-react'
 // panel.php enqueues them as dependencies and the bundle references the globals.
 // Pro enqueues its own bundle that extends this one via window.EasySvgPanel.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), swapIn('build')],
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
   build: {
-    outDir: 'build',
+    outDir: ASIDE,
     emptyOutDir: true,
     lib: {
       entry: 'src/panel/main.jsx',

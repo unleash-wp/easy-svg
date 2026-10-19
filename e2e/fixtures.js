@@ -1,4 +1,28 @@
 import { test as base, expect } from '@playwright/test'
+import { createHash } from 'node:crypto'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+/*
+ * The bundles wp-env serves, read from the checkouts it mounts.
+ *
+ * Over colima's virtiofs a bundle that changes while pages load it is served
+ * for a while with the old length and the new bytes: a 200 that ends mid-script
+ * ("Unexpected end of input"). No test can pass on that, so it is said as such.
+ */
+function servedBundles() {
+  const config = existsSync('.wp-env.override.json') ? '.wp-env.override.json' : '.wp-env.json'
+  const plugins = JSON.parse(readFileSync(config, 'utf8')).plugins || ['.']
+  const stamp = {}
+  for (const dir of plugins.filter((p) => 'string' === typeof p && !p.includes('://'))) {
+    const build = join(dir, 'build')
+    for (const name of existsSync(build) ? readdirSync(build).filter((n) => n.endsWith('.js')) : []) {
+      const file = join(build, name)
+      stamp[file] = existsSync(file) ? createHash('sha1').update(readFileSync(file)).digest('hex') : 'missing'
+    }
+  }
+  return stamp
+}
 
 /*
  * Every spec fails on a console error, not only on its own assertions.
@@ -43,7 +67,11 @@ export const test = base.extend({
         errors.push(String(e))
       }
     })
+    const served = servedBundles()
     await use(page)
+    const now = servedBundles()
+    const changed = Object.keys({ ...served, ...now }).filter((f) => served[f] !== now[f])
+    expect(changed, 'rebuilt while this test ran, so it read two builds; rerun once nobody is building').toEqual([])
     expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([])
   },
 })
