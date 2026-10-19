@@ -67,7 +67,7 @@ const FREE_TABS = [
 const PRO_TABS = [
   { id: 'sets', icon: 'sets', area: 'icons', order: 20, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
   { id: 'audit', icon: 'audit', area: 'inspect', order: 10, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', area: 'security', order: 20, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitizer allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', area: 'security', order: 20, label: __('Configurator', 'easy-svg'), teaser: __('Allow extra SVG elements that some icon libraries need. Dangerous ones stay blocked.', 'easy-svg') },
   { id: 'licence', icon: 'licence', area: 'setup', order: 20, label: __('License', 'easy-svg'), teaser: __('Enter your license key and unlock the Pro features.', 'easy-svg') },
 ]
 

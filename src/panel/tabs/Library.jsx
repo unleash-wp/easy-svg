@@ -1304,11 +1304,6 @@ export default function Library({ ctx }) {
           <Text fontSize="14px" fontWeight="700" color="ui.heading">
             {first ? __('Drop your first SVG here', 'easy-svg') : __('Drop SVG files here', 'easy-svg')}
           </Text>
-          {first ? (
-            <Text textStyle="caption" maxW="46ch">
-              {__('Every file is sanitized and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
-            </Text>
-          ) : null}
           <HStack gap="2" flexWrap="wrap" justify="center">
             <FileUpload.Trigger asChild>
               <Button variant="primary" size="sm" disabled={busy}>
@@ -1464,7 +1459,7 @@ export default function Library({ ctx }) {
           <HStack gap="3" flexWrap="wrap" align="center">
             <SearchField
               id="esw-icon-search"
-              label={__('Search icons by name or slug', 'easy-svg')}
+              label={__('Search icons by name or address', 'easy-svg')}
               placeholder={__('Search icons…', 'easy-svg')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -2178,7 +2173,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
     <Box borderWidth="1px" borderColor="ui.border" borderRadius="forge" bg="ui.sunk" px="4" pt="1" pb="4">
       <FieldRow
         label={__('Name', 'easy-svg')}
-        description={__('Optional. The slug is derived from it.', 'easy-svg')}
+        description={__('Optional. The icon\'s address is made from it.', 'easy-svg')}
         htmlFor="esw-icon-name"
         control={
           <Box w="320px" maxW="full">
@@ -2194,7 +2189,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
       <FieldRow
         layout="stack"
         label={__('SVG markup', 'easy-svg')}
-        description={__('Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, exactly like a dropped file.', 'easy-svg')}
+        description={__('Paste the <svg>…</svg>.', 'easy-svg')}
         htmlFor="esw-icon-markup"
         control={
           <Textarea
