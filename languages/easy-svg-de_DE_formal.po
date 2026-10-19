@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-19T18:52:52+00:00\n"
+"POT-Creation-Date: 2026-10-19T19:12:24+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -47,7 +47,11 @@ msgid ""
 "sanitizer (%s) before this plugin could load its own, so SVG uploads are "
 "being sanitized with that older version. Please update or deactivate the "
 "plugin it belongs to."
-msgstr "Easy SVG Support: Ein anderes Plugin hat eine ältere Version des SVG-Sanitizers (%s) geladen, bevor dieses Plugin seine eigene laden konnte, daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte aktualisieren oder deaktivieren Sie das zugehörige Plugin."
+msgstr ""
+"Easy SVG Support: Ein anderes Plugin hat eine ältere Version des SVG-"
+"Sanitizers (%s) geladen, bevor dieses Plugin seine eigene laden konnte, "
+"daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte "
+"aktualisieren oder deaktivieren Sie das zugehörige Plugin."
 
 #: easy-svg.php:497
 msgid "Sorry, this SVG file is not allowed for security reasons."
@@ -61,7 +65,9 @@ msgstr "Bitte überprüfen Sie Ihre SVG-Datei."
 msgid ""
 "This SVG file contains content this site does not allow. Please upload it "
 "through the media library, which cleans it."
-msgstr "Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte laden Sie sie über die Mediathek hoch, die sie bereinigt."
+msgstr ""
+"Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte "
+"laden Sie sie über die Mediathek hoch, die sie bereinigt."
 
 #: includes/icon-manager.php:48
 msgid "SVG icons"
@@ -140,7 +146,9 @@ msgstr "Der neue sichtbare Name. Der Slug bleibt unberührt."
 msgid ""
 "The sanitizer is unavailable, so nothing was stored. Reinstall the plugin to "
 "restore it."
-msgstr "Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installieren Sie das Plugin neu, um ihn wiederherzustellen."
+msgstr ""
+"Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installieren "
+"Sie das Plugin neu, um ihn wiederherzustellen."
 
 #: includes/panel.php:690
 msgid "That SVG is empty, so there was nothing to store."
@@ -190,11 +198,15 @@ msgstr "Dieses SVG hat zu viele Teile, um sicher gelesen zu werden."
 msgid ""
 "The icon could not be added, for a reason this screen has no name for. Try "
 "again, or try a different file."
-msgstr "Das Icon konnte nicht hinzugefügt werden, aus einem Grund, für den dieser Bildschirm keinen Namen hat. Versuchen Sie es erneut oder mit einer anderen Datei."
+msgstr ""
+"Das Icon konnte nicht hinzugefügt werden, aus einem Grund, für den dieser "
+"Bildschirm keinen Namen hat. Versuchen Sie es erneut oder mit einer anderen "
+"Datei."
 
 #: includes/panel.php:723 includes/panel.php:768 build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
-msgstr "Die Icon-Bibliothek ist aus. Schalten Sie sie im Tab „Einstellungen“ ein."
+msgstr ""
+"Die Icon-Bibliothek ist aus. Schalten Sie sie im Tab „Einstellungen“ ein."
 
 #: includes/panel.php:773
 msgid "Choose at least one SVG from the media library."
@@ -222,9 +234,11 @@ msgstr "Das Icon konnte nicht umbenannt werden."
 #: includes/settings.php:152
 #, php-format
 msgid ""
-"Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a "
-"settings panel. Manage both under %s."
-msgstr "Easy SVG 5.0: Ihre SVG-Uploads bleiben an. Neu in 5.0: eine Icon-Bibliothek und ein Einstellungs-Panel. Beides finden Sie unter %s."
+"Easy SVG 5.0 adds an icon library and a settings panel, under %s. Your SVG "
+"uploads stay on."
+msgstr ""
+"Easy SVG 5.0 bringt eine Icon-Bibliothek und ein Einstellungs-Panel, unter "
+"%s. Ihre SVG-Uploads bleiben an."
 
 #. translators: %s: link to the Icons panel.
 #: includes/settings.php:155
@@ -232,26 +246,26 @@ msgstr "Easy SVG 5.0: Ihre SVG-Uploads bleiben an. Neu in 5.0: eine Icon-Bibliot
 msgid ""
 "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library "
 "under %s."
-msgstr "Easy SVG 5.0: Funktionen sind standardmäßig aus. Aktivieren Sie SVG-Uploads und die Icon-Bibliothek unter %s."
+msgstr ""
+"Easy SVG 5.0: Funktionen sind standardmäßig aus. Aktivieren Sie SVG-Uploads "
+"und die Icon-Bibliothek unter %s."
 
 #. translators: 1: the saved icon reference, 2: the collection it names.
 #: assets/icon-block-notice.js:56
-msgid ""
-"This icon is no longer in the collection it was taken from: %1$s. The "
-"collection %2$s is still here, so the icon was renamed or removed. Pick it "
-"again."
-msgstr "Dieses Icon gibt es in seiner Sammlung nicht mehr: %1$s. Die Sammlung %2$s ist weiterhin da, das Icon wurde also umbenannt oder entfernt. Wählen Sie es neu aus."
+msgid "This icon was renamed or removed: %1$s. Pick it again from %2$s."
+msgstr ""
+"Dieses Icon wurde umbenannt oder entfernt: %1$s. Wählen Sie es neu aus %2$s "
+"aus."
 
 #. translators: 1: the saved icon reference, 2: the collection it names.
 #: assets/icon-block-notice.js:62
 msgid ""
-"This icon is not available on this site: %1$s. Nothing registers the "
-"collection %2$s. A theme or plugin that provided it may have been switched "
-"off, and visitors see no icon here."
+"This icon is not available here: %1$s. Nothing provides %2$s anymore, "
+"perhaps because a theme or plugin was switched off, so visitors see no icon."
 msgstr ""
-"Dieses Icon gibt es auf dieser Website nicht: %1$s. Die Sammlung %2$s wird "
-"von nichts registriert. Vielleicht wurde ein Theme oder Plugin abgeschaltet, "
-"das sie mitgebracht hat; Besucher sehen hier kein Icon."
+"Dieses Icon gibt es hier nicht: %1$s. Nichts stellt %2$s mehr bereit, "
+"vielleicht weil ein Theme oder Plugin abgeschaltet wurde, also sehen "
+"Besucher kein Icon."
 
 #. translators: %d: HTTP status code.
 #: build/panel.js
@@ -281,7 +295,8 @@ msgstr "Prüfen"
 
 #: build/panel.js
 msgid "Check the SVG files on this site and clean up what needs it."
-msgstr "Prüfen Sie die SVG-Dateien dieser Website und bereinigen Sie, was es braucht."
+msgstr ""
+"Prüfen Sie die SVG-Dateien dieser Website und bereinigen Sie, was es braucht."
 
 #: build/panel.js
 msgid "Security"
@@ -309,7 +324,9 @@ msgstr "Icon-Sets"
 msgid ""
 "Bundle SVGs into collections and render them with the Icon block or "
 "easy_svg_icon()."
-msgstr "Bündeln Sie SVGs zu Sammlungen und rendern Sie sie per Icon-Block oder easy_svg_icon()."
+msgstr ""
+"Bündeln Sie SVGs zu Sammlungen und rendern Sie sie per Icon-Block oder "
+"easy_svg_icon()."
 
 #: build/panel.js
 msgid "SVG cleaner"
@@ -325,9 +342,11 @@ msgstr "Konfigurator"
 
 #: build/panel.js
 msgid ""
-"Extend the sanitizer allow-list for special icon libraries. The guard-rails "
-"stay."
-msgstr "Erweitern Sie die Allow-Liste des Sanitizers für besondere Icon-Bibliotheken. Die Schutzmechanismen bleiben."
+"Allow extra SVG elements that some icon libraries need. Dangerous ones stay "
+"blocked."
+msgstr ""
+"Erlauben Sie zusätzliche SVG-Elemente, die manche Icon-Bibliotheken "
+"brauchen. Gefährliche bleiben gesperrt."
 
 #: build/panel.js
 msgid "License"
@@ -353,7 +372,9 @@ msgstr "Menü einklappen"
 msgid ""
 "That landed next to the drop area. Drop SVG files on the dashed area in the "
 "Icon library tab."
-msgstr "Das ist neben der Ablagefläche gelandet. Legen Sie SVG-Dateien auf der gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
+msgstr ""
+"Das ist neben der Ablagefläche gelandet. Legen Sie SVG-Dateien auf der "
+"gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
 
 #: build/panel.js
 msgid "Easy SVG by UnleashWP"
@@ -528,14 +549,6 @@ msgid "Drop SVG files here"
 msgstr "SVG-Dateien hier ablegen"
 
 #: build/panel.js
-msgid ""
-"Every file is sanitized and hardened on the way in. Same bar as a media "
-"upload."
-msgstr ""
-"Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe Messlatte "
-"wie ein Medien-Upload."
-
-#: build/panel.js
 msgid "Choose an SVG"
 msgstr "SVG auswählen"
 
@@ -592,8 +605,8 @@ msgstr[0] "%d Icon in der Bibliothek."
 msgstr[1] "%d Icons in der Bibliothek."
 
 #: build/panel.js
-msgid "Search icons by name or slug"
-msgstr "Icons nach Name oder Slug durchsuchen"
+msgid "Search icons by name or address"
+msgstr "Icons nach Name oder Adresse durchsuchen"
 
 #: build/panel.js
 msgid "Search icons…"
@@ -769,8 +782,8 @@ msgid "Name"
 msgstr "Name"
 
 #: build/panel.js
-msgid "Optional. The slug is derived from it."
-msgstr "Optional. Daraus wird der Slug abgeleitet."
+msgid "Optional. The icon's address is made from it."
+msgstr "Optional. Daraus wird die Adresse des Icons gebildet."
 
 #: build/panel.js
 msgid "e.g. arrow-right"
@@ -781,10 +794,8 @@ msgid "SVG markup"
 msgstr "SVG-Markup"
 
 #: build/panel.js
-msgid ""
-"Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, "
-"exactly like a dropped file."
-msgstr "Fügen Sie das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es gespeichert wird, genau wie eine abgelegte Datei."
+msgid "Paste the <svg>…</svg>."
+msgstr "Fügen Sie das <svg>…</svg> ein."
 
 #: build/panel.js
 msgid "Preview"
@@ -812,21 +823,19 @@ msgstr "Was läuft"
 
 #: build/panel.js
 msgid ""
-"Both are off by default. The security layer is always on: every SVG is "
-"sanitized and the size cap applies. There is no switch for it."
+"Both are off by default. Every SVG is always cleaned and held to the size "
+"cap; that has no switch."
 msgstr ""
-"Beide sind standardmäßig aus. Die Sicherheitsschicht ist immer aktiv: jede "
-"SVG wird bereinigt, und das Größen-Limit greift. Dafür gibt es keinen "
-"Schalter."
+"Beide sind standardmäßig aus. Jedes SVG wird immer bereinigt und an die "
+"Größengrenze gehalten; dafür gibt es keinen Schalter."
 
 #: build/panel.js
 msgid "Allow SVG uploads in the media library"
 msgstr "SVG-Uploads in der Mediathek erlauben"
 
 #: build/panel.js
-msgid "Editors can upload .svg files; each one is sanitized on the way in."
-msgstr ""
-"Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
+msgid "Editors can upload .svg files."
+msgstr "Redakteure können .svg-Dateien hochladen."
 
 #: build/panel.js
 msgid "Enable the icon library"
@@ -837,12 +846,9 @@ msgid "Adds the Icon library tab and the Icon block."
 msgstr "Fügt den Tab „Icon-Bibliothek“ und den Icon-Block hinzu."
 
 #: build/panel.js
-msgid ""
-"The cap limits what the sanitizer will parse. It applies whatever the "
-"features above are set to."
+msgid "The largest SVG this site accepts, whatever is switched on above."
 msgstr ""
-"Das Limit begrenzt, was der Sanitizer parst. Es greift unabhängig davon, wie "
-"die Funktionen oben stehen."
+"Das größte SVG, das diese Website annimmt, egal was oben eingeschaltet ist."
 
 #: build/panel.js
 msgid "Maximum SVG size (MB)"
@@ -850,12 +856,8 @@ msgstr "Maximale SVG-Größe (MB)"
 
 #. translators: %d: the highest allowed cap in MB.
 #: build/panel.js
-msgid ""
-"Files larger than this are rejected before the sanitizer runs. Allowed: 1 to "
-"%d MB."
-msgstr ""
-"Größere Dateien werden abgewiesen, bevor der Sanitizer läuft. Erlaubt: 1 bis "
-"%d MB."
+msgid "Larger files are refused. Allowed: 1 to %d MB."
+msgstr "Größere Dateien werden abgelehnt. Erlaubt: 1 bis %d MB."
 
 #: build/panel.js
 msgid "Increase the size cap"
@@ -892,6 +894,85 @@ msgid ""
 msgstr ""
 "Die Agentur-Schicht für SVG-Icons. Sie liegt in diesem Panel, sobald Pro "
 "aktiv und lizenziert ist."
+
+#~ msgid ""
+#~ "Every file is sanitized and hardened on the way in. Same bar as a media "
+#~ "upload."
+#~ msgstr ""
+#~ "Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe "
+#~ "Messlatte wie ein Medien-Upload."
+
+#, php-format
+#~ msgid ""
+#~ "Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a "
+#~ "settings panel. Manage both under %s."
+#~ msgstr ""
+#~ "Easy SVG 5.0: Deine SVG-Uploads bleiben an. Neu in 5.0: eine Icon-"
+#~ "Bibliothek und ein Einstellungs-Panel. Beides findest du unter %s."
+
+#~ msgid ""
+#~ "This icon is no longer in the collection it was taken from: %1$s. The "
+#~ "collection %2$s is still here, so the icon was renamed or removed. Pick "
+#~ "it again."
+#~ msgstr ""
+#~ "Dieses Icon gibt es in seiner Sammlung nicht mehr: %1$s. Die Sammlung "
+#~ "%2$s ist weiterhin da, das Icon wurde also umbenannt oder entfernt. Wähle "
+#~ "es neu aus."
+
+#~ msgid ""
+#~ "This icon is not available on this site: %1$s. Nothing registers the "
+#~ "collection %2$s. A theme or plugin that provided it may have been "
+#~ "switched off, and visitors see no icon here."
+#~ msgstr ""
+#~ "Dieses Icon gibt es auf dieser Website nicht: %1$s. Die Sammlung %2$s "
+#~ "wird von nichts registriert. Vielleicht wurde ein Theme oder Plugin "
+#~ "abgeschaltet, das sie mitgebracht hat; Besucher sehen hier kein Icon."
+
+#~ msgid ""
+#~ "Extend the sanitizer allow-list for special icon libraries. The guard-"
+#~ "rails stay."
+#~ msgstr ""
+#~ "Erweitere die Allow-Liste des Sanitizers für besondere Icon-Bibliotheken. "
+#~ "Die Schutzmechanismen bleiben."
+
+#~ msgid "Search icons by name or slug"
+#~ msgstr "Icons nach Name oder Slug durchsuchen"
+
+#~ msgid "Optional. The slug is derived from it."
+#~ msgstr "Optional. Daraus wird der Slug abgeleitet."
+
+#~ msgid ""
+#~ "Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, "
+#~ "exactly like a dropped file."
+#~ msgstr ""
+#~ "Füge das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es "
+#~ "gespeichert wird, genau wie eine abgelegte Datei."
+
+#~ msgid ""
+#~ "Both are off by default. The security layer is always on: every SVG is "
+#~ "sanitized and the size cap applies. There is no switch for it."
+#~ msgstr ""
+#~ "Beide sind standardmäßig aus. Die Sicherheitsschicht ist immer aktiv: "
+#~ "jede SVG wird bereinigt, und das Größen-Limit greift. Dafür gibt es "
+#~ "keinen Schalter."
+
+#~ msgid "Editors can upload .svg files; each one is sanitized on the way in."
+#~ msgstr ""
+#~ "Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
+
+#~ msgid ""
+#~ "The cap limits what the sanitizer will parse. It applies whatever the "
+#~ "features above are set to."
+#~ msgstr ""
+#~ "Das Limit begrenzt, was der Sanitizer parst. Es greift unabhängig davon, "
+#~ "wie die Funktionen oben stehen."
+
+#~ msgid ""
+#~ "Files larger than this are rejected before the sanitizer runs. Allowed: 1 "
+#~ "to %d MB."
+#~ msgstr ""
+#~ "Größere Dateien werden abgewiesen, bevor der Sanitizer läuft. Erlaubt: 1 "
+#~ "bis %d MB."
 
 #~ msgid ""
 #~ "The largest SVG the sanitiser will parse, in megabytes. Always enforced; "

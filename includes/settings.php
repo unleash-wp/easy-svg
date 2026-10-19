@@ -149,7 +149,7 @@ function easy_svg_migration_notice(): void {
 	$link = '<a href="' . esc_url( admin_url( 'admin.php?page=' . EASY_SVG_PANEL_SLUG ) ) . '">' . esc_html__( 'Icons', 'easy-svg' ) . '</a>';
 	if ( 'kept' === $state ) {
 		/* translators: %s: link to the Icons panel. */
-		$msg = sprintf( __( 'Easy SVG 5.0: your SVG uploads stay on. New in 5.0: an icon library and a settings panel. Manage both under %s.', 'easy-svg' ), $link );
+		$msg = sprintf( __( 'Easy SVG 5.0 adds an icon library and a settings panel, under %s. Your SVG uploads stay on.', 'easy-svg' ), $link );
 	} else {
 		/* translators: %s: link to the Icons panel. */
 		$msg = sprintf( __( 'Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library under %s.', 'easy-svg' ), $link );

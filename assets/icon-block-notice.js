@@ -53,13 +53,13 @@
 		return known
 			? sprintf(
 					/* translators: 1: the saved icon reference, 2: the collection it names. */
-					__( 'This icon is no longer in the collection it was taken from: %1$s. The collection %2$s is still here, so the icon was renamed or removed. Pick it again.', 'easy-svg' ),
+					__( 'This icon was renamed or removed: %1$s. Pick it again from %2$s.', 'easy-svg' ),
 					reference,
 					collection
 			  )
 			: sprintf(
 					/* translators: 1: the saved icon reference, 2: the collection it names. */
-					__( 'This icon is not available on this site: %1$s. Nothing registers the collection %2$s. A theme or plugin that provided it may have been switched off, and visitors see no icon here.', 'easy-svg' ),
+					__( 'This icon is not available here: %1$s. Nothing provides %2$s anymore, perhaps because a theme or plugin was switched off, so visitors see no icon.', 'easy-svg' ),
 					reference,
 					collection || reference
 			  );

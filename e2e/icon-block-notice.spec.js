@@ -87,7 +87,7 @@ test.describe('an Icon block whose icon is gone', () => {
     // A collection nothing registers reads differently from an icon that left a
     // collection which is still here: the remedies are not the same.
     await expect(notices.first()).toContainText(/e2e-weg/)
-    await expect(notices.first()).toContainText(/registriert|registers/i)
+    await expect(notices.first()).toContainText(/stellt .* mehr bereit|Nothing provides/i)
     await expect(notices.nth(1)).toContainText(/easy-svg\/e2e-gibt-es-nicht/)
     await expect(notices.nth(1)).toContainText(/umbenannt|renamed/i)
   })
