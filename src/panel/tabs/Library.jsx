@@ -249,6 +249,11 @@ export default function Library({ ctx }) {
   // An add-on's collections (contract 3), and which of them the grid shows:
   // 'all', 'library' or a collection id.
   const [collections, setCollections] = useState([])
+  // A link can open the grid on one collection (`collection=`) or with a new
+  // set being named (`new-set=1`): where the Sets tab and the set list lead.
+  const linked = useRef(
+    typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search)
+  )
   const [view, setView] = useState('all')
   // The last move's answer, and its way back when the add-on gave one.
   const [moved, setMoved] = useState(null)
@@ -257,6 +262,26 @@ export default function Library({ ctx }) {
   const [providers, setProviders] = useState([])
   // A name being typed in the sidebar: { id: 'new' | collectionId, value }.
   const [naming, setNaming] = useState(null)
+
+  // The link waits for what it names: an add-on registers its collections
+  // after the panel's first load. A collection that never comes leaves the
+  // grid on All icons, and a click of the person's own ends the wait.
+  useEffect(() => {
+    const wanted = linked.current.get('collection')
+    if (wanted && collections.some((c) => c.id === wanted)) {
+      linked.current.delete('collection')
+      setView(wanted)
+    }
+    if ('1' === linked.current.get('new-set') && providers.some((p) => 'function' === typeof p.create)) {
+      linked.current.delete('new-set')
+      setNaming({ id: 'new', value: '' })
+    }
+  }, [collections, providers])
+
+  function choose(id) {
+    linked.current.delete('collection')
+    setView(id)
+  }
   // One icon's earlier drawings: { ic, provider, versions: null while loading }.
   const [past, setPast] = useState(null)
 
@@ -1596,7 +1621,7 @@ export default function Library({ ctx }) {
                       variant={view === entry.id ? 'subtle' : 'ghost'}
                       justifyContent="space-between"
                       aria-pressed={view === entry.id}
-                      onClick={() => setView(entry.id)}
+                      onClick={() => choose(entry.id)}
                       title={entry.readonly ? __('Read only: these icons come from files', 'easy-svg') : undefined}
                     >
                       <Text as="span" truncate>{entry.label}</Text>
