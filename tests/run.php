@@ -303,6 +303,10 @@ function wp_insert_post( array $post, bool $wp_error = false, bool $fire_after_h
 		// caller does not pass one, and easy_svg_add_icon() reads it back off
 		// the stored post. Without it every slug this file saw was ''.
 		$slug = (string) ( $post['post_name'] ?? sanitize_title( (string) ( $post['post_title'] ?? '' ) ) );
+		// wp_unique_post_slug(), for the names a test marks as taken.
+		if ( in_array( $slug, $GLOBALS['taken_slugs'] ?? [], true ) ) {
+			$slug .= '-2';
+		}
 		$GLOBALS['stored_posts'][ $answer ] = (object) [
 			'ID'           => $answer,
 			'post_type'    => $post['post_type'] ?? '',
@@ -1026,6 +1030,14 @@ $GLOBALS['inserted']       = [];
 $GLOBALS['insert_returns'] = 43;
 $added                     = easy_svg_add_icon_result( 'Arrow Up', $good_svg );
 check( 'BELL: the result carries the state, the id and the stored slug', array( 'added', 43, 'arrow-up' ) === array( $added['state'] ?? '', $added['id'] ?? 0, $added['slug'] ?? '' ) );
+check( 'SILENCE: a free name is the name that was wanted', 'arrow-up' === ( $added['wanted'] ?? '' ) );
+
+// #108 K5: the second "Arrow Up" is stored as arrow-up-2, and the caller must
+// be able to say so instead of letting the icon answer to a name nobody chose.
+$GLOBALS['taken_slugs'] = [ 'arrow-up' ];
+$twin                   = easy_svg_add_icon_result( 'Arrow Up', $good_svg );
+$GLOBALS['taken_slugs'] = [];
+check( 'BELL: a taken name reports the slug it got AND the one it wanted', array( 'arrow-up-2', 'arrow-up' ) === array( $twin['slug'] ?? '', $twin['wanted'] ?? '' ) );
 
 $GLOBALS['insert_returns'] = new WP_Error( 'db_insert_error', 'Could not insert post into the database.' );
 check( 'BELL: a WP_Error from the insert is not reported as added', 'not_saved' === easy_svg_add_icon( 'Arrow', $good_svg ) );
