@@ -77,6 +77,10 @@
 //
 // A selection is moved with the provider's move(), in batches of 25.
 //
+// And a hint for the sidebar, when something it needs is switched off:
+//
+//   hint: { text, action?: { label, run: () => Promise } }
+//
 // `collection` is the object the provider's own load() gave, so whatever it
 // carried there -- a post id, say -- comes back without a lookup.
 //
