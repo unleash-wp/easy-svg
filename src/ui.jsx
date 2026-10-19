@@ -435,14 +435,18 @@ export function useDropZone({ onFiles, disabled }) {
   if (disabled) {
     return { isOver: false, props: {} }
   }
+  // Files only: a tile dragged across the grid is a move, not an upload.
+  const carriesFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes('Files')
   return {
     isOver,
     props: {
       onDragEnter: (e) => {
+        if (!carriesFiles(e)) return
         e.preventDefault()
         setOver(true)
       },
       onDragOver: (e) => {
+        if (!carriesFiles(e)) return
         e.preventDefault()
         if (e.dataTransfer) {
           e.dataTransfer.dropEffect = 'copy'
@@ -455,6 +459,7 @@ export function useDropZone({ onFiles, disabled }) {
         }
       },
       onDrop: (e) => {
+        if (!carriesFiles(e)) return
         e.preventDefault()
         e.stopPropagation()
         setOver(false)
