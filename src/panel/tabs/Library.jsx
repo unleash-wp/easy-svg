@@ -484,6 +484,21 @@ export default function Library({ ctx }) {
   }
 
   const creator = providers.find((p) => 'function' === typeof p.create)
+  // What a provider wants said where its collections would be -- that a
+  // feature they need is off, and the way to switch it on.
+  const hints = providers.filter((p) => p.hint && p.hint.text)
+
+  async function runHint(hint) {
+    setBusy(true)
+    setErr('')
+    try {
+      await hint.action.run()
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
   // The set on screen, when it takes files: then an upload goes there.
   const intoSet = collections.find((c) => c.id === view && !c.readonly && 'function' === typeof c.provider?.add) || null
 
@@ -1409,7 +1424,7 @@ export default function Library({ ctx }) {
             </HStack>
           ) : null}
           <Stack direction={{ base: 'column', md: 'row' }} gap="4" align="stretch">
-          {collections.length || creator ? (
+          {collections.length || creator || hints.length ? (
             <Stack data-collections as="nav" aria-label={__('Collections', 'easy-svg')} gap="0.5" minW={{ md: '180px' }} pt="4">
               {[
                 { id: 'all', label: __('All icons', 'easy-svg'), count: libraryTotal + collections.reduce((n, c) => n + c.icons.length, 0) },
@@ -1489,6 +1504,16 @@ export default function Library({ ctx }) {
                   </HStack>
                 )
               })}
+              {hints.map((p) => (
+                <Stack key={p.id} data-collections-hint gap="2" mt="2" p="3" borderWidth="1px" borderStyle="dashed" borderColor="ui.border" borderRadius="forge">
+                  <Text fontSize="sm" color="ui.muted">{p.hint.text}</Text>
+                  {p.hint.action && 'function' === typeof p.hint.action.run ? (
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => runHint(p.hint)}>
+                      {p.hint.action.label}
+                    </Button>
+                  ) : null}
+                </Stack>
+              ))}
               {creator ? (
                 'new' === naming?.id ? (
                   <Box pt="1">{nameField(__('Name of the new set', 'easy-svg'))}</Box>
