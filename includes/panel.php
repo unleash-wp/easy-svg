@@ -413,6 +413,9 @@ function easy_svg_panel_assets( $hook ): void {
 			'proVersion'   => function_exists( 'easy_svg_pro_version' ) ? (string) easy_svg_pro_version() : '',
 			'proLicensed'  => $pro_licensed,
 			'iconsEnabled' => function_exists( 'easy_svg_feature_enabled' ) && easy_svg_feature_enabled( 'icons' ),
+			// Core's Icon block exists only with the 7.1 icon registry; without it
+			// the panel does not offer a block to paste.
+			'iconBlock'    => function_exists( 'easy_svg_icons_supported' ) && easy_svg_icons_supported(),
 			// The cap's ceiling, so the field and the slider end where the
 			// server actually clamps -- Pro raises it, and the panel must not
 			// show a range the save will refuse.

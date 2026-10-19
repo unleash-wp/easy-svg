@@ -775,6 +775,12 @@ add_action( 'enqueue_block_editor_assets', 'easy_svg_print_stroke_css', 20 );
 if ( easy_svg_feature_enabled( 'icons' ) ) {
     add_action( 'init', 'easy_svg_register_icon_store', 5 );
     add_action( 'init', 'easy_svg_boot_icons', 10 );
+    add_action(
+        'init',
+        static function () {
+            add_shortcode( 'easy_svg_icon', 'easy_svg_icon_shortcode' );
+        }
+    );
 }
 
 /*

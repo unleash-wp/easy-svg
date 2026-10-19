@@ -93,6 +93,8 @@ Go to Icons → Icon library. Give the icon a name, choose an SVG file and add i
 
 On older WordPress versions the Icon block does not exist, so the icons do not appear in the editor; rendering them with `easy_svg_icon()` works there too.
 
+Where you cannot write PHP, use the shortcode: `[easy_svg_icon name="easy-svg/heart"]`. It takes `class` and `label` like the PHP function does, and renders the same thing. Each icon's copy button in the library offers all three forms: PHP, shortcode and block. The Icon block only draws paths and polygons, so for an icon drawn with other shapes (a rectangle, a circle) the block form is not offered.
+
 = For add-on authors: what may an add-on rely on? =
 
 Exactly one function. Everything else in this plugin is an internal detail that may be renamed or removed.

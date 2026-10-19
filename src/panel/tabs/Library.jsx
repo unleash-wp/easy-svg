@@ -37,6 +37,40 @@ const sanitizeSvg = (markup) => {
 // action puts on the clipboard, and the only reason a slug is worth seeing.
 const iconCall = (slug) => `easy_svg_icon( '${slug}' )`
 
+// Core's Icon block passes its icons through an allow-list of svg, path and
+// polygon (class-wp-icons-registry.php, 7.0): a rect, a circle or a line is
+// dropped, and an icon drawn with them renders as nothing at all.
+const BLOCK_DRAWS = new Set(['path', 'polygon'])
+const BLOCK_WRAPS = new Set(['svg', 'g', 'title', 'desc'])
+const blockCanDraw = (markup) => {
+  try {
+    const doc = new window.DOMParser().parseFromString(String(markup || ''), 'image/svg+xml')
+    const names = Array.from(doc.getElementsByTagName('*')).map((el) => el.localName)
+    return names.some((n) => BLOCK_DRAWS.has(n)) && names.every((n) => BLOCK_DRAWS.has(n) || BLOCK_WRAPS.has(n))
+  } catch {
+    return false
+  }
+}
+
+// The three ways to place an icon, each copied as it is written. The block is
+// core's Icon block, which exists only where WordPress has the icon registry.
+const callForms = (ic, iconBlock) => [
+  { id: 'php', label: __('PHP', 'easy-svg'), text: iconCall(ic.ref || ic.slug) },
+  { id: 'shortcode', label: __('Shortcode', 'easy-svg'), text: `[easy_svg_icon name="${refOf(ic)}"]` },
+  ...(iconBlock
+    ? [
+        blockCanDraw(ic.content)
+          ? { id: 'block', label: __('Block', 'easy-svg'), text: `<!-- wp:icon {"icon":"${refOf(ic)}"} /-->` }
+          : {
+              id: 'block',
+              label: __('Block', 'easy-svg'),
+              text: __('Not for this icon: the Icon block draws only paths and polygons.', 'easy-svg'),
+              disabled: true,
+            },
+      ]
+    : []),
+]
+
 const nameOf = (ic) => ic.label || ic.slug
 
 // A revision's date arrives as WordPress's GMT column; shown in the viewer's time.
@@ -781,10 +815,11 @@ export default function Library({ ctx }) {
     }
   }
 
-  async function copyCall(ic) {
+  async function copyCall(ic, form = 'php') {
     // A collection's icon is called by its full address; a library icon by
     // its slug, which is what the free collection answers to.
-    const text = iconCall(ic.ref || ic.slug)
+    const chosen = callForms(ic, ctx.iconBlock).find((f) => f.id === form && !f.disabled) || callForms(ic, false)[0]
+    const text = chosen.text
     clear()
     try {
       await navigator.clipboard.writeText(text)
@@ -1389,7 +1424,8 @@ export default function Library({ ctx }) {
                   onEditChange={(value) => setEditing({ id: ic.id, value })}
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
-                  onCopy={() => copyCall(ic)}
+                  onCopy={(form) => copyCall(ic, form)}
+                  forms={callForms(ic, ctx.iconBlock)}
                   onHistory={historyOf(ic) ? () => openHistory(ic) : null}
                   onRemove={() =>
                     ic.canRemove
@@ -1473,6 +1509,7 @@ function IconTile({
   onCopy,
   onRemove,
   onHistory = null,
+  forms = [],
   targets = [],
   onMoveTo,
 }) {
@@ -1593,17 +1630,42 @@ function IconTile({
               </Text>
             ) : null}
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
-              <IconAction
-                onClick={onCopy}
-                disabled={busy}
-                {...TILE_ACTION_SIZE}
-                label={
-                  // translators: %s: icon name.
-                  sprintf(__('Copy the call for %s', 'easy-svg'), name)
-                }
-              >
-                <CopyGlyph />
-              </IconAction>
+              <Menu.Root>
+                {/* The Trigger is the button itself, for the same reason as Move. */}
+                <Menu.Trigger
+                  disabled={busy}
+                  aria-label={
+                    // translators: %s: icon name.
+                    sprintf(__('Copy the call for %s', 'easy-svg'), name)
+                  }
+                  title={sprintf(__('Copy the call for %s', 'easy-svg'), name)}
+                  display="inline-flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  borderRadius="forge"
+                  color="ui.muted"
+                  cursor="pointer"
+                  _hover={{ color: 'ui.primary', bg: 'ui.ghostHover' }}
+                  _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+                  {...TILE_ACTION_SIZE}
+                >
+                  <CopyGlyph />
+                </Menu.Trigger>
+                <Portal>
+                  <Menu.Positioner>
+                    <Menu.Content>
+                      {forms.map((f) => (
+                        <Menu.Item key={f.id} value={f.id} disabled={!!f.disabled} onSelect={() => onCopy(f.id)}>
+                          <Stack gap="0">
+                            <Text as="span">{f.label}</Text>
+                            <Text as="span" fontSize="xs" color="ui.muted" fontFamily="mono">{f.text}</Text>
+                          </Stack>
+                        </Menu.Item>
+                      ))}
+                    </Menu.Content>
+                  </Menu.Positioner>
+                </Portal>
+              </Menu.Root>
               {onHistory ? (
                 <IconAction
                   onClick={onHistory}
