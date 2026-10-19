@@ -240,6 +240,9 @@ export default function Library({ ctx }) {
   // The call to copy by hand when there is no clipboard API, dismissable.
   const [copyHelp, setCopyHelp] = useState('')
   const fileRef = useRef(null)
+  // A new drawing for one set icon: the tile it is for, while the picker is open.
+  const replaceRef = useRef(null)
+  const [replacing, setReplacing] = useState(null)
   // An add-on's collections (contract 3), and which of them the grid shows:
   // 'all', 'library' or a collection id.
   const [collections, setCollections] = useState([])
@@ -394,6 +397,8 @@ export default function Library({ ctx }) {
         source: c,
         canRename: !c.readonly && 'function' === typeof c.provider?.relabel,
         canRemove: !c.readonly && 'function' === typeof c.provider?.remove,
+        canRecolour: !c.readonly && 'function' === typeof c.provider?.recolour,
+        canReplace: !c.readonly && 'function' === typeof c.provider?.replaceDrawing,
       }))
   const shown =
     'library' === view
@@ -458,6 +463,36 @@ export default function Library({ ctx }) {
   const pickedTiles = shown.filter((ic) => picked.has(ic.id))
   const pickedLibrary = pickedTiles.filter((ic) => !ic.readonly).map((ic) => ic.id)
   const exportTooMany = exporter && Number.isFinite(exporter.exportMax) && pickedTiles.length > exporter.exportMax
+
+  // Picked icons of collections that take a recolour, one call per collection.
+  const recolourable = pickedTiles.filter((ic) => ic.canRecolour)
+
+  async function recolourPicked() {
+    const groups = new Map()
+    recolourable.forEach((ic) => groups.set(ic.source, [...(groups.get(ic.source) || []), refOf(ic)]))
+    const said = []
+    const undos = []
+    await act(async () => {
+      for (const [collection, refs] of groups) {
+        const done = await collection.provider.recolour({ refs, collection })
+        said.push(done?.message || __('Done.', 'easy-svg'))
+        if ('function' === typeof done?.undo) {
+          undos.push(done.undo)
+        }
+      }
+      return {
+        message: said.join(' · '),
+        undo: undos.length
+          ? async () => {
+              for (const undo of undos.slice().reverse()) {
+                await undo()
+              }
+              return { message: __('Undone.', 'easy-svg') }
+            }
+          : null,
+      }
+    })
+  }
 
   async function exportPicked() {
     if (!exporter || !pickedTiles.length || exportTooMany) {
@@ -912,7 +947,27 @@ export default function Library({ ctx }) {
   const pasteLabel = __('Paste markup', 'easy-svg')
 
   const fileInput = (
-    <input ref={fileRef} type="file" accept={FILE_ACCEPT} multiple hidden tabIndex={-1} onChange={onPick} />
+    <>
+      <input ref={fileRef} type="file" accept={FILE_ACCEPT} multiple hidden tabIndex={-1} onChange={onPick} />
+      <input
+        ref={replaceRef}
+        data-replace-input
+        type="file"
+        accept=".svg,image/svg+xml"
+        hidden
+        tabIndex={-1}
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          const ic = replacing
+          e.target.value = ''
+          setReplacing(null)
+          if (file && ic) {
+            const markup = await readText(file).catch(() => '')
+            await act(() => ic.source.provider.replaceDrawing({ ref: refOf(ic), markup, collection: ic.source }))
+          }
+        }}
+      />
+    </>
   )
   const openChooser = () => fileRef.current && fileRef.current.click()
 
@@ -1352,6 +1407,24 @@ export default function Library({ ctx }) {
                     </Menu.Positioner>
                   </Menu.Root>
                 ) : null}
+                {recolourable.length ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="ui.surface"
+                    _hover={{ color: 'ui.surface', bg: 'whiteAlpha.200' }}
+                    onClick={recolourPicked}
+                    disabled={busy}
+                  >
+                    {recolourable.length === pickedTiles.length
+                      ? __('Recolour', 'easy-svg')
+                      : sprintf(
+                          // translators: %d: number of picked icons that can be recoloured.
+                          _n('Recolour %d', 'Recolour %d', recolourable.length, 'easy-svg'),
+                          recolourable.length
+                        )}
+                  </Button>
+                ) : null}
                 {exporter ? (
                   <Button
                     size="sm"
@@ -1567,6 +1640,15 @@ export default function Library({ ctx }) {
                   onCopy={(form) => copyCall(ic, form)}
                   forms={callForms(ic, ctx.iconBlock)}
                   onHistory={historyOf(ic) ? () => openHistory(ic) : null}
+                  onRecolour={ic.canRecolour ? () => act(() => ic.source.provider.recolour({ refs: [refOf(ic)], collection: ic.source })) : null}
+                  onReplace={
+                    ic.canReplace
+                      ? () => {
+                          setReplacing(ic)
+                          replaceRef.current?.click()
+                        }
+                      : null
+                  }
                   onRemove={() =>
                     ic.canRemove
                       ? act(() => ic.source.provider.remove({ refs: [refOf(ic)], collection: ic.source }))
@@ -1649,6 +1731,8 @@ function IconTile({
   onCopy,
   onRemove,
   onHistory = null,
+  onRecolour = null,
+  onReplace = null,
   forms = [],
   targets = [],
   onMoveTo,
@@ -1769,7 +1853,9 @@ function IconTile({
                 {ic.slug}
               </Text>
             ) : null}
-            <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
+            {/* Wraps rather than clips: a set's icon carries more actions than
+                a 110px tile has room for in one row. */}
+            <HStack data-tile-actions gap="0.5" justify="center" pt="0.5" flexWrap="wrap">
               <Menu.Root>
                 {/* The Trigger is the button itself, for the same reason as Move. */}
                 <Menu.Trigger
@@ -1806,30 +1892,15 @@ function IconTile({
                   </Menu.Positioner>
                 </Portal>
               </Menu.Root>
-              {onHistory ? (
-                <IconAction
-                  onClick={onHistory}
-                  disabled={busy}
-                  {...TILE_ACTION_SIZE}
-                  label={
-                    // translators: %s: icon name.
-                    sprintf(__('Earlier versions of %s', 'easy-svg'), name)
-                  }
-                >
-                  <HistoryGlyph />
-                </IconAction>
-              ) : null}
-              {targets.length ? (
+              {onHistory || onRecolour || onReplace || targets.length ? (
                 <Menu.Root>
-                  {/* The Trigger is the button itself: Ark anchors the menu
-                      to its ref, which IconAction does not pass on. */}
                   <Menu.Trigger
                     disabled={busy}
                     aria-label={
                       // translators: %s: icon name.
-                      sprintf(__('Move %s to a set', 'easy-svg'), name)
+                      sprintf(__('More for %s', 'easy-svg'), name)
                     }
-                    title={sprintf(__('Move %s to a set', 'easy-svg'), name)}
+                    title={sprintf(__('More for %s', 'easy-svg'), name)}
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
@@ -1840,21 +1911,48 @@ function IconTile({
                     _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
                     {...TILE_ACTION_SIZE}
                   >
-                    <MoveGlyph />
+                    <MoreGlyph />
                   </Menu.Trigger>
                   <Portal>
                     <Menu.Positioner>
                       <Menu.Content>
-                        {targets.map((c) => (
-                          <Menu.Item key={c.id} value={c.id} onSelect={() => onMoveTo(c)}>
-                            {c.label || c.id}
+                        {onHistory ? (
+                          <Menu.Item value="history" onSelect={onHistory}>
+                            <HistoryGlyph />
+                            {__('Earlier versions…', 'easy-svg')}
                           </Menu.Item>
-                        ))}
+                        ) : null}
+                        {onRecolour ? (
+                          <Menu.Item value="recolour" onSelect={onRecolour}>
+                            {__('Recolour: take the text colour', 'easy-svg')}
+                          </Menu.Item>
+                        ) : null}
+                        {onReplace ? (
+                          <Menu.Item value="replace" onSelect={onReplace}>
+                            {__('Replace the drawing…', 'easy-svg')}
+                          </Menu.Item>
+                        ) : null}
+                        {/* Moving by menu is the way that needs no mouse. */}
+                        {targets.length ? (
+                          <Menu.ItemGroup>
+                            <Menu.ItemGroupLabel fontSize="xs" color="ui.muted">
+                              {__('Move to', 'easy-svg')}
+                            </Menu.ItemGroupLabel>
+                            {targets.map((c) => (
+                              <Menu.Item key={c.id} value={`move:${c.id}`} onSelect={() => onMoveTo(c)}>
+                                <MoveGlyph />
+                                {c.label || c.id}
+                              </Menu.Item>
+                            ))}
+                          </Menu.ItemGroup>
+                        ) : null}
                       </Menu.Content>
                     </Menu.Positioner>
                   </Portal>
                 </Menu.Root>
               ) : null}
+
+
               {/* A read-only collection's icon is renamed or deleted where it lives. */}
               {ic.readonly && !ic.canRename && !ic.canRemove ? null : (
                 <>
@@ -1895,13 +1993,13 @@ function IconTile({
   )
 }
 
-// Three of these sit side by side in one tile, so they are narrower than the
-// 40px raster -- except on a phone, where 44px is the touch target and a 28px
-// one between two others is a mis-tap.
+// Four of these sit side by side in one tile, so they are narrower than the
+// 40px raster: 24px, the WCAG 2.5.8 minimum, is what fits four in a 110px
+// tile -- except on a phone, where 44px is the touch target.
 const TILE_ACTION_SIZE = {
-  px: { base: '2', md: '1.5' },
-  minW: { base: '44px', md: '28px' },
-  minH: { base: '44px', md: '28px' },
+  px: { base: '2', md: '1' },
+  minW: { base: '44px', md: '24px' },
+  minH: { base: '44px', md: '24px' },
 }
 
 // Pasting is still possible, just no longer the default path: it sits behind the
