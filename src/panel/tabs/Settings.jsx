@@ -174,14 +174,14 @@ export default function Settings({ ctx }) {
     <Stack gap="5" maxW="760px">
       <Section
         title={__('What runs', 'easy-svg')}
-        description={__('Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it.', 'easy-svg')}
+        description={__('Both are off by default. The security layer is always on: every SVG is sanitized and the size cap applies. There is no switch for it.', 'easy-svg')}
       >
         <ToggleRow
           id="esw-setting-svg-upload"
           checked={!!form.svg_upload}
           onChange={(v) => toggle('svg_upload', v)}
           label={__('Allow SVG uploads in the media library', 'easy-svg')}
-          description={__('Editors can upload .svg files; each one is sanitised on the way in.', 'easy-svg')}
+          description={__('Editors can upload .svg files; each one is sanitized on the way in.', 'easy-svg')}
         />
         <ToggleRow
           id="esw-setting-icons"
@@ -194,13 +194,13 @@ export default function Settings({ ctx }) {
 
       <Section
         title={__('Security', 'easy-svg')}
-        description={__('The cap limits what the sanitiser will parse. It applies whatever the features above are set to.', 'easy-svg')}
+        description={__('The cap limits what the sanitizer will parse. It applies whatever the features above are set to.', 'easy-svg')}
       >
         <FieldRow
           label={__('Maximum SVG size (MB)', 'easy-svg')}
           description={sprintf(
             // translators: %d: the highest allowed cap in MB.
-            __('Files larger than this are rejected before the sanitiser runs. Allowed: 1 to %d MB.', 'easy-svg'),
+            __('Files larger than this are rejected before the sanitizer runs. Allowed: 1 to %d MB.', 'easy-svg'),
             MAX_MB
           )}
           htmlFor="esw-setting-max-mb"

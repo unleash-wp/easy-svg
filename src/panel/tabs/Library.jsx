@@ -1306,7 +1306,7 @@ export default function Library({ ctx }) {
           </Text>
           {first ? (
             <Text textStyle="caption" maxW="46ch">
-              {__('Every file is sanitised and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
+              {__('Every file is sanitized and hardened on the way in. Same bar as a media upload.', 'easy-svg')}
             </Text>
           ) : null}
           <HStack gap="2" flexWrap="wrap" justify="center">
@@ -1586,10 +1586,10 @@ export default function Library({ ctx }) {
                     disabled={busy}
                   >
                     {recolourable.length === pickedTiles.length
-                      ? __('Recolour', 'easy-svg')
+                      ? __('Recolor', 'easy-svg')
                       : sprintf(
                           // translators: %d: number of picked icons that can be recoloured.
-                          _n('Recolour %d', 'Recolour %d', recolourable.length, 'easy-svg'),
+                          _n('Recolor %d', 'Recolor %d', recolourable.length, 'easy-svg'),
                           recolourable.length
                         )}
                   </Button>
@@ -2093,7 +2093,7 @@ function IconTile({
                         ) : null}
                         {onRecolour ? (
                           <Menu.Item value="recolour" onSelect={onRecolour}>
-                            {__('Recolour: take the text colour', 'easy-svg')}
+                            {__('Recolor: take the text color', 'easy-svg')}
                           </Menu.Item>
                         ) : null}
                         {onReplace ? (
@@ -2194,7 +2194,7 @@ function PasteForm({ label, setLabel, markup, setMarkup, addPasted, busy, setPas
       <FieldRow
         layout="stack"
         label={__('SVG markup', 'easy-svg')}
-        description={__('Paste the <svg>…</svg>. It is sanitised and hardened before it is stored, exactly like a dropped file.', 'easy-svg')}
+        description={__('Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, exactly like a dropped file.', 'easy-svg')}
         htmlFor="esw-icon-markup"
         control={
           <Textarea

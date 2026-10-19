@@ -29,7 +29,7 @@ const AREAS = [
   { id: 'design', label: __('Design', 'easy-svg'), blurb: __('Change how icons look, one at a time or many at once.', 'easy-svg') },
   { id: 'inspect', label: __('Inspect', 'easy-svg'), blurb: __('Check the SVG files on this site and clean up what needs it.', 'easy-svg') },
   { id: 'security', label: __('Security', 'easy-svg'), blurb: __('Who may upload SVG, how large it may be, and what it may contain.', 'easy-svg') },
-  { id: 'setup', label: __('Setup', 'easy-svg'), blurb: __('Switch features on and manage your licence.', 'easy-svg') },
+  { id: 'setup', label: __('Setup', 'easy-svg'), blurb: __('Switch features on and manage your license.', 'easy-svg') },
 ]
 const AREA_IDS = AREAS.map((a) => a.id)
 // Where a tab goes when it does not say, or says something this plugin does
@@ -67,8 +67,8 @@ const FREE_TABS = [
 const PRO_TABS = [
   { id: 'sets', icon: 'sets', area: 'icons', order: 20, label: __('Icon sets', 'easy-svg'), teaser: __('Bundle SVGs into collections and render them with the Icon block or easy_svg_icon().', 'easy-svg') },
   { id: 'audit', icon: 'audit', area: 'inspect', order: 10, label: __('SVG cleaner', 'easy-svg'), teaser: __('Find and clean up SVGs that did not come through the uploader.', 'easy-svg') },
-  { id: 'configurator', icon: 'configurator', area: 'security', order: 20, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitiser allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
-  { id: 'licence', icon: 'licence', area: 'setup', order: 20, label: __('Licence', 'easy-svg'), teaser: __('Enter your licence key and unlock the Pro features.', 'easy-svg') },
+  { id: 'configurator', icon: 'configurator', area: 'security', order: 20, label: __('Configurator', 'easy-svg'), teaser: __('Extend the sanitizer allow-list for special icon libraries. The guard-rails stay.', 'easy-svg') },
+  { id: 'licence', icon: 'licence', area: 'setup', order: 20, label: __('License', 'easy-svg'), teaser: __('Enter your license key and unlock the Pro features.', 'easy-svg') },
 ]
 
 const UPSELL_TAB = { id: 'upsell', icon: 'upsell', area: 'setup', order: 90, label: __('Pro', 'easy-svg'), render: (ctx) => <Upsell ctx={ctx} proTabs={PRO_TABS} onActivate={ctx.onActivate} /> }

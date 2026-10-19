@@ -538,7 +538,7 @@ function easy_svg_panel_rest(): void {
 						 * Nothing is loosened: the sanitiser still pins the stored
 						 * value, which is the only guarantee that ever mattered.
 						 */
-						'description' => __( 'The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it.', 'easy-svg' ),
+						'description' => __( 'The largest SVG the sanitizer will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it.', 'easy-svg' ),
 					),
 				),
 			),
@@ -571,7 +571,7 @@ function easy_svg_panel_rest(): void {
 				'markup' => array(
 					'type'        => 'string',
 					'required'    => true,
-					'description' => __( 'The SVG markup. Sanitised and hardened on the way in, whatever is sent.', 'easy-svg' ),
+					'description' => __( 'The SVG markup. Sanitized and hardened on the way in, whatever is sent.', 'easy-svg' ),
 				),
 				'label'  => array(
 					'type'        => 'string',
@@ -685,7 +685,7 @@ function easy_svg_panel_library_get( $request ) {
 function easy_svg_panel_add_message( string $state ): string {
 	switch ( $state ) {
 		case 'no_sanitizer':
-			return __( 'The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to restore it.', 'easy-svg' );
+			return __( 'The sanitizer is unavailable, so nothing was stored. Reinstall the plugin to restore it.', 'easy-svg' );
 		case 'empty':
 			return __( 'That SVG is empty, so there was nothing to store.', 'easy-svg' );
 		case 'not_saved':
@@ -697,7 +697,7 @@ function easy_svg_panel_add_message( string $state ): string {
 		case 'no_file':
 			return __( 'That file is not stored on this server, so it could not be read.', 'easy-svg' );
 		case 'not_svg':
-			return __( 'That is not an SVG the sanitiser accepts.', 'easy-svg' );
+			return __( 'That is not an SVG the sanitizer accepts.', 'easy-svg' );
 		case 'bad_name':
 			return __( 'That name cannot be turned into an icon name. Use letters and numbers.', 'easy-svg' );
 		case 'too_large':

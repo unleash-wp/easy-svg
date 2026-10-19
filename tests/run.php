@@ -1393,7 +1393,7 @@ $kept_ext = (string) easy_svg_sanitizer()->sanitize( $external );
 check( 'BELL: a site that returns false from esw_svg_remove_remote_references keeps them', false !== strpos( $kept_ext, 'elsewhere.invalid/p.png' ) );
 array_pop( $GLOBALS['hooks']['esw_svg_remove_remote_references'] );
 $readme_now = (string) file_get_contents( $root . '/readme.txt' );
-check( 'BELL: the changelog says external references are now removed', false !== strpos( $readme_now, 'External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behaviour.' ) );
+check( 'BELL: the changelog says external references are now removed', false !== strpos( $readme_now, 'External references in uploaded SVGs are now removed by default; filter `esw_svg_remove_remote_references` restores the old behavior.' ) );
 check( 'SILENCE: and the developer notes show how to keep them', 2 <= substr_count( $readme_now, 'esw_svg_remove_remote_references' ) );
 check( 'SILENCE: and without the filter they go again', false === strpos( (string) easy_svg_sanitizer()->sanitize( $external ), 'elsewhere.invalid' ) );
 
@@ -2516,7 +2516,7 @@ check(
  */
 $parts_jsx = (string) @file_get_contents( $root . '/src/panel/parts.jsx' );
 check( 'BELL: the locked tab can send an installed Pro to its licence tab', str_contains( $parts_jsx, 'onActivate' ) );
-check( 'BELL: and the label follows whether it actually can', 1 === preg_match( "/\{\s*canActivate\s*\?\s*__\(\s*'Activate licence'/", $parts_jsx ) );
+check( 'BELL: and the label follows whether it actually can', 1 === preg_match( "/\{\s*canActivate\s*\?\s*__\(\s*'Activate license'/", $parts_jsx ) );
 check( 'BELL: App.jsx hands it the switch, and only when a licence tab is registered', str_contains( $app_jsx, "setActive( 'licence' )" ) || str_contains( $app_jsx, "setActive('licence')" ) );
 check( 'SILENCE: the sales page is no longer the only thing the button can do', 1 === preg_match( '/canActivate\s*\n?\s*\?\s*onActivate\(\)/', $parts_jsx ) );
 

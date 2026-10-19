@@ -82,7 +82,7 @@ export function LockedTab({ tab, proActive, onActivate }) {
                 : window.open('https://unleash-wp.com/products/easy-svg-pro/', '_blank', 'noopener')
             }
           >
-            {canActivate ? __('Activate licence', 'easy-svg') : __('Get Easy SVG Pro', 'easy-svg')}
+            {canActivate ? __('Activate license', 'easy-svg') : __('Get Easy SVG Pro', 'easy-svg')}
           </Button>
         </Box>
       </Stack>
