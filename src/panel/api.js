@@ -1,11 +1,20 @@
 import { __, sprintf } from '@wordpress/i18n'
 
+/*
+ * A REST answer is in the SITE language unless the request carries
+ * `_locale=user` and reads as JSON (determine_locale(), wp-includes/l10n.php).
+ * `&` when the root is the plain-permalink `?rest_route=` form.
+ */
+export function inReaderLanguage(url) {
+  return `${url}${url.includes('?') ? '&' : '?'}_locale=user`
+}
+
 // Thin REST client for the panel. Nonce rides X-WP-Nonce; credentials stay
 // same-origin so the logged-in admin cookie authenticates. Free routes live
 // under easy-svg/v1; a ctx from the panel carries { restRoot, nonce }.
 export function makeApi({ restRoot, nonce }, namespace = 'easy-svg/v1') {
   const base = `${restRoot}${namespace}`
-  const headers = { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce }
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json', 'X-WP-Nonce': nonce }
 
   async function readError(response, fallback) {
     try {
@@ -26,7 +35,7 @@ export function makeApi({ restRoot, nonce }, namespace = 'easy-svg/v1') {
    * cleanup; fetch then rejects with AbortError, which the caller ignores.
    */
   async function get(path, { signal } = {}) {
-    const r = await fetch(`${base}${path}`, { headers, credentials: 'same-origin', signal })
+    const r = await fetch(inReaderLanguage(`${base}${path}`), { headers, credentials: 'same-origin', signal })
     if (!r.ok) {
       // translators: %d: HTTP status code.
       throw new Error(await readError(r, sprintf(__('Load failed (%d)', 'easy-svg'), r.status)))
@@ -34,7 +43,7 @@ export function makeApi({ restRoot, nonce }, namespace = 'easy-svg/v1') {
     return r.json()
   }
   async function post(path, body, { signal } = {}) {
-    const r = await fetch(`${base}${path}`, {
+    const r = await fetch(inReaderLanguage(`${base}${path}`), {
       method: 'POST',
       headers,
       credentials: 'same-origin',

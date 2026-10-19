@@ -115,7 +115,7 @@ test('a write issued during another one is not lost', async ({ page }) => {
   const wantIcons = !(await icons.isChecked())
 
   let held = 0
-  await page.route('**/easy-svg/v1/settings', async (route) => {
+  await page.route('**/easy-svg/v1/settings*', async (route) => {
     if ('POST' !== route.request().method()) {
       return route.fallback()
     }
@@ -130,7 +130,7 @@ test('a write issued during another one is not lost', async ({ page }) => {
   await roots.nth(1).click({ noWaitAfter: true })
 
   await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: SAVED })).toBeVisible({ timeout: 15000 })
-  await page.unroute('**/easy-svg/v1/settings')
+  await page.unroute('**/easy-svg/v1/settings*')
 
   await page.reload()
   await expect(upload, 'the held write never arrived').toBeChecked({ checked: wantUpload })
@@ -152,7 +152,7 @@ test('a refused write goes back to the last confirmed value', async ({ page }) =
   await expect(field).toBeVisible()
   const before = await field.inputValue()
 
-  await page.route('**/easy-svg/v1/settings', async (route) => {
+  await page.route('**/easy-svg/v1/settings*', async (route) => {
     if ('POST' !== route.request().method()) {
       return route.fallback()
     }
@@ -169,7 +169,7 @@ test('a refused write goes back to the last confirmed value', async ({ page }) =
   await expect(page.locator(`${PANEL} [role="alert"]`).first()).toBeVisible({ timeout: 15000 })
   await expect(field, 'the refused value is still on screen').toHaveValue(before)
 
-  await page.unroute('**/easy-svg/v1/settings')
+  await page.unroute('**/easy-svg/v1/settings*')
   await page.reload()
   await expect(field, 'the refused value reached the server after all').toHaveValue(before)
 })
@@ -187,7 +187,7 @@ test('the later of two writes to one field wins', async ({ page }) => {
   await expect(field).toBeVisible()
 
   let held = 0
-  await page.route('**/easy-svg/v1/settings', async (route) => {
+  await page.route('**/easy-svg/v1/settings*', async (route) => {
     if ('POST' !== route.request().method()) {
       return route.fallback()
     }
@@ -203,7 +203,7 @@ test('the later of two writes to one field wins', async ({ page }) => {
   await field.blur()
 
   await expect(page.locator(`${PANEL} [role="status"]`).filter({ hasText: SAVED })).toBeVisible({ timeout: 15000 })
-  await page.unroute('**/easy-svg/v1/settings')
+  await page.unroute('**/easy-svg/v1/settings*')
 
   await page.reload()
   await expect(field, 'the earlier write landed last').toHaveValue('9')
