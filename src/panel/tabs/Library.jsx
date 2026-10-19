@@ -36,6 +36,18 @@ const iconCall = (slug) => `easy_svg_icon( '${slug}' )`
 
 const nameOf = (ic) => ic.label || ic.slug
 
+// A taken name is stored as `star-2`, and that slug is what a call must use, so
+// the message names it instead of saying only that something was added.
+const addedMessage = (added) =>
+  added?.slug && added?.wanted && added.slug !== added.wanted
+    ? sprintf(
+        // translators: %1$s: the slug the icon was stored under. %2$s: the slug that was already taken.
+        __('Added as “%1$s”: “%2$s” was taken.', 'easy-svg'),
+        added.slug,
+        added.wanted
+      )
+    : __('Icon added.', 'easy-svg')
+
 /*
  * The chooser asks for .svg; a DROP brings whatever was dropped. Nothing is
  * pre-judged in the browser on purpose: the server owns the verdict and owns the
@@ -140,6 +152,9 @@ export default function Library({ ctx }) {
   const [libraryTotal, setLibraryTotal] = useState(0)
   const [err, setErr] = useState('')
   const [status, setStatus] = useState('')
+  // The file picker keeps what it accepted and refuses the same file again
+  // without a word; a new key after each batch gives it an empty hand.
+  const [pickRound, setPickRound] = useState(0)
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -312,7 +327,7 @@ export default function Library({ ctx }) {
       try {
         const markupOfFile = await readText(file)
         fresh = await api.post('/library/add', { label: file.name.replace(/\.svg$/i, ''), markup: markupOfFile })
-        rows.push({ file: file.name, ok: true, message: __('Icon added.', 'easy-svg') })
+        rows.push({ file: file.name, ok: true, message: addedMessage(fresh?.added) })
       } catch (e) {
         rows.push({ file: file.name, ok: false, message: e.message })
       }
@@ -322,6 +337,7 @@ export default function Library({ ctx }) {
     }
     setReport(rows)
     setBusy(false)
+    setPickRound((n) => n + 1)
   }
 
   /*
@@ -370,7 +386,8 @@ export default function Library({ ctx }) {
         try {
           fresh = await api.post('/library/media', { ids: ids.slice(i, i + MEDIA_CHUNK) })
           for (const row of fresh.report || []) {
-            rows.push({ file: row.label || `#${row.id}`, ok: 'added' === row.state, message: row.message })
+            const ok = 'added' === row.state
+            rows.push({ file: row.label || `#${row.id}`, ok, message: ok ? addedMessage(row) : row.message })
           }
         } catch (e) {
           setErr(e.message)
@@ -399,11 +416,12 @@ export default function Library({ ctx }) {
     setBusy(true)
     clear()
     try {
-      take(await api.post('/library/add', { label, markup }))
+      const fresh = await api.post('/library/add', { label, markup })
+      take(fresh)
       setLabel('')
       setMarkup('')
       setPasting(false)
-      setStatus(__('Icon added.', 'easy-svg'))
+      setStatus(addedMessage(fresh?.added))
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -562,6 +580,7 @@ export default function Library({ ctx }) {
    */
   const uploadSurface = (first) => (
     <FileUpload.Root
+      key={pickRound}
       accept={FILE_ACCEPT}
       multiple
       disabled={busy}
@@ -1056,6 +1075,23 @@ function IconTile({
             <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={2} w="full" title={name}>
               {name}
             </Text>
+            {/* Two icons may share a name; never a slug, and the slug is what
+                the copied call and a block use. Shown when it says something
+                the name does not. */}
+            {ic.slug && ic.slug !== name ? (
+              <Text
+                data-slug
+                fontFamily="mono"
+                fontSize="2xs"
+                color="ui.muted"
+                textAlign="center"
+                truncate
+                w="full"
+                title={ic.slug}
+              >
+                {ic.slug}
+              </Text>
+            ) : null}
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5">
               <IconAction
                 onClick={onCopy}
