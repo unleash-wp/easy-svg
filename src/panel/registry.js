@@ -50,6 +50,17 @@
 //   rename({ id, label, collection }) => Promise<{ message? }>
 //   trash({ id, collection })      => Promise<{ message, undo?: () => Promise<{ message }> }>
 //
+// And the icons inside a collection, where the grid shows them:
+//
+//   relabel({ ref, label, collection }) => Promise<{ message? }>
+//   remove({ refs, collection })        => Promise<{ message, undo?: () => Promise<{ message }> }>
+//   add({ icons: [{ name, markup }], to, collection })
+//     => Promise<{ message, rows?: [{ file, ok, message }], undo?: () => Promise<{ message }> }>
+//
+// With `add`, a file dropped, picked or pasted while that collection is on
+// screen goes to it instead of the library. A removal is not asked twice: it
+// is said with Undo instead.
+//
 // `collection` is the object the provider's own load() gave, so whatever it
 // carried there -- a post id, say -- comes back without a lookup.
 //

@@ -332,7 +332,15 @@ export default function Library({ ctx }) {
   const inCollection = (c) =>
     c.icons
       .filter((ic) => !term || `${ic.label || ''} ${ic.slug || ''} ${ic.ref || ''}`.toLowerCase().includes(term))
-      .map((ic) => ({ ...ic, id: ic.key || ic.ref, readonly: true, collection: c.id }))
+      .map((ic) => ({
+        ...ic,
+        id: ic.key || ic.ref,
+        readonly: true,
+        collection: c.id,
+        source: c,
+        canRename: !c.readonly && 'function' === typeof c.provider?.relabel,
+        canRemove: !c.readonly && 'function' === typeof c.provider?.remove,
+      }))
   const shown =
     'library' === view
       ? all
@@ -379,6 +387,8 @@ export default function Library({ ctx }) {
   }
 
   const creator = providers.find((p) => 'function' === typeof p.create)
+  // The set on screen, when it takes files: then an upload goes there.
+  const intoSet = collections.find((c) => c.id === view && !c.readonly && 'function' === typeof c.provider?.add) || null
 
   async function saveName() {
     const label = (naming?.value || '').trim()
@@ -524,6 +534,20 @@ export default function Library({ ctx }) {
     if (!files.length) {
       return
     }
+    if (intoSet) {
+      clear()
+      setReport(null)
+      const icons = []
+      for (const file of files) {
+        icons.push({ name: file.name.replace(/\.svg$/i, ''), markup: await readText(file).catch(() => '') })
+      }
+      const done = await act(() => intoSet.provider.add({ icons, to: intoSet.id, collection: intoSet }))
+      if (Array.isArray(done?.rows)) {
+        setReport(done.rows)
+      }
+      setPickRound((n) => n + 1)
+      return
+    }
     setBusy(true)
     clear()
     setReport(null)
@@ -619,6 +643,20 @@ export default function Library({ ctx }) {
     if (!markup.trim()) {
       return
     }
+    if (intoSet) {
+      clear()
+      const done = await act(() =>
+        intoSet.provider.add({ icons: [{ name: label.trim() || 'icon', markup }], to: intoSet.id, collection: intoSet })
+      )
+      if (done && (done.rows || []).every((r) => r.ok)) {
+        setLabel('')
+        setMarkup('')
+        setPasting(false)
+      } else if (Array.isArray(done?.rows)) {
+        setReport(done.rows)
+      }
+      return
+    }
     setBusy(true)
     clear()
     try {
@@ -672,6 +710,14 @@ export default function Library({ ctx }) {
   async function rename(id, value) {
     const next = value.trim()
     if (!next) {
+      return
+    }
+    const tile = shown.find((ic) => ic.id === id)
+    if (tile?.canRename) {
+      setEditing(null)
+      if (next !== nameOf(tile)) {
+        await act(() => tile.source.provider.relabel({ ref: refOf(tile), label: next, collection: tile.source }))
+      }
       return
     }
     setBusy(true)
@@ -1223,7 +1269,11 @@ export default function Library({ ctx }) {
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
-                  onRemove={() => setConfirming({ id: ic.id })}
+                  onRemove={() =>
+                    ic.canRemove
+                      ? act(() => ic.source.provider.remove({ refs: [refOf(ic)], collection: ic.source }))
+                      : setConfirming({ id: ic.id })
+                  }
                   targets={targets.filter((c) => c.id !== ic.collection)}
                   onMoveTo={(c) => moveTo(c, [refOf(ic)])}
                 />
@@ -1234,7 +1284,7 @@ export default function Library({ ctx }) {
                 you are already looking at is the place you add to. A real
                 <button>, so the keyboard reaches it and it is announced as one.
               */}
-              {'all' === view || 'library' === view ? (
+              {'all' === view || 'library' === view || intoSet ? (
               <Box
                 as="button"
                 type="button"
@@ -1466,9 +1516,10 @@ function IconTile({
                   </Portal>
                 </Menu.Root>
               ) : null}
-              {/* A collection's icon is renamed or deleted where it lives. */}
-              {ic.readonly ? null : (
+              {/* A read-only collection's icon is renamed or deleted where it lives. */}
+              {ic.readonly && !ic.canRename && !ic.canRemove ? null : (
                 <>
+                  {ic.readonly && !ic.canRename ? null : (
                   <IconAction
                     onClick={onEdit}
                     disabled={busy}
@@ -1480,6 +1531,8 @@ function IconTile({
                   >
                     <RenameGlyph />
                   </IconAction>
+                  )}
+                  {ic.readonly && !ic.canRemove ? null : (
                   <IconAction
                     onClick={onRemove}
                     disabled={busy}
@@ -1492,6 +1545,7 @@ function IconTile({
                   >
                     <TrashGlyph />
                   </IconAction>
+                  )}
                 </>
               )}
             </HStack>
