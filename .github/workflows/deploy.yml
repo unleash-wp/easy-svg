@@ -64,6 +64,18 @@ jobs:
       - name: Tests
         run: php tests/run.php
 
+      # A release never ships a catalogue that has fallen behind its source:
+      # 53 strings once went out English on German sites with every test green.
+      # wp-cli by checksum, because this job holds the SVN password.
+      - name: The catalogues carry every string
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq gettext >/dev/null
+          curl -sSLo wp https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+          echo "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  wp" | sha512sum -c -
+          chmod +x wp && sudo mv wp /usr/local/bin/wp
+          scripts/check-i18n.sh
+
       # Pinned to the commit of 2.3.0. The action publishes no major tag (only
       # 1.x/2.x.y tags and a moving `stable` branch), and whatever runs here
       # has the SVN password in its environment. Raise it deliberately.

@@ -65,6 +65,18 @@ jobs:
       - name: Tests
         run: php tests/run.php
 
+      # build-i18n.sh only helps when somebody runs it; this asks every time.
+      # 8.4 only: the catalogue does not depend on the PHP version.
+      - name: The catalogues carry every string
+        if: matrix.php == '8.4'
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq gettext >/dev/null
+          curl -sSLo wp https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar
+          echo "be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6172e6d014dda2e27f88c98befc16c040cbb2bd1bfa121510ea5cdf5f6a30fe8832  wp" | sha512sum -c -
+          chmod +x wp && sudo mv wp /usr/local/bin/wp
+          scripts/check-i18n.sh
+
       # This repository is public, so a self-hosted runner here would hand our
       # machine to whoever opens a pull request. Checked in CI rather than
       # written in a document, because the change that would break it is made
