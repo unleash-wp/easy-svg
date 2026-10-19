@@ -30,7 +30,7 @@ test.describe('a name that is already taken', () => {
 
     await page.locator(`${PANEL} input[type="file"]`).first().setInputFiles(file())
     await expect(
-      page.locator(PANEL).getByText(`Added as “${NAME}-2”: “${NAME}” was taken.`)
+      page.locator(PANEL).getByText(new RegExp(`Added as “${NAME}-2”: “${NAME}” was taken\\.|Als „${NAME}-2“ hinzugefügt: „${NAME}“ war schon vergeben\\.`))
     ).toBeVisible()
 
     const slugs = (await listIcons(page)).filter((i) => i.label === NAME).map((i) => i.slug).sort()

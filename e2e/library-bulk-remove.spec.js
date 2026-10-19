@@ -41,7 +41,7 @@ const pick = (page, key) => tile(page, key).locator('[data-scope="checkbox"][dat
 const calls = (page) => page.evaluate(() => window.__calls)
 const said = (page) => page.locator(`${PANEL} [data-move-result]`)
 const selectSeveral = (page) => page.getByRole('button', { name: /Select several|Mehrere auswählen/ }).click()
-const removeButton = (page) => page.getByRole('button', { name: /^(Remove|Entfernen)/ })
+const removeButton = (page) => page.getByRole('button', { name: /^(Remove|Entfernen)|^\d+ entfernen$/ })
 
 test.describe('removing picked icons', () => {
   test.beforeAll(async ({ browser }) => {
@@ -75,7 +75,7 @@ test.describe('removing picked icons', () => {
       { remove: ['e2e-t/x'], setId: 62 },
     ])
     await said(page).getByRole('button', { name: /Undo|Rückgängig/ }).click()
-    await expect(said(page)).toContainText('Undone')
+    await expect(said(page)).toContainText(/Undone|Rückgängig gemacht/)
   })
 
   test('a big selection goes in batches the provider takes', async ({ page }) => {
