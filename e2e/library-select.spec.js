@@ -4,7 +4,8 @@ import { PANEL, LIBRARY, addIcon, sweepE2E, adminPage } from './helpers.js'
 /*
  * Picking several icons, from any collections: they are moved together -- in
  * batches a provider takes, undone newest first -- or exported as one file.
- * Removing in bulk reaches only the library's own icons, and says how many.
+ * Removing in bulk reaches what can be removed -- here, with a provider that
+ * takes no removal, only the library's own icon -- and says how many.
  */
 
 const SQUARE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="20" height="20" x="2" y="2"/></svg>'
@@ -89,13 +90,13 @@ test.describe('several icons at once', () => {
     await page.getByRole('button', { name: /Select several|Mehrere auswählen/ }).click()
     await page.locator(`${PANEL} [data-icon-key="easy-svg/e2e-pick"]`).locator('[data-scope="checkbox"][data-part="control"]').click()
     await page.locator(`${PANEL} [data-icon-key="e2e-a/i0"]`).locator('[data-scope="checkbox"][data-part="control"]').click()
-    await expect(page.getByRole('button', { name: /Remove 1 from the library|1 aus der Bibliothek/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^(Remove 1|1 entfernen)$/ })).toBeVisible()
     await page.getByRole('button', { name: /^(Export|Exportieren)$/ }).click()
     await expect(said(page)).toContainText('2 exported')
     expect(await calls(page)).toEqual([{ export: ['easy-svg/e2e-pick', 'e2e-a/i0'] }])
   })
 
-  test('only set icons picked: no Remove; past the export cap: no Export', async ({ page }) => {
+  test('only set icons of a provider without removal picked: no Remove; past the export cap: no Export', async ({ page }) => {
     await page.goto(LIBRARY)
     await provide(page, { exportMax: 1 })
     await page.getByRole('button', { name: /Select several|Mehrere auswählen/ }).click()
