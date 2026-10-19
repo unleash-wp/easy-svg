@@ -722,11 +722,28 @@ function easy_svg_panel_library_add( $request ) {
 	$body   = (array) $request->get_json_params();
 	$label  = isset( $body['label'] ) ? sanitize_text_field( (string) $body['label'] ) : '';
 	$markup = isset( $body['markup'] ) ? (string) $body['markup'] : '';
-	$result = easy_svg_add_icon( $label, $markup );
-	if ( 'added' !== $result ) {
-		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result ), array( 'status' => 422 ) );
+	$result = easy_svg_add_icon_result( $label, $markup );
+	if ( 'added' !== $result['state'] ) {
+		return new WP_Error( 'easy_svg_add_failed', easy_svg_panel_add_message( (string) $result['state'] ), array( 'status' => 422 ) );
 	}
-	return new WP_REST_Response( easy_svg_panel_library_payload() );
+	$payload          = easy_svg_panel_library_payload();
+	$payload['added'] = easy_svg_panel_added_names( $result );
+	return new WP_REST_Response( $payload );
+}
+
+/**
+ * The slug an icon got and the one it asked for. They differ when the name was
+ * taken (`star` became `star-2`), and the slug is what a block or a theme calls.
+ *
+ * @param array $result What easy_svg_add_icon_result() answered.
+ * @return array{slug:string, wanted:string}
+ */
+function easy_svg_panel_added_names( array $result ): array {
+	$slug = (string) ( $result['slug'] ?? '' );
+	return array(
+		'slug'   => $slug,
+		'wanted' => (string) ( $result['wanted'] ?? $slug ),
+	);
 }
 
 /**
@@ -767,12 +784,16 @@ function easy_svg_panel_library_media( $request ) {
 	$report = array();
 	foreach ( $ids as $raw ) {
 		$id       = max( 0, (int) $raw );
-		$state    = easy_svg_panel_media_state( $id );
-		$report[] = array(
-			'id'      => $id,
-			'label'   => $id > 0 ? (string) get_the_title( $id ) : '',
-			'state'   => $state,
-			'message' => easy_svg_panel_add_message( $state ),
+		$result   = easy_svg_panel_media_add( $id );
+		$state    = (string) $result['state'];
+		$report[] = array_merge(
+			array(
+				'id'      => $id,
+				'label'   => $id > 0 ? (string) get_the_title( $id ) : '',
+				'state'   => $state,
+				'message' => easy_svg_panel_add_message( $state ),
+			),
+			'added' === $state ? easy_svg_panel_added_names( $result ) : array()
 		);
 	}
 
@@ -787,21 +808,31 @@ function easy_svg_panel_library_media( $request ) {
  * PNG" and "that file is not on this server" send a person somewhere different.
  */
 function easy_svg_panel_media_state( int $id ): string {
+	return (string) easy_svg_panel_media_add( $id )['state'];
+}
+
+/**
+ * The same, answering with the whole add result, so the report can name the
+ * slug the icon got.
+ *
+ * @return array{state:string, id?:int, slug?:string, wanted?:string}
+ */
+function easy_svg_panel_media_add( int $id ): array {
 	if ( $id <= 0 || ! get_post( $id ) ) {
-		return 'not_found';
+		return array( 'state' => 'not_found' );
 	}
 	if ( 'image/svg+xml' !== strtolower( (string) get_post_mime_type( $id ) ) ) {
-		return 'not_svg';
+		return array( 'state' => 'not_svg' );
 	}
 	$path = get_attached_file( $id );
 	if ( ! is_string( $path ) || '' === $path || ! is_readable( $path ) ) {
-		return 'no_file';
+		return array( 'state' => 'no_file' );
 	}
 	$markup = file_get_contents( $path );
 	if ( ! is_string( $markup ) ) {
-		return 'no_file';
+		return array( 'state' => 'no_file' );
 	}
-	return (string) easy_svg_add_icon( sanitize_text_field( (string) get_the_title( $id ) ), $markup );
+	return easy_svg_add_icon_result( sanitize_text_field( (string) get_the_title( $id ) ), $markup );
 }
 
 /**

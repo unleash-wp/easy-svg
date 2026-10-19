@@ -308,7 +308,7 @@ function easy_svg_add_icon( $label, $markup ) {
  * name is taken: a caller that derives the slug from the label is right until
  * the first collision, then hands back somebody else's icon.
  *
- * @return array{state:string, id:int, slug:string}
+ * @return array{state:string, id:int, slug:string, wanted?:string}
  */
 function easy_svg_add_icon_result( $label, $markup ) {
     $refused = static function ( string $state ): array {
@@ -390,9 +390,11 @@ function easy_svg_add_icon_result( $label, $markup ) {
         return $refused( 'not_saved' );
     }
 
+    // `wanted` beside `slug`, so a caller can say the name was taken.
     return array(
-        'state' => 'added',
-        'id'    => (int) $id,
-        'slug'  => (string) $stored->post_name,
+        'state'  => 'added',
+        'id'     => (int) $id,
+        'slug'   => (string) $stored->post_name,
+        'wanted' => (string) $decision['slug'],
     );
 }

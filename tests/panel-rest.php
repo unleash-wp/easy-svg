@@ -266,17 +266,35 @@ check( 'BELL: add is refused when the icon store is off', easy_svg_panel_library
 // the label it is handed, which is what easy_svg_add_icon() documents as "already
 // sanitised as text" -- the REST must hold to that, like the form handler it
 // replaces, or an unsanitised title is stored for later output to choke on.
-if ( ! function_exists( 'easy_svg_add_icon' ) ) {
-	function easy_svg_add_icon( $label, $markup ) {
+// The real pair's shape (icon-manager.php): the one-word wrapper, and the
+// result that names the stored slug and the one that was wanted.
+if ( ! function_exists( 'easy_svg_add_icon_result' ) ) {
+	function easy_svg_add_icon_result( $label, $markup ) {
 		$GLOBALS['added_label']  = $label;
 		$GLOBALS['added_markup'] = $markup;
 		$GLOBALS['added'][]      = array( $label, $markup );
-		return $GLOBALS['add_result'] ?? 'added';
+		$state                   = $GLOBALS['add_result'] ?? 'added';
+		if ( 'added' !== $state ) {
+			return array( 'state' => $state, 'id' => 0, 'slug' => '' );
+		}
+		$wanted = strtolower( preg_replace( '/[^a-z0-9]+/i', '-', trim( (string) $label ) ) );
+		return array( 'state' => 'added', 'id' => 77, 'slug' => $GLOBALS['add_slug'] ?? $wanted, 'wanted' => $wanted );
+	}
+	function easy_svg_add_icon( $label, $markup ) {
+		return easy_svg_add_icon_result( $label, $markup )['state'];
 	}
 }
 easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => "<script>alert(1)</script>Heart", 'markup' => '<svg/>' ) ) );
 check( 'BELL: the label is sanitised before storage (no markup reaches the title)', ! str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), '<' ) );
 check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOBALS['added_label'] ?? '' ), 'Heart' ) );
+
+// #108 K5: a taken name is stored as heart-2. The answer names both, so the
+// screen can say which name the icon actually answers to.
+$GLOBALS['add_slug'] = 'heart-2';
+$fresh               = easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => 'Heart', 'markup' => '<svg/>' ) ) )->get_data();
+unset( $GLOBALS['add_slug'] );
+check( 'BELL: the add answer names the slug the icon got and the one it wanted', array( 'slug' => 'heart-2', 'wanted' => 'heart' ) === ( $fresh['added'] ?? null ) );
+check( 'SILENCE: and still carries the library page', isset( $fresh['items'] ) );
 
 // ─── library/media: the media library, read on the SERVER ─────────────────────
 // The browser sends attachment ids, never bytes. An offloaded library serves
@@ -320,6 +338,7 @@ check( 'BELL: an SVG attachment is added', 1 === count( $GLOBALS['added'] ) );
 check( 'BELL: the FILE is what gets stored, not the title or the url', str_contains( (string) ( $GLOBALS['added_markup'] ?? '' ), '<path' ) );
 check( 'BELL: the attachment title becomes the label', 'Star' === ( $GLOBALS['added_label'] ?? '' ) );
 check( 'SILENCE: the library payload comes back with the report', isset( $out['items'] ) && isset( $out['report'] ) );
+check( 'BELL: a media row names the slug the icon got and the one it wanted', 'star' === ( $out['report'][0]['slug'] ?? null ) && 'star' === ( $out['report'][0]['wanted'] ?? null ) );
 
 // Each refusal is its own word, because "that is a PNG" and "that file is not on
 // this server" send a person somewhere completely different.
