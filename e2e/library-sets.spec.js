@@ -43,7 +43,12 @@ async function provide(page, { create = true } = {}) {
         return { id: 'e2e-new', message: `${label} made` }
       }
     }
-    window.EasySvgPanel.registerCollections(provider)
+    // Only this provider: with Pro active, its real one also takes create, and
+    // New set would go to the server instead of to the calls recorded here.
+    const reg = window.EasySvgPanel
+    const all = reg.collectionProviders.bind(reg)
+    reg.collectionProviders = () => all().filter((p) => 'e2e' === p.id)
+    reg.registerCollections(provider)
   }, create)
 }
 
