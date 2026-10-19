@@ -19,6 +19,20 @@
 // before. The menu and the rail then agree, because both read the one answer
 // PHP gave -- and a capability a browser could pass would be worth nothing.
 //
+// Level 3 adds collections inside the library tab, so an add-on's icons sit in
+// the one grid instead of a screen of their own:
+//
+//   window.EasySvgPanel.registerCollections({ id, load })
+//
+//   load({ signal }) => Promise<Array<{
+//     id: string, label: string, readonly?: boolean,
+//     icons: Array<{ key, slug, ref, label, content }>,
+//   }>>
+//
+// `ref` is the address a template calls (`set/slug`); `content` is markup the
+// add-on already sanitised and hardened. The library lists them on the left
+// and filters the grid; it offers no rename or delete on them.
+//
 // window.EasySvgPanel.api carries that level, so an add-on that must also run
 // on an older free plugin can ask rather than guess.
 //
@@ -34,7 +48,16 @@ export function installRegistry() {
   if (window.EasySvgPanel && window.EasySvgPanel.__installed) return
 
   const registered = new Map()
+  const providers = new Map()
   const listeners = new Set()
+  const notify = () =>
+    listeners.forEach((fn) => {
+      try {
+        fn()
+      } catch {
+        /* a bad listener must not break registration */
+      }
+    })
 
   window.EasySvgPanel = {
     __installed: true,
@@ -46,13 +69,15 @@ export function installRegistry() {
     registerTab(tab) {
       if (!tab || !tab.id || typeof tab.render !== 'function') return
       registered.set(tab.id, tab)
-      listeners.forEach((fn) => {
-        try {
-          fn()
-        } catch {
-          /* a bad listener must not break registration */
-        }
-      })
+      notify()
+    },
+    registerCollections(provider) {
+      if (!provider || !provider.id || typeof provider.load !== 'function') return
+      providers.set(provider.id, provider)
+      notify()
+    },
+    collectionProviders() {
+      return [...providers.values()]
     },
     get(id) {
       return registered.get(id)
