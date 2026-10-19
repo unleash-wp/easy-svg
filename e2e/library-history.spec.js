@@ -49,7 +49,12 @@ async function provide(page, { history = true } = {}) {
 
 const tile = (page, key) => page.locator(`${PANEL} [data-icon-key="${key}"]`)
 const calls = (page) => page.evaluate(() => window.__calls)
-const historyButton = (t) => t.getByRole('button', { name: /Earlier versions of|Frühere Versionen/ })
+// History sits in the tile's More menu, beside recolour and replace.
+const more = (t) => t.getByRole('button', { name: /More for|Mehr für/ })
+const openHistory = async (page, t) => {
+  await more(t).click()
+  await page.getByRole('menuitem', { name: /Earlier versions|Frühere Versionen/ }).click()
+}
 
 test.describe('an icon\'s earlier drawings', () => {
   test.beforeAll(async ({ browser }) => {
@@ -69,7 +74,7 @@ test.describe('an icon\'s earlier drawings', () => {
   test('a library icon\'s versions are listed, the one in use marked, an older one restored', async ({ page }) => {
     await page.goto(LIBRARY)
     await provide(page)
-    await historyButton(tile(page, 'easy-svg/e2e-hist')).click()
+    await openHistory(page, tile(page, 'easy-svg/e2e-hist'))
     const dialog = page.locator(`${PANEL} [data-icon-history]`)
     await expect(dialog.locator('[data-version]')).toHaveCount(2)
     await expect(dialog.locator('[data-version="902"]')).toContainText(/In use|In Verwendung/)
@@ -87,7 +92,7 @@ test.describe('an icon\'s earlier drawings', () => {
   test('a set icon asks its own provider, with its collection', async ({ page }) => {
     await page.goto(LIBRARY)
     await provide(page)
-    await historyButton(tile(page, 'e2e-h/dot')).click()
+    await openHistory(page, tile(page, 'e2e-h/dot'))
     await expect(page.locator(`${PANEL} [data-icon-history] [data-version]`)).toHaveCount(2)
     expect(await calls(page)).toEqual([{ history: { ref: 'e2e-h/dot', setId: 31 } }])
   })
@@ -96,11 +101,11 @@ test.describe('an icon\'s earlier drawings', () => {
     await page.goto(LIBRARY)
     await provide(page)
     await expect(tile(page, 'e2e-t/leaf')).toBeVisible()
-    await expect(historyButton(tile(page, 'e2e-t/leaf'))).toHaveCount(0)
+    await expect(more(tile(page, 'e2e-t/leaf'))).toHaveCount(0)
 
     await page.goto(LIBRARY)
     await provide(page, { history: false })
     await expect(tile(page, 'easy-svg/e2e-hist')).toBeVisible()
-    await expect(historyButton(tile(page, 'easy-svg/e2e-hist'))).toHaveCount(0)
+    await expect(more(tile(page, 'easy-svg/e2e-hist'))).toHaveCount(0)
   })
 })

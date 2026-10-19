@@ -77,7 +77,8 @@ test.describe('moving onto a collection', () => {
     await page.goto(LIBRARY)
     await provide(page)
     const tile = page.locator(`${PANEL} [data-icon-key="e2e-a/star"]`)
-    await tile.getByRole('button', { name: /Move .* to|verschieben/ }).click()
+    // In the tile's More menu, as a group of its own.
+    await tile.getByRole('button', { name: /More for|Mehr für/ }).click()
     const menu = page.getByRole('menu')
     // Its own collection and a read-only one are not offered.
     await expect(menu.getByRole('menuitem', { name: /E2E Set A/ })).toHaveCount(0)
