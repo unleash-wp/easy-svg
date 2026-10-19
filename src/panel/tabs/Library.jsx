@@ -81,6 +81,8 @@ const when = (gmt) => {
 
 // What a tile carries when it is dragged, and the address it moves by.
 const MOVE_TYPE = 'application/x-easy-svg-icon'
+// How many addresses one move hands a provider; Pro's route takes 25.
+const MOVE_BATCH = 25
 const refOf = (ic) => ic.ref || `easy-svg/${ic.slug}`
 
 // A taken name is stored as `star-2`, and that slug is what a call must use, so
@@ -176,6 +178,11 @@ const HistoryGlyph = () => (
 const MoreGlyph = () => (
   <Glyph>
     <path d="M5 12h.01M12 12h.01M19 12h.01" />
+  </Glyph>
+)
+const DownloadGlyph = () => (
+  <Glyph>
+    <path d="M12 4v12M7 11l5 5 5-5M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
   </Glyph>
 )
 const UploadGlyph = () => (
@@ -394,26 +401,69 @@ export default function Library({ ctx }) {
       : 'all' === view
         ? [...all, ...collections.flatMap(inCollection)]
         : collections.filter((c) => c.id === view).flatMap(inCollection)
-  const own = shown.filter((ic) => !ic.readonly)
+  // Every shown tile can be picked: moving and exporting reach any of them.
+  // Removing in bulk reaches only the library's own, which this screen stores.
+  const own = shown
   // Where a tile may go: a collection that is not read only, of a provider
   // that takes moves.
   const targets = collections.filter((c) => !c.readonly && c.provider && 'function' === typeof c.provider.move)
 
   async function moveTo(collection, refs) {
-    if (!collection || !refs.length) {
+    const going = refs.filter((ref) => !ref.startsWith(`${collection?.id}/`))
+    if (!collection || !going.length) {
       return
     }
     setBusy(true)
     setErr('')
+    // A provider takes a bounded batch, so a big selection goes in turns; the
+    // way back undoes them newest first.
+    const said = []
+    const undos = []
     try {
-      const done = await collection.provider.move({ refs, to: collection.id })
-      setMoved({ message: done?.message || __('Moved.', 'easy-svg'), undo: 'function' === typeof done?.undo ? done.undo : null })
-      reloadCollections.current()
+      for (let i = 0; i < going.length; i += MOVE_BATCH) {
+        const done = await collection.provider.move({ refs: going.slice(i, i + MOVE_BATCH), to: collection.id })
+        said.push(done?.message || __('Moved.', 'easy-svg'))
+        if ('function' === typeof done?.undo) {
+          undos.push(done.undo)
+        }
+      }
     } catch (e) {
       setErr(e.message)
     } finally {
+      setMoved(
+        said.length
+          ? {
+              message: said.join(' · '),
+              undo: undos.length
+                ? async () => {
+                    const back = []
+                    for (const undo of undos.slice().reverse()) {
+                      back.push((await undo())?.message || __('Undone.', 'easy-svg'))
+                    }
+                    return { message: back.join(' · ') }
+                  }
+                : null,
+            }
+          : null
+      )
+      if (said.length) {
+        setPicked(new Set())
+      }
+      reloadCollections.current()
       setBusy(false)
     }
+  }
+
+  const exporter = providers.find((p) => 'function' === typeof p.exportIcons)
+  const pickedTiles = shown.filter((ic) => picked.has(ic.id))
+  const pickedLibrary = pickedTiles.filter((ic) => !ic.readonly).map((ic) => ic.id)
+  const exportTooMany = exporter && Number.isFinite(exporter.exportMax) && pickedTiles.length > exporter.exportMax
+
+  async function exportPicked() {
+    if (!exporter || !pickedTiles.length || exportTooMany) {
+      return
+    }
+    await act(() => exporter.exportIcons({ refs: pickedTiles.map(refOf) }))
   }
 
   // A sidebar action: its answer is said where a move's is, Undo included.
@@ -852,7 +902,7 @@ export default function Library({ ctx }) {
   const openChooser = () => fileRef.current && fileRef.current.click()
 
   // What the dialog is about to delete: a tile's one icon, or the selection.
-  const confirmIds = confirming ? (confirming.bulk ? Array.from(picked) : [confirming.id]) : []
+  const confirmIds = confirming ? (confirming.bulk ? pickedLibrary : [confirming.id]) : []
   const confirmName = confirming && !confirming.bulk
     ? nameOf(all.find((ic) => ic.id === confirming.id) || { slug: '' })
     : ''
@@ -1230,7 +1280,9 @@ export default function Library({ ctx }) {
             keeps the panel's type and tokens.
           */}
           <ActionBar.Root open={selecting && picked.size > 0} closeOnInteractOutside={false}>
-            <ActionBar.Positioner>
+            {/* Above the grid and the collections beside it: without a layer of
+                its own the sidebar took the clicks meant for the bar. */}
+            <ActionBar.Positioner zIndex="docked">
               <ActionBar.Content
                 bg="ui.heading"
                 color="ui.surface"
@@ -1252,17 +1304,80 @@ export default function Library({ ctx }) {
                   </Text>
                 </ActionBar.SelectionTrigger>
                 <ActionBar.Separator bg="whiteAlpha.400" />
-                <Button
-                  size="sm"
-                  variant="primary"
-                  bg="ui.bad"
-                  _hover={{ bg: 'ui.bad', opacity: 0.9 }}
-                  onClick={() => setConfirming({ bulk: true })}
-                  disabled={busy}
-                >
-                  <TrashGlyph />
-                  {__('Remove', 'easy-svg')}
-                </Button>
+                {targets.length ? (
+                  <Menu.Root>
+                    {/* The Trigger itself, not asChild: Ark anchors the menu to
+                        its ref, which this panel's Button does not pass on. */}
+                    <Menu.Trigger
+                      disabled={busy}
+                      display="inline-flex"
+                      alignItems="center"
+                      gap="1.5"
+                      h="8"
+                      px="3"
+                      fontSize="sm"
+                      fontWeight="600"
+                      borderRadius="forge"
+                      color="ui.surface"
+                      cursor="pointer"
+                      _hover={{ bg: 'whiteAlpha.200' }}
+                      _focusVisible={{ outline: '2px solid', outlineColor: 'ui.surface', outlineOffset: '2px' }}
+                    >
+                      <MoveGlyph />
+                      {__('Move to…', 'easy-svg')}
+                    </Menu.Trigger>
+                    <Menu.Positioner>
+                      <Menu.Content>
+                        {targets.map((c) => (
+                          <Menu.Item key={c.id} value={c.id} onSelect={() => moveTo(c, pickedTiles.map(refOf))}>
+                            {c.label || c.id}
+                          </Menu.Item>
+                        ))}
+                      </Menu.Content>
+                    </Menu.Positioner>
+                  </Menu.Root>
+                ) : null}
+                {exporter ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="ui.surface"
+                    _hover={{ color: 'ui.surface', bg: 'whiteAlpha.200' }}
+                    onClick={exportPicked}
+                    disabled={busy || exportTooMany}
+                    title={
+                      exportTooMany
+                        ? sprintf(
+                            // translators: %d: most icons one export takes.
+                            __('One export takes at most %d icons.', 'easy-svg'),
+                            exporter.exportMax
+                          )
+                        : undefined
+                    }
+                  >
+                    <DownloadGlyph />
+                    {__('Export', 'easy-svg')}
+                  </Button>
+                ) : null}
+                {pickedLibrary.length ? (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    bg="ui.bad"
+                    _hover={{ bg: 'ui.bad', opacity: 0.9 }}
+                    onClick={() => setConfirming({ bulk: true })}
+                    disabled={busy}
+                  >
+                    <TrashGlyph />
+                    {pickedLibrary.length === pickedTiles.length
+                      ? __('Remove', 'easy-svg')
+                      : sprintf(
+                          // translators: %d: number of picked icons that are the library's own.
+                          _n('Remove %d from the library', 'Remove %d from the library', pickedLibrary.length, 'easy-svg'),
+                          pickedLibrary.length
+                        )}
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1542,7 +1657,7 @@ function IconTile({
       }}
     >
       <Stack gap="1.5" align="center">
-        {selecting && !ic.readonly ? (
+        {selecting ? (
           <HStack w="full" justify="flex-start">
             <Checkbox.Root
               size="sm"

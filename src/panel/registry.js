@@ -69,6 +69,14 @@
 //
 // `markup` is drawn in the panel, so the provider hands it over hardened.
 //
+// And the icons picked in the grid, from any collections, exported together;
+// the provider delivers the file itself:
+//
+//   exportIcons({ refs }) => Promise<{ message }>
+//   exportMax: number     // more picked than this, and Export is not offered
+//
+// A selection is moved with the provider's move(), in batches of 25.
+//
 // `collection` is the object the provider's own load() gave, so whatever it
 // carried there -- a post id, say -- comes back without a lookup.
 //
