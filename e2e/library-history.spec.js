@@ -53,7 +53,7 @@ const calls = (page) => page.evaluate(() => window.__calls)
 const more = (t) => t.getByRole('button', { name: /More for|Mehr für/ })
 const openHistory = async (page, t) => {
   await more(t).click()
-  await page.getByRole('menuitem', { name: /Earlier versions|Frühere Versionen/ }).click()
+  await page.getByRole('menuitem', { name: /Earlier versions|Frühere (Versionen|Fassungen)/ }).click()
 }
 
 test.describe('an icon\'s earlier drawings', () => {

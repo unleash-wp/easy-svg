@@ -102,7 +102,7 @@ test.describe('several icons at once', () => {
     await page.getByRole('button', { name: /Select several|Mehrere auswählen/ }).click()
     await page.locator(`${PANEL} [data-icon-key="e2e-a/i0"]`).locator('[data-scope="checkbox"][data-part="control"]').click()
     await page.locator(`${PANEL} [data-icon-key="e2e-a/i1"]`).locator('[data-scope="checkbox"][data-part="control"]').click()
-    await expect(page.getByRole('button', { name: /^(Remove|Entfernen)/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^(Remove|Entfernen)|^\d+ entfernen$/ })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^(Export|Exportieren)$/ })).toBeDisabled()
   })
 })
