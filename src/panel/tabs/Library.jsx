@@ -18,6 +18,7 @@ import { __, _n, sprintf } from '@wordpress/i18n'
 import { Section, FieldRow, SkeletonRows, Button, TextInput, IconAction, useDropZone } from '../../ui.jsx'
 import { Notice, SearchField, ReportList } from '../parts.jsx'
 import { makeApi } from '../api.js'
+import { getRegistry } from '../registry.js'
 
 // Defence in depth for the preview: the stored markup is already server-hardened,
 // and a pasted draft is sanitised here before it ever touches innerHTML. The
@@ -171,6 +172,36 @@ export default function Library({ ctx }) {
   // The call to copy by hand when there is no clipboard API, dismissable.
   const [copyHelp, setCopyHelp] = useState('')
   const fileRef = useRef(null)
+  // An add-on's collections (contract 3), and which of them the grid shows:
+  // 'all', 'library' or a collection id.
+  const [collections, setCollections] = useState([])
+  const [view, setView] = useState('all')
+
+  useEffect(() => {
+    const reg = getRegistry()
+    if (!reg || typeof reg.collectionProviders !== 'function') {
+      return undefined
+    }
+    let ac = null
+    const load = () => {
+      ac?.abort()
+      ac = new AbortController()
+      const signal = ac.signal
+      Promise.all(
+        reg.collectionProviders().map((p) => Promise.resolve(p.load({ signal })).catch(() => []))
+      ).then((lists) => {
+        if (!signal.aborted) {
+          setCollections(lists.flat().filter((c) => c && c.id && Array.isArray(c.icons)))
+        }
+      })
+    }
+    load()
+    const off = reg.subscribe(load)
+    return () => {
+      off()
+      ac?.abort()
+    }
+  }, [])
 
   // One place unwraps a library response, so a route that still answers the old
   // bare array keeps working and the total only has to be read once.
@@ -264,10 +295,23 @@ export default function Library({ ctx }) {
   // re-renders with iconsEnabled flipped the moment the Settings tab is saved.
   // What the server answered IS the list: it searched name and slug across the
   // whole library, which is the part a browser-side filter could not reach.
-  const shown = all
+  // A collection's icons join the grid as tiles of their own: keyed by their
+  // address, never selectable, renamed or deleted from here.
+  const term = query.trim().toLowerCase()
+  const inCollection = (c) =>
+    c.icons
+      .filter((ic) => !term || `${ic.label || ''} ${ic.slug || ''} ${ic.ref || ''}`.toLowerCase().includes(term))
+      .map((ic) => ({ ...ic, id: ic.key || ic.ref, readonly: true }))
+  const shown =
+    'library' === view
+      ? all
+      : 'all' === view
+        ? [...all, ...collections.flatMap(inCollection)]
+        : collections.filter((c) => c.id === view).flatMap(inCollection)
+  const own = shown.filter((ic) => !ic.readonly)
   // Every shown id, not a size comparison: a count can read "all" while the
   // picked ids belong to a list that is no longer on screen.
-  const allPicked = shown.length > 0 && shown.every((ic) => picked.has(ic.id))
+  const allPicked = own.length > 0 && own.every((ic) => picked.has(ic.id))
 
   // Every control on this screen depends on the Icon-library toggle, so nothing
   // is revealed while the feature is off; point back to Settings instead.
@@ -288,7 +332,7 @@ export default function Library({ ctx }) {
   }
 
   function toggleAll() {
-    setPicked((prev) => (shown.every((ic) => prev.has(ic.id)) ? new Set() : new Set(shown.map((ic) => ic.id))))
+    setPicked((prev) => (own.every((ic) => prev.has(ic.id)) ? new Set() : new Set(own.map((ic) => ic.id))))
   }
 
   function togglePicked(id, on) {
@@ -482,7 +526,9 @@ export default function Library({ ctx }) {
   }
 
   async function copyCall(ic) {
-    const text = iconCall(ic.slug)
+    // A collection's icon is called by its full address; a library icon by
+    // its slug, which is what the free collection answers to.
+    const text = iconCall(ic.ref || ic.slug)
     clear()
     try {
       await navigator.clipboard.writeText(text)
@@ -735,7 +781,7 @@ export default function Library({ ctx }) {
   // search term, though -- a search answers empty the same way, and this screen
   // has no search field, so it would tell somebody with 400 icons they have
   // none and remove the box they would clear.
-  if (all.length === 0 && !query.trim()) {
+  if (all.length === 0 && !query.trim() && !collections.length) {
     return (
       <Stack gap="5" maxW="900px">
         {messages}
@@ -785,7 +831,7 @@ export default function Library({ ctx }) {
               what the person can see.
             */}
             {selecting ? (
-              <Button size="sm" variant="ghost" onClick={toggleAll} disabled={busy || !shown.length}>
+              <Button size="sm" variant="ghost" onClick={toggleAll} disabled={busy || !own.length}>
                 {allPicked ? __('Clear selection', 'easy-svg') : __('Select all', 'easy-svg')}
               </Button>
             ) : null}
@@ -873,7 +919,32 @@ export default function Library({ ctx }) {
             toolbar above stays put with four hundred icons in the library. maxH
             is a little over four rows: enough that there is visibly more below.
           */}
+          <Stack direction={{ base: 'column', md: 'row' }} gap="4" align="stretch">
+          {collections.length ? (
+            <Stack data-collections as="nav" aria-label={__('Collections', 'easy-svg')} gap="0.5" minW={{ md: '180px' }} pt="4">
+              {[
+                { id: 'all', label: __('All icons', 'easy-svg'), count: libraryTotal + collections.reduce((n, c) => n + c.icons.length, 0) },
+                { id: 'library', label: __('Icon library', 'easy-svg'), count: libraryTotal },
+                ...collections.map((c) => ({ id: c.id, label: c.label || c.id, count: c.icons.length, readonly: !!c.readonly })),
+              ].map((entry) => (
+                <Button
+                  key={entry.id}
+                  size="sm"
+                  variant={view === entry.id ? 'subtle' : 'ghost'}
+                  justifyContent="space-between"
+                  aria-pressed={view === entry.id}
+                  onClick={() => setView(entry.id)}
+                  title={entry.readonly ? __('Read only: these icons come from files', 'easy-svg') : undefined}
+                >
+                  <Text as="span" truncate>{entry.label}</Text>
+                  <Text as="span" fontSize="xs" color="ui.muted">{entry.count}</Text>
+                </Button>
+              ))}
+            </Stack>
+          ) : null}
           <Box
+            flex="1"
+            minW="0"
             maxH="420px"
             overflowY="auto"
             px="1"
@@ -919,6 +990,7 @@ export default function Library({ ctx }) {
                 you are already looking at is the place you add to. A real
                 <button>, so the keyboard reaches it and it is announced as one.
               */}
+              {'all' === view || 'library' === view ? (
               <Box
                 as="button"
                 type="button"
@@ -940,6 +1012,7 @@ export default function Library({ ctx }) {
                   </Text>
                 </Stack>
               </Box>
+              ) : null}
             </SimpleGrid>
 
             {shown.length === 0 ? (
@@ -950,6 +1023,7 @@ export default function Library({ ctx }) {
               </Box>
             ) : null}
           </Box>
+          </Stack>
           {fileInput}
         </Stack>
       </Section>
@@ -986,6 +1060,7 @@ function IconTile({
   const isEditing = null !== editing
   return (
     <Box
+      data-icon-key={ic.key || ic.ref || `easy-svg/${ic.slug}`}
       bg="ui.surface"
       borderWidth="1px"
       borderColor={picked ? 'ui.primary' : 'ui.border'}
@@ -1005,7 +1080,7 @@ function IconTile({
       }}
     >
       <Stack gap="1.5" align="center">
-        {selecting ? (
+        {selecting && !ic.readonly ? (
           <HStack w="full" justify="flex-start">
             <Checkbox.Root
               size="sm"
@@ -1104,29 +1179,34 @@ function IconTile({
               >
                 <CopyGlyph />
               </IconAction>
-              <IconAction
-                onClick={onEdit}
-                disabled={busy}
-                {...TILE_ACTION_SIZE}
-                label={
-                  // translators: %s: icon name.
-                  sprintf(__('Rename %s', 'easy-svg'), name)
-                }
-              >
-                <RenameGlyph />
-              </IconAction>
-              <IconAction
-                onClick={onRemove}
-                disabled={busy}
-                danger
-                {...TILE_ACTION_SIZE}
-                label={
-                  // translators: %s: icon name.
-                  sprintf(__('Delete %s', 'easy-svg'), name)
-                }
-              >
-                <TrashGlyph />
-              </IconAction>
+              {/* A collection's icon is renamed or deleted where it lives. */}
+              {ic.readonly ? null : (
+                <>
+                  <IconAction
+                    onClick={onEdit}
+                    disabled={busy}
+                    {...TILE_ACTION_SIZE}
+                    label={
+                      // translators: %s: icon name.
+                      sprintf(__('Rename %s', 'easy-svg'), name)
+                    }
+                  >
+                    <RenameGlyph />
+                  </IconAction>
+                  <IconAction
+                    onClick={onRemove}
+                    disabled={busy}
+                    danger
+                    {...TILE_ACTION_SIZE}
+                    label={
+                      // translators: %s: icon name.
+                      sprintf(__('Delete %s', 'easy-svg'), name)
+                    }
+                  >
+                    <TrashGlyph />
+                  </IconAction>
+                </>
+              )}
             </HStack>
           </>
         )}

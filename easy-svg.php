@@ -111,8 +111,11 @@ define( 'EASY_SVG_API', 3 );
  * areas, an `icon` the add-on brings itself, and a `capability` per tab. An
  * add-on on an older free plugin keeps its tabs -- 1 carries those -- and says
  * so.
+ *
+ * 3 adds `registerCollections()`: an add-on hands the library tab its
+ * collections, and the one grid lists and filters them.
  */
-define( 'EASY_SVG_PANEL_API', 2 );
+define( 'EASY_SVG_PANEL_API', 3 );
 
 /**
  * The icon contract: `easy_svg_registrable_icons` and `easy_svg_rename_icon()`.

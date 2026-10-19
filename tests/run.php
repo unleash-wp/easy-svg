@@ -1256,7 +1256,7 @@ check( 'BELL: the API is 3 (raise this line WITH the surface it covers)', 3 === 
  * pinned to 1 keeps working: `group` stays an alias for `area`.
  */
 check( 'BELL: the panel contract is declared', defined( 'EASY_SVG_PANEL_API' ) && is_int( EASY_SVG_PANEL_API ) );
-check( 'BELL: the panel API is 2 (raise this line WITH the hooks it covers)', 2 === EASY_SVG_PANEL_API );
+check( 'BELL: the panel API is 3 (raise this line WITH the hooks it covers)', 3 === EASY_SVG_PANEL_API );
 
 /*
  * The icon-registration contract.
@@ -1332,7 +1332,7 @@ $readme_text = (string) file_get_contents( $root . '/readme.txt' );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
 check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
-check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 2\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
+check( 'BELL: with ITS value, and the hooks it covers', 1 === preg_match( '/EASY_SVG_PANEL_API`?.*?It is 3\b/s', $readme_text ) && false !== strpos( $readme_text, '`easy_svg_panel_menu_tabs`' ) && false !== strpos( $readme_text, '`easy_svg_max_mb_ceiling`' ) );
 // The cap never shipped. A readme explaining its removal would document,
 // to 40,000 sites, a feature they never had.
 check( 'SILENCE: the readme does not mention the cap that never shipped', false === strpos( $readme_text, 'easy_svg_icon_limit' ) && false === stripos( $readme_text, 'capped' ) && 1 !== preg_match( '/\bAPI 2\b|that 2 introduced/', $readme_text ) );
