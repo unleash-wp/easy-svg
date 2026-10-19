@@ -60,6 +60,9 @@
 //   recolour({ refs, collection })               => Promise<{ message, undo? }>
 //   replaceDrawing({ ref, markup, collection })  => Promise<{ message, undo? }>
 //
+//   importFile({ file, collection })  => Promise<{ message, rows?, undo? }>   // a ZIP or an SVG font
+//   addMedia({ ids, collection })     => Promise<{ message, rows?, undo? }>   // media library ids
+//
 // With `add`, a file dropped, picked or pasted while that collection is on
 // screen goes to it instead of the library. A removal is not asked twice: it
 // is said with Undo instead.

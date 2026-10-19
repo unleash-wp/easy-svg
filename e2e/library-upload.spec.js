@@ -64,4 +64,17 @@ test.describe('adding an icon by choosing a file', () => {
     await page.waitForTimeout(1500)
     expect((await listIcons(page)).length).toBe(before)
   })
+
+  // The chooser said "files" and took one: Ark's FileUpload takes a single
+  // file unless it is told how many.
+  test('several files are chosen at once, and every one lands', async ({ page }) => {
+    await page.goto(LIBRARY)
+    const before = (await listIcons(page)).length
+    await page
+      .locator(`${PANEL} input[type="file"]`)
+      .first()
+      .setInputFiles([file(`${E2E_PREFIX}eins.svg`, CIRCLE), file(`${E2E_PREFIX}zwei.svg`, CIRCLE)])
+    await expect(page.locator(PANEL).getByText(`${E2E_PREFIX}zwei`, { exact: true })).toBeVisible()
+    expect((await listIcons(page)).length).toBe(before + 2)
+  })
 })
