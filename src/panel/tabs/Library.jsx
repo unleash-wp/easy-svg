@@ -39,6 +39,12 @@ const iconCall = (slug) => `easy_svg_icon( '${slug}' )`
 
 const nameOf = (ic) => ic.label || ic.slug
 
+// A revision's date arrives as WordPress's GMT column; shown in the viewer's time.
+const when = (gmt) => {
+  const t = Date.parse(`${String(gmt || '').replace(' ', 'T')}Z`)
+  return Number.isNaN(t) ? String(gmt || '') : new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(t)
+}
+
 // What a tile carries when it is dragged, and the address it moves by.
 const MOVE_TYPE = 'application/x-easy-svg-icon'
 const refOf = (ic) => ic.ref || `easy-svg/${ic.slug}`
@@ -128,6 +134,11 @@ const AddGlyph = () => (
     <path d="M12 5v14M5 12h14" />
   </Glyph>
 )
+const HistoryGlyph = () => (
+  <Glyph>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />
+  </Glyph>
+)
 const MoreGlyph = () => (
   <Glyph>
     <path d="M5 12h.01M12 12h.01M19 12h.01" />
@@ -199,6 +210,8 @@ export default function Library({ ctx }) {
   const [providers, setProviders] = useState([])
   // A name being typed in the sidebar: { id: 'new' | collectionId, value }.
   const [naming, setNaming] = useState(null)
+  // One icon's earlier drawings: { ic, provider, versions: null while loading }.
+  const [past, setPast] = useState(null)
 
   useEffect(() => {
     const reg = getRegistry()
@@ -415,6 +428,41 @@ export default function Library({ ctx }) {
     const done = await act(() => collection.provider.trash({ id: collection.id, collection }))
     if (done && view === collection.id) {
       setView('all')
+    }
+  }
+
+  // Who keeps an icon's history: a set's own provider, or -- for a library
+  // icon -- whichever provider offers it. A read-only collection has none.
+  const historyOf = (ic) => {
+    const p = ic.source ? (ic.source.readonly ? null : ic.source.provider) : providers.find((x) => 'function' === typeof x.history)
+    return p && 'function' === typeof p.history && 'function' === typeof p.restoreVersion ? p : null
+  }
+
+  function openHistory(ic) {
+    const provider = historyOf(ic)
+    if (!provider) {
+      return
+    }
+    setPast({ ic, provider, versions: null, note: '', error: '' })
+    Promise.resolve(provider.history({ ref: refOf(ic), collection: ic.source || null }))
+      .then((r) => setPast((p) => (p && p.ic === ic ? { ...p, versions: r?.versions ?? [], note: r?.note || '' } : p)))
+      .catch((e) => setPast((p) => (p && p.ic === ic ? { ...p, versions: [], error: e.message } : p)))
+  }
+
+  async function restoreVersion(version) {
+    const { ic, provider } = past || {}
+    if (!provider) {
+      return
+    }
+    setPast(null)
+    const done = await act(() => provider.restoreVersion({ ref: refOf(ic), version: version.id, collection: ic.source || null }))
+    // A library icon's drawing changed in the free store: read the page again.
+    if (done && !ic.source) {
+      const term = query.trim()
+      api
+        .get(term ? `/library?search=${encodeURIComponent(term)}` : '/library')
+        .then((res) => take(res, !!term))
+        .catch((e) => setErr(e.message))
     }
   }
 
@@ -773,6 +821,79 @@ export default function Library({ ctx }) {
   const confirmName = confirming && !confirming.bulk
     ? nameOf(all.find((ic) => ic.id === confirming.id) || { slug: '' })
     : ''
+  const historyDialog = (
+    <Dialog.Root
+      open={!!past}
+      onOpenChange={(e) => (e.open ? null : setPast(null))}
+      placement="center"
+      // Not portalled, for the same reason as the delete dialog below.
+      modal
+    >
+      <Dialog.Backdrop />
+      <Dialog.Positioner>
+        <Dialog.Content data-icon-history borderRadius="forge" bg="ui.surface" maxW="560px">
+          <Dialog.Header>
+            <Dialog.Title fontSize="16px" fontWeight="700" color="ui.heading">
+              {past
+                ? sprintf(
+                    // translators: %s: icon name.
+                    __('Earlier versions of %s', 'easy-svg'),
+                    nameOf(past.ic)
+                  )
+                : ''}
+            </Dialog.Title>
+          </Dialog.Header>
+          <Dialog.Body>
+            {!past || null === past.versions ? (
+              <SkeletonRows rows={2} />
+            ) : past.error ? (
+              <Notice bad role="alert">{past.error}</Notice>
+            ) : past.versions.length < 2 ? (
+              <Text fontSize="sm" color="ui.muted">
+                {past.note || __('Only the drawing in use has been kept so far.', 'easy-svg')}
+              </Text>
+            ) : (
+              <Stack gap="2">
+                {past.versions.map((v) => (
+                  <HStack key={v.id} data-version={v.id} gap="3" borderWidth="1px" borderColor="ui.border" borderRadius="forge" p="2">
+                    <Box
+                      w="40px"
+                      h="40px"
+                      flexShrink="0"
+                      css={{ '& svg': { width: '100%', height: '100%' } }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeSvg(v.markup) }}
+                    />
+                    <Text fontSize="sm" flex="1">
+                      {v.since && v.since !== v.date
+                        ? sprintf(
+                            // translators: 1: date the drawing was first saved, 2: date it was last saved.
+                            __('%1$s – %2$s', 'easy-svg'),
+                            when(v.since),
+                            when(v.date)
+                          )
+                        : when(v.date)}
+                    </Text>
+                    {v.current ? (
+                      <Text fontSize="xs" color="ui.muted">{__('In use', 'easy-svg')}</Text>
+                    ) : (
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => restoreVersion(v)}>
+                        {__('Restore', 'easy-svg')}
+                      </Button>
+                    )}
+                  </HStack>
+                ))}
+              </Stack>
+            )}
+          </Dialog.Body>
+          <Dialog.Footer>
+            <Dialog.ActionTrigger asChild>
+              <Button variant="ghost">{__('Close', 'easy-svg')}</Button>
+            </Dialog.ActionTrigger>
+          </Dialog.Footer>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
+  )
   const deleteDialog = (
     <Dialog.Root
       open={!!confirming}
@@ -1269,6 +1390,7 @@ export default function Library({ ctx }) {
                   onEditCancel={() => setEditing(null)}
                   onEditSave={(value) => rename(ic.id, value)}
                   onCopy={() => copyCall(ic)}
+                  onHistory={historyOf(ic) ? () => openHistory(ic) : null}
                   onRemove={() =>
                     ic.canRemove
                       ? act(() => ic.source.provider.remove({ refs: [refOf(ic)], collection: ic.source }))
@@ -1322,6 +1444,7 @@ export default function Library({ ctx }) {
         </Stack>
       </Section>
       {deleteDialog}
+      {historyDialog}
     </Stack>
   )
 }
@@ -1349,6 +1472,7 @@ function IconTile({
   onEditSave,
   onCopy,
   onRemove,
+  onHistory = null,
   targets = [],
   onMoveTo,
 }) {
@@ -1480,6 +1604,19 @@ function IconTile({
               >
                 <CopyGlyph />
               </IconAction>
+              {onHistory ? (
+                <IconAction
+                  onClick={onHistory}
+                  disabled={busy}
+                  {...TILE_ACTION_SIZE}
+                  label={
+                    // translators: %s: icon name.
+                    sprintf(__('Earlier versions of %s', 'easy-svg'), name)
+                  }
+                >
+                  <HistoryGlyph />
+                </IconAction>
+              ) : null}
               {targets.length ? (
                 <Menu.Root>
                   {/* The Trigger is the button itself: Ark anchors the menu

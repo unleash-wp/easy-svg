@@ -61,6 +61,14 @@
 // screen goes to it instead of the library. A removal is not asked twice: it
 // is said with Undo instead.
 //
+// And an icon's earlier drawings -- a free library icon's too, with
+// `collection` null:
+//
+//   history({ ref, collection })                 => Promise<{ versions: [{ id, date, since, markup, current }], note? }>
+//   restoreVersion({ ref, version, collection }) => Promise<{ message }>
+//
+// `markup` is drawn in the panel, so the provider hands it over hardened.
+//
 // `collection` is the object the provider's own load() gave, so whatever it
 // carried there -- a post id, say -- comes back without a lookup.
 //
