@@ -1432,8 +1432,9 @@ export default function Library({ ctx }) {
   // Nothing stored yet: the empty state IS the upload surface. Only without a
   // search term, though -- a search answers empty the same way, and this screen
   // has no search field, so it would tell somebody with 400 icons they have
-  // none and remove the box they would clear.
-  if (all.length === 0 && !query.trim() && !collections.length) {
+  // none and remove the box they would clear. Nor while a provider has a set to
+  // begin or a hint to give: this screen has no sidebar to put them in.
+  if (all.length === 0 && !query.trim() && !collections.length && !creator && !hints.length) {
     return (
       <Stack gap="5" maxW="900px">
         {messages}
@@ -1857,7 +1858,7 @@ export default function Library({ ctx }) {
               ) : null}
             </SimpleGrid>
 
-            {shown.length === 0 ? (
+            {shown.length === 0 && query.trim() ? (
               <Box pt="4" pb="2">
                 <Text textStyle="description" textAlign="center">
                   {__('No icon matches that search.', 'easy-svg')}
