@@ -581,6 +581,18 @@ check( 'BELL: the fill rule points at the shapes, not at the root', false !== st
 check( 'BELL: every width class points at the shapes too', 0 === substr_count( $css, 'esvg-sw-2{' ) );
 check( 'SILENCE: and nothing is forced with !important', false === strpos( $css, '!important' ) );
 
+// ─── The shortcode: the same tag, for where PHP cannot be written ────────────
+/*
+ * WordPress hands a shortcode with no attributes an empty STRING, not an array.
+ * Everything else is easy_svg_icon(): the same lookup, the same hardened
+ * markup, the same accessibility rule -- so the shortcode is no second way in.
+ */
+check( 'BELL: the shortcode renders what the tag renders', easy_svg_icon( 'easy-svg/arrow-left' ) === easy_svg_icon_shortcode( array( 'name' => 'easy-svg/arrow-left' ) ) );
+check( 'BELL: class and label are passed on', easy_svg_icon( 'arrow-left', array( 'class' => 'ico', 'label' => 'Back' ) ) === easy_svg_icon_shortcode( array( 'name' => 'arrow-left', 'class' => 'ico', 'label' => 'Back' ) ) );
+check( 'SILENCE: no name is nothing', '' === easy_svg_icon_shortcode( array() ) && '' === easy_svg_icon_shortcode( '' ) );
+check( 'SILENCE: an unknown or hostile name is nothing', '' === easy_svg_icon_shortcode( array( 'name' => '"><script>alert(1)</script>' ) ) );
+check( 'SILENCE: an attribute the tag does not take is ignored', easy_svg_icon( 'arrow-left' ) === easy_svg_icon_shortcode( array( 'name' => 'arrow-left', 'onload' => 'x()' ) ) );
+
 echo 0 === $failed
     ? "all {$passed} checks passed\n"
     : "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";

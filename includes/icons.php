@@ -227,6 +227,30 @@ function easy_svg_icon( $name, $args = array() ) {
 }
 
 /**
+ * `[easy_svg_icon name="collection/slug" class="" label=""]`, for where PHP
+ * cannot be written: a classic post, a widget, a page builder's text field.
+ * Nothing but easy_svg_icon(), so it is the same lookup and the same hardened
+ * markup -- no second way for bytes onto a page.
+ *
+ * @param array|string $atts What WordPress passes: a STRING when there are none.
+ * @return string
+ */
+function easy_svg_icon_shortcode( $atts ) {
+    $atts = is_array( $atts ) ? $atts : array();
+    $name = trim( (string) ( $atts['name'] ?? '' ) );
+    if ( '' === $name ) {
+        return '';
+    }
+    $args = array();
+    foreach ( array( 'class', 'label' ) as $key ) {
+        if ( isset( $atts[ $key ] ) && '' !== (string) $atts[ $key ] ) {
+            $args[ $key ] = (string) $atts[ $key ];
+        }
+    }
+    return easy_svg_icon( $name, $args );
+}
+
+/**
  * Where the root `<svg` tag starts, or null when there is none. `<svg` has to
  * be followed by a non-word character -- a space, `>`, a newline -- so
  * `<svgfoo` is not an svg root.

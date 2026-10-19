@@ -74,6 +74,7 @@ test.describe('collections in the library', () => {
     await expect(tile.getByRole('button', { name: /Delete|löschen/ })).toHaveCount(0)
 
     await tile.getByRole('button', { name: /Copy|kopieren/ }).click()
+    await page.getByRole('menuitem', { name: /^PHP/ }).click()
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("easy_svg_icon( 'e2e-brand/star' )")
   })
 

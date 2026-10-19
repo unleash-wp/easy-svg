@@ -139,6 +139,7 @@ export default function App({ config }) {
     proActive: !!config.proActive,
     proLicensed: !!config.proLicensed,
     iconsEnabled: !!config.iconsEnabled,
+    iconBlock: !!config.iconBlock,
     maxMbCeiling: config.maxMbCeiling,
     // Set below, once we know Pro registered a licence tab to switch to.
     onActivate: undefined,
