@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-19T17:56:34+00:00\n"
+"POT-Creation-Date: 2026-10-19T18:52:53+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: easy-svg\n"
@@ -102,7 +102,7 @@ msgid "Whether the icon library and the Icon block are registered."
 msgstr ""
 
 #: includes/panel.php:541
-msgid "The largest SVG the sanitiser will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it."
+msgid "The largest SVG the sanitizer will parse, in megabytes. Always enforced; only its value is settable. A number above the ceiling is clamped to it."
 msgstr ""
 
 #: includes/panel.php:558
@@ -110,7 +110,7 @@ msgid "Narrow the list to icons whose name or slug contains this."
 msgstr ""
 
 #: includes/panel.php:574
-msgid "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
+msgid "The SVG markup. Sanitized and hardened on the way in, whatever is sent."
 msgstr ""
 
 #: includes/panel.php:578
@@ -126,7 +126,7 @@ msgid "The new visible name. The slug is not touched."
 msgstr ""
 
 #: includes/panel.php:688
-msgid "The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to restore it."
+msgid "The sanitizer is unavailable, so nothing was stored. Reinstall the plugin to restore it."
 msgstr ""
 
 #: includes/panel.php:690
@@ -151,7 +151,7 @@ msgid "That file is not stored on this server, so it could not be read."
 msgstr ""
 
 #: includes/panel.php:700
-msgid "That is not an SVG the sanitiser accepts."
+msgid "That is not an SVG the sanitizer accepts."
 msgstr ""
 
 #: includes/panel.php:702
@@ -268,7 +268,7 @@ msgid "Setup"
 msgstr ""
 
 #: build/panel.js
-msgid "Switch features on and manage your licence."
+msgid "Switch features on and manage your license."
 msgstr ""
 
 #: build/panel.js
@@ -292,15 +292,15 @@ msgid "Configurator"
 msgstr ""
 
 #: build/panel.js
-msgid "Extend the sanitiser allow-list for special icon libraries. The guard-rails stay."
+msgid "Extend the sanitizer allow-list for special icon libraries. The guard-rails stay."
 msgstr ""
 
 #: build/panel.js
-msgid "Licence"
+msgid "License"
 msgstr ""
 
 #: build/panel.js
-msgid "Enter your licence key and unlock the Pro features."
+msgid "Enter your license key and unlock the Pro features."
 msgstr ""
 
 #: build/panel.js
@@ -324,7 +324,7 @@ msgid "Easy SVG by UnleashWP"
 msgstr ""
 
 #: build/panel.js
-msgid "Activate licence"
+msgid "Activate license"
 msgstr ""
 
 #: build/panel.js
@@ -498,7 +498,7 @@ msgid "Drop SVG files here"
 msgstr ""
 
 #: build/panel.js
-msgid "Every file is sanitised and hardened on the way in. Same bar as a media upload."
+msgid "Every file is sanitized and hardened on the way in. Same bar as a media upload."
 msgstr ""
 
 #: build/panel.js
@@ -604,14 +604,14 @@ msgid "Move to…"
 msgstr ""
 
 #: build/panel.js
-msgid "Recolour"
+msgid "Recolor"
 msgstr ""
 
 #. translators: %d: number of picked icons that can be recoloured.
 #: build/panel.js
 #, js-format
-msgid "Recolour %d"
-msgid_plural "Recolour %d"
+msgid "Recolor %d"
+msgid_plural "Recolor %d"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -717,7 +717,7 @@ msgid "Earlier versions…"
 msgstr ""
 
 #: build/panel.js
-msgid "Recolour: take the text colour"
+msgid "Recolor: take the text color"
 msgstr ""
 
 #: build/panel.js
@@ -757,7 +757,7 @@ msgid "SVG markup"
 msgstr ""
 
 #: build/panel.js
-msgid "Paste the <svg>…</svg>. It is sanitised and hardened before it is stored, exactly like a dropped file."
+msgid "Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, exactly like a dropped file."
 msgstr ""
 
 #: build/panel.js
@@ -783,7 +783,7 @@ msgid "What runs"
 msgstr ""
 
 #: build/panel.js
-msgid "Both are off by default. The security layer is always on: every SVG is sanitised and the size cap applies. There is no switch for it."
+msgid "Both are off by default. The security layer is always on: every SVG is sanitized and the size cap applies. There is no switch for it."
 msgstr ""
 
 #: build/panel.js
@@ -791,7 +791,7 @@ msgid "Allow SVG uploads in the media library"
 msgstr ""
 
 #: build/panel.js
-msgid "Editors can upload .svg files; each one is sanitised on the way in."
+msgid "Editors can upload .svg files; each one is sanitized on the way in."
 msgstr ""
 
 #: build/panel.js
@@ -803,7 +803,7 @@ msgid "Adds the Icon library tab and the Icon block."
 msgstr ""
 
 #: build/panel.js
-msgid "The cap limits what the sanitiser will parse. It applies whatever the features above are set to."
+msgid "The cap limits what the sanitizer will parse. It applies whatever the features above are set to."
 msgstr ""
 
 #: build/panel.js
@@ -813,7 +813,7 @@ msgstr ""
 #. translators: %d: the highest allowed cap in MB.
 #: build/panel.js
 #, js-format
-msgid "Files larger than this are rejected before the sanitiser runs. Allowed: 1 to %d MB."
+msgid "Files larger than this are rejected before the sanitizer runs. Allowed: 1 to %d MB."
 msgstr ""
 
 #: build/panel.js

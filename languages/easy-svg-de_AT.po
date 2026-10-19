@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-19T17:53:35+00:00\n"
+"POT-Creation-Date: 2026-10-19T18:52:52+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -109,7 +109,7 @@ msgstr "Ob die Icon-Bibliothek und der Icon-Block registriert werden."
 
 #: includes/panel.php:541
 msgid ""
-"The largest SVG the sanitiser will parse, in megabytes. Always enforced; "
+"The largest SVG the sanitizer will parse, in megabytes. Always enforced; "
 "only its value is settable. A number above the ceiling is clamped to it."
 msgstr ""
 "Die größte SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
@@ -121,7 +121,7 @@ msgid "Narrow the list to icons whose name or slug contains this."
 msgstr "Grenzt die Liste auf Icons ein, deren Name oder Slug das enthält."
 
 #: includes/panel.php:574
-msgid "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
+msgid "The SVG markup. Sanitized and hardened on the way in, whatever is sent."
 msgstr ""
 "Das SVG-Markup. Wird beim Hereinkommen bereinigt und gehärtet, was auch "
 "gesendet wird."
@@ -144,7 +144,7 @@ msgstr "Der neue sichtbare Name. Der Slug bleibt unberührt."
 
 #: includes/panel.php:688
 msgid ""
-"The sanitiser is unavailable, so nothing was stored. Reinstall the plugin to "
+"The sanitizer is unavailable, so nothing was stored. Reinstall the plugin to "
 "restore it."
 msgstr ""
 "Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installiere "
@@ -177,7 +177,7 @@ msgstr ""
 "werden."
 
 #: includes/panel.php:700
-msgid "That is not an SVG the sanitiser accepts."
+msgid "That is not an SVG the sanitizer accepts."
 msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
 
 #: includes/panel.php:702
@@ -315,7 +315,7 @@ msgid "Setup"
 msgstr "Einrichtung"
 
 #: build/panel.js
-msgid "Switch features on and manage your licence."
+msgid "Switch features on and manage your license."
 msgstr "Funktionen einschalten und deine Lizenz verwalten."
 
 #: build/panel.js
@@ -344,18 +344,18 @@ msgstr "Konfigurator"
 
 #: build/panel.js
 msgid ""
-"Extend the sanitiser allow-list for special icon libraries. The guard-rails "
+"Extend the sanitizer allow-list for special icon libraries. The guard-rails "
 "stay."
 msgstr ""
 "Erweitere die Allow-Liste des Sanitizers für besondere Icon-Bibliotheken. "
 "Die Schutzmechanismen bleiben."
 
 #: build/panel.js
-msgid "Licence"
+msgid "License"
 msgstr "Lizenz"
 
 #: build/panel.js
-msgid "Enter your licence key and unlock the Pro features."
+msgid "Enter your license key and unlock the Pro features."
 msgstr "Lizenzschlüssel eingeben und die Pro-Funktionen freischalten."
 
 #: build/panel.js
@@ -383,7 +383,7 @@ msgid "Easy SVG by UnleashWP"
 msgstr "Easy SVG von UnleashWP"
 
 #: build/panel.js
-msgid "Activate licence"
+msgid "Activate license"
 msgstr "Lizenz aktivieren"
 
 #: build/panel.js
@@ -552,7 +552,7 @@ msgstr "SVG-Dateien hier ablegen"
 
 #: build/panel.js
 msgid ""
-"Every file is sanitised and hardened on the way in. Same bar as a media "
+"Every file is sanitized and hardened on the way in. Same bar as a media "
 "upload."
 msgstr ""
 "Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe Messlatte "
@@ -661,13 +661,13 @@ msgid "Move to…"
 msgstr "Verschieben nach…"
 
 #: build/panel.js
-msgid "Recolour"
+msgid "Recolor"
 msgstr "Umfärben"
 
 #. translators: %d: number of picked icons that can be recoloured.
 #: build/panel.js
-msgid "Recolour %d"
-msgid_plural "Recolour %d"
+msgid "Recolor %d"
+msgid_plural "Recolor %d"
 msgstr[0] "%d umfärben"
 msgstr[1] "%d umfärben"
 
@@ -766,7 +766,7 @@ msgid "Earlier versions…"
 msgstr "Frühere Fassungen…"
 
 #: build/panel.js
-msgid "Recolour: take the text colour"
+msgid "Recolor: take the text color"
 msgstr "Umfärben: Textfarbe übernehmen"
 
 #: build/panel.js
@@ -805,7 +805,7 @@ msgstr "SVG-Markup"
 
 #: build/panel.js
 msgid ""
-"Paste the <svg>…</svg>. It is sanitised and hardened before it is stored, "
+"Paste the <svg>…</svg>. It is sanitized and hardened before it is stored, "
 "exactly like a dropped file."
 msgstr ""
 "Füge das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es "
@@ -838,7 +838,7 @@ msgstr "Was läuft"
 #: build/panel.js
 msgid ""
 "Both are off by default. The security layer is always on: every SVG is "
-"sanitised and the size cap applies. There is no switch for it."
+"sanitized and the size cap applies. There is no switch for it."
 msgstr ""
 "Beide sind standardmäßig aus. Die Sicherheitsschicht ist immer aktiv: jede "
 "SVG wird bereinigt, und das Größen-Limit greift. Dafür gibt es keinen "
@@ -849,7 +849,7 @@ msgid "Allow SVG uploads in the media library"
 msgstr "SVG-Uploads in der Mediathek erlauben"
 
 #: build/panel.js
-msgid "Editors can upload .svg files; each one is sanitised on the way in."
+msgid "Editors can upload .svg files; each one is sanitized on the way in."
 msgstr ""
 "Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
 
@@ -863,7 +863,7 @@ msgstr "Fügt den Tab „Icon-Bibliothek“ und den Icon-Block hinzu."
 
 #: build/panel.js
 msgid ""
-"The cap limits what the sanitiser will parse. It applies whatever the "
+"The cap limits what the sanitizer will parse. It applies whatever the "
 "features above are set to."
 msgstr ""
 "Das Limit begrenzt, was der Sanitizer parst. Es greift unabhängig davon, wie "
@@ -876,7 +876,7 @@ msgstr "Maximale SVG-Größe (MB)"
 #. translators: %d: the highest allowed cap in MB.
 #: build/panel.js
 msgid ""
-"Files larger than this are rejected before the sanitiser runs. Allowed: 1 to "
+"Files larger than this are rejected before the sanitizer runs. Allowed: 1 to "
 "%d MB."
 msgstr ""
 "Größere Dateien werden abgewiesen, bevor der Sanitizer läuft. Erlaubt: 1 bis "
@@ -917,6 +917,100 @@ msgid ""
 msgstr ""
 "Die Agentur-Schicht für SVG-Icons. Sie liegt in diesem Panel, sobald Pro "
 "aktiv und lizenziert ist."
+
+#~ msgid ""
+#~ "The largest SVG the sanitiser will parse, in megabytes. Always enforced; "
+#~ "only its value is settable. A number above the ceiling is clamped to it."
+#~ msgstr ""
+#~ "Die größte SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
+#~ "Grenze gilt immer, einstellbar ist nur ihr Wert. Eine Zahl über der "
+#~ "Obergrenze wird auf sie gesetzt."
+
+#~ msgid ""
+#~ "The SVG markup. Sanitised and hardened on the way in, whatever is sent."
+#~ msgstr ""
+#~ "Das SVG-Markup. Wird beim Hereinkommen bereinigt und gehärtet, was auch "
+#~ "gesendet wird."
+
+#~ msgid ""
+#~ "The sanitiser is unavailable, so nothing was stored. Reinstall the plugin "
+#~ "to restore it."
+#~ msgstr ""
+#~ "Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. "
+#~ "Installiere das Plugin neu, um ihn wiederherzustellen."
+
+#~ msgid "That is not an SVG the sanitiser accepts."
+#~ msgstr "Das ist keine SVG, die der Sanitizer akzeptiert."
+
+#~ msgid "Switch features on and manage your licence."
+#~ msgstr "Funktionen einschalten und deine Lizenz verwalten."
+
+#~ msgid ""
+#~ "Extend the sanitiser allow-list for special icon libraries. The guard-"
+#~ "rails stay."
+#~ msgstr ""
+#~ "Erweitere die Allow-Liste des Sanitizers für besondere Icon-Bibliotheken. "
+#~ "Die Schutzmechanismen bleiben."
+
+#~ msgid "Licence"
+#~ msgstr "Lizenz"
+
+#~ msgid "Enter your licence key and unlock the Pro features."
+#~ msgstr "Lizenzschlüssel eingeben und die Pro-Funktionen freischalten."
+
+#~ msgid "Activate licence"
+#~ msgstr "Lizenz aktivieren"
+
+#~ msgid ""
+#~ "Every file is sanitised and hardened on the way in. Same bar as a media "
+#~ "upload."
+#~ msgstr ""
+#~ "Jede Datei wird beim Hereinkommen bereinigt und gehärtet. Dieselbe "
+#~ "Messlatte wie ein Medien-Upload."
+
+#~ msgid "Recolour"
+#~ msgstr "Umfärben"
+
+#~ msgid "Recolour %d"
+#~ msgid_plural "Recolour %d"
+#~ msgstr[0] "%d umfärben"
+#~ msgstr[1] "%d umfärben"
+
+#~ msgid "Recolour: take the text colour"
+#~ msgstr "Umfärben: Textfarbe übernehmen"
+
+#~ msgid ""
+#~ "Paste the <svg>…</svg>. It is sanitised and hardened before it is stored, "
+#~ "exactly like a dropped file."
+#~ msgstr ""
+#~ "Füge das <svg>…</svg> ein. Es wird bereinigt und gehärtet, bevor es "
+#~ "gespeichert wird, genau wie eine abgelegte Datei."
+
+#~ msgid ""
+#~ "Both are off by default. The security layer is always on: every SVG is "
+#~ "sanitised and the size cap applies. There is no switch for it."
+#~ msgstr ""
+#~ "Beide sind standardmäßig aus. Die Sicherheitsschicht ist immer aktiv: "
+#~ "jede SVG wird bereinigt, und das Größen-Limit greift. Dafür gibt es "
+#~ "keinen Schalter."
+
+#~ msgid "Editors can upload .svg files; each one is sanitised on the way in."
+#~ msgstr ""
+#~ "Redakteure können .svg-Dateien hochladen; jede wird beim Upload bereinigt."
+
+#~ msgid ""
+#~ "The cap limits what the sanitiser will parse. It applies whatever the "
+#~ "features above are set to."
+#~ msgstr ""
+#~ "Das Limit begrenzt, was der Sanitizer parst. Es greift unabhängig davon, "
+#~ "wie die Funktionen oben stehen."
+
+#~ msgid ""
+#~ "Files larger than this are rejected before the sanitiser runs. Allowed: 1 "
+#~ "to %d MB."
+#~ msgstr ""
+#~ "Größere Dateien werden abgewiesen, bevor der Sanitizer läuft. Erlaubt: 1 "
+#~ "bis %d MB."
 
 #~ msgid ""
 #~ "The largest SVG the sanitiser will parse, in megabytes. Always enforced; "

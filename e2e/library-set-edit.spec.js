@@ -65,7 +65,7 @@ test.describe('a set icon\'s drawing, in the grid', () => {
     await page.goto(LIBRARY)
     await provide(page)
     await more(tile(page, 'e2e-s/a')).click()
-    await page.getByRole('menuitem', { name: /Recolour|Umfärben/ }).click()
+    await page.getByRole('menuitem', { name: /Recolor|Umfärben/ }).click()
     await expect(said(page)).toContainText('1 recoloured')
     await said(page).getByRole('button', { name: /Undo|Rückgängig/ }).click()
     await expect(said(page)).toContainText('colour back')
@@ -90,7 +90,7 @@ test.describe('a set icon\'s drawing, in the grid', () => {
     for (const key of ['e2e-s/a', 'e2e-s/b', 'easy-svg/e2e-edit']) {
       await tile(page, key).locator('[data-scope="checkbox"][data-part="control"]').click()
     }
-    await page.getByRole('button', { name: /^(Recolour 2|2 umfärben)/ }).click()
+    await page.getByRole('button', { name: /^(Recolor 2|2 umfärben)/ }).click()
     await expect(said(page)).toContainText('2 recoloured')
     expect(await calls(page)).toEqual([{ recolour: { refs: ['e2e-s/a', 'e2e-s/b'], setId: 41 } }])
   })
