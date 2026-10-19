@@ -42,6 +42,17 @@
 //
 // and the library says the message, with Undo when there is a way back.
 //
+// And it may let collections be managed from the sidebar. Each is optional;
+// the library offers only what the provider takes, and never on a `readonly`
+// collection:
+//
+//   create({ label })              => Promise<{ id, message? }>  // id: the new collection, shown at once
+//   rename({ id, label, collection }) => Promise<{ message? }>
+//   trash({ id, collection })      => Promise<{ message, undo?: () => Promise<{ message }> }>
+//
+// `collection` is the object the provider's own load() gave, so whatever it
+// carried there -- a post id, say -- comes back without a lookup.
+//
 // window.EasySvgPanel.api carries that level, so an add-on that must also run
 // on an older free plugin can ask rather than guess.
 //

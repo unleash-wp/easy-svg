@@ -128,6 +128,11 @@ const AddGlyph = () => (
     <path d="M12 5v14M5 12h14" />
   </Glyph>
 )
+const MoreGlyph = () => (
+  <Glyph>
+    <path d="M5 12h.01M12 12h.01M19 12h.01" />
+  </Glyph>
+)
 const UploadGlyph = () => (
   <Glyph>
     <path d="M12 16V4M7 9l5-5 5 5M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
@@ -190,6 +195,10 @@ export default function Library({ ctx }) {
   // The last move's answer, and its way back when the add-on gave one.
   const [moved, setMoved] = useState(null)
   const reloadCollections = useRef(() => {})
+  // The providers themselves, for what they offer beyond their collections.
+  const [providers, setProviders] = useState([])
+  // A name being typed in the sidebar: { id: 'new' | collectionId, value }.
+  const [naming, setNaming] = useState(null)
 
   useEffect(() => {
     const reg = getRegistry()
@@ -201,6 +210,7 @@ export default function Library({ ctx }) {
       ac?.abort()
       ac = new AbortController()
       const signal = ac.signal
+      setProviders(reg.collectionProviders())
       Promise.all(
         reg
           .collectionProviders()
@@ -350,6 +360,76 @@ export default function Library({ ctx }) {
       setBusy(false)
     }
   }
+
+  // A sidebar action: its answer is said where a move's is, Undo included.
+  async function act(run) {
+    setBusy(true)
+    setErr('')
+    try {
+      const done = await run()
+      setMoved({ message: done?.message || __('Done.', 'easy-svg'), undo: 'function' === typeof done?.undo ? done.undo : null })
+      reloadCollections.current()
+      return done
+    } catch (e) {
+      setErr(e.message)
+      return null
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const creator = providers.find((p) => 'function' === typeof p.create)
+
+  async function saveName() {
+    const label = (naming?.value || '').trim()
+    const target = naming
+    if (!label || !target) {
+      setNaming(null)
+      return
+    }
+    setNaming(null)
+    if ('new' === target.id) {
+      const made = await act(() => creator.create({ label }))
+      if (made?.id) {
+        setView(made.id)
+      }
+      return
+    }
+    const collection = collections.find((c) => c.id === target.id)
+    if (collection && label !== (collection.label || collection.id)) {
+      await act(() => collection.provider.rename({ id: collection.id, label, collection }))
+    }
+  }
+
+  async function trashCollection(collection) {
+    const done = await act(() => collection.provider.trash({ id: collection.id, collection }))
+    if (done && view === collection.id) {
+      setView('all')
+    }
+  }
+
+  // Enter keeps the name, Escape drops it; leaving the field drops it too, so a
+  // half-typed name never becomes a set by accident.
+  const nameField = (label) => (
+    <TextInput
+      size="sm"
+      autoFocus
+      aria-label={label}
+      value={naming?.value || ''}
+      maxLength={100}
+      onChange={(e) => setNaming({ ...naming, value: e.target.value })}
+      onKeyDown={(e) => {
+        if ('Enter' === e.key) {
+          e.preventDefault()
+          saveName()
+        } else if ('Escape' === e.key) {
+          e.preventDefault()
+          setNaming(null)
+        }
+      }}
+      onBlur={() => setNaming(null)}
+    />
+  )
 
   async function undoMove() {
     const undo = moved?.undo
@@ -1012,27 +1092,96 @@ export default function Library({ ctx }) {
             </HStack>
           ) : null}
           <Stack direction={{ base: 'column', md: 'row' }} gap="4" align="stretch">
-          {collections.length ? (
+          {collections.length || creator ? (
             <Stack data-collections as="nav" aria-label={__('Collections', 'easy-svg')} gap="0.5" minW={{ md: '180px' }} pt="4">
               {[
                 { id: 'all', label: __('All icons', 'easy-svg'), count: libraryTotal + collections.reduce((n, c) => n + c.icons.length, 0) },
                 { id: 'library', label: __('Icon library', 'easy-svg'), count: libraryTotal },
                 ...collections.map((c) => ({ id: c.id, label: c.label || c.id, count: c.icons.length, readonly: !!c.readonly, collection: c })),
-              ].map((entry) => (
-                <Button
-                  key={entry.id}
-                  {...(entry.collection ? dropOn(entry.collection) : {})}
-                  size="sm"
-                  variant={view === entry.id ? 'subtle' : 'ghost'}
-                  justifyContent="space-between"
-                  aria-pressed={view === entry.id}
-                  onClick={() => setView(entry.id)}
-                  title={entry.readonly ? __('Read only: these icons come from files', 'easy-svg') : undefined}
-                >
-                  <Text as="span" truncate>{entry.label}</Text>
-                  <Text as="span" fontSize="xs" color="ui.muted">{entry.count}</Text>
-                </Button>
-              ))}
+              ].map((entry) => {
+                const c = entry.collection
+                if (c && naming?.id === c.id) {
+                  return (
+                    <Box key={entry.id}>
+                      {nameField(
+                        // translators: %s: current name of the set.
+                        sprintf(__('New name for %s', 'easy-svg'), entry.label)
+                      )}
+                    </Box>
+                  )
+                }
+                const canRename = c && !c.readonly && 'function' === typeof c.provider?.rename
+                const canTrash = c && !c.readonly && 'function' === typeof c.provider?.trash
+                return (
+                  <HStack key={entry.id} gap="0.5">
+                    <Button
+                      {...(c ? dropOn(c) : {})}
+                      flex="1"
+                      minW="0"
+                      size="sm"
+                      variant={view === entry.id ? 'subtle' : 'ghost'}
+                      justifyContent="space-between"
+                      aria-pressed={view === entry.id}
+                      onClick={() => setView(entry.id)}
+                      title={entry.readonly ? __('Read only: these icons come from files', 'easy-svg') : undefined}
+                    >
+                      <Text as="span" truncate>{entry.label}</Text>
+                      <Text as="span" fontSize="xs" color="ui.muted">{entry.count}</Text>
+                    </Button>
+                    {canRename || canTrash ? (
+                      <Menu.Root>
+                        <Menu.Trigger
+                          disabled={busy}
+                          aria-label={
+                            // translators: %s: name of the set.
+                            sprintf(__('Actions for %s', 'easy-svg'), entry.label)
+                          }
+                          display="inline-flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          minW="8"
+                          h="8"
+                          borderRadius="forge"
+                          color="ui.muted"
+                          cursor="pointer"
+                          _hover={{ color: 'ui.primary', bg: 'ui.ghostHover' }}
+                          _focusVisible={{ outline: '2px solid', outlineColor: 'ui.primary', outlineOffset: '2px' }}
+                        >
+                          <MoreGlyph />
+                        </Menu.Trigger>
+                        <Portal>
+                          <Menu.Positioner>
+                            <Menu.Content>
+                              {canRename ? (
+                                <Menu.Item value="rename" onSelect={() => setNaming({ id: c.id, value: entry.label })}>
+                                  <RenameGlyph />
+                                  {__('Rename', 'easy-svg')}
+                                </Menu.Item>
+                              ) : null}
+                              {canTrash ? (
+                                <Menu.Item value="trash" onSelect={() => trashCollection(c)}>
+                                  <TrashGlyph />
+                                  {__('Move to trash', 'easy-svg')}
+                                </Menu.Item>
+                              ) : null}
+                            </Menu.Content>
+                          </Menu.Positioner>
+                        </Portal>
+                      </Menu.Root>
+                    ) : null}
+                  </HStack>
+                )
+              })}
+              {creator ? (
+                'new' === naming?.id ? (
+                  <Box pt="1">{nameField(__('Name of the new set', 'easy-svg'))}</Box>
+                ) : (
+                  <Button size="sm" variant="ghost" justifyContent="flex-start" disabled={busy} onClick={() => setNaming({ id: 'new', value: '' })}>
+                    <AddGlyph />
+                    {__('New set', 'easy-svg')}
+                  </Button>
+                )
+              ) : null}
             </Stack>
           ) : null}
           <Box
