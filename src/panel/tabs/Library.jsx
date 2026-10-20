@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react'
 import DOMPurify from 'dompurify'
 import { __, _n, sprintf } from '@wordpress/i18n'
-import { Section, FieldRow, SkeletonRows, Button, TextInput, IconAction, useDropZone } from '../../ui.jsx'
+import { Section, FieldRow, SkeletonRows, Button, TextInput, IconAction, Toast, useDropZone } from '../../ui.jsx'
 import { Notice, SearchField, ReportList } from '../parts.jsx'
 import { makeApi } from '../api.js'
 import { getRegistry } from '../registry.js'
@@ -261,6 +261,17 @@ export default function Library({ ctx }) {
   const [view, setView] = useState('all')
   // The last move's answer, and its way back when the add-on gave one.
   const [moved, setMoved] = useState(null)
+  // One toast at a time, the newest: a fresh line replaces the other kind.
+  useEffect(() => {
+    if (status) {
+      setMoved(null)
+    }
+  }, [status])
+  useEffect(() => {
+    if (moved) {
+      setStatus('')
+    }
+  }, [moved])
   const reloadCollections = useRef(() => {})
   // The providers themselves, for what they offer beyond their collections.
   const [providers, setProviders] = useState([])
@@ -1390,9 +1401,6 @@ export default function Library({ ctx }) {
           </Button>
         </Notice>
       ) : null}
-      {status ? (
-        <Text role="status" aria-live="polite" color="ui.goodInk" fontSize="sm">{status}</Text>
-      ) : null}
       {truncated ? (
         <Notice status="info">
           {sprintf(
@@ -1654,15 +1662,21 @@ export default function Library({ ctx }) {
             toolbar above stays put with four hundred icons in the library. maxH
             is a little over four rows: enough that there is visibly more below.
           */}
-          {moved ? (
-            <HStack data-move-result role="status" gap="3" wrap="wrap">
-              <Text fontSize="sm">{moved.message}</Text>
-              {moved.undo ? (
-                <Button size="sm" variant="ghost" onClick={undoMove} disabled={busy}>
-                  {__('Undo', 'easy-svg')}
-                </Button>
-              ) : null}
-            </HStack>
+          {/* What the last action said, the newer of the two lines, as a toast. */}
+          {moved || status ? (
+            <Toast
+              {...(moved ? { 'data-move-result': '' } : {})}
+              onDismiss={() => {
+                setMoved(null)
+                setStatus('')
+              }}
+              dismissLabel={__('Dismiss', 'easy-svg')}
+              undo={moved?.undo ? undoMove : null}
+              undoLabel={__('Undo', 'easy-svg')}
+              busy={busy}
+            >
+              {moved ? moved.message : status}
+            </Toast>
           ) : null}
           <Stack direction={{ base: 'column', md: 'row' }} gap="4" align="stretch">
           {collections.length || creator || hints.length ? (
@@ -1909,6 +1923,12 @@ function IconTile({
 }) {
   const name = nameOf(ic)
   const isEditing = null !== editing
+  // The popover animates out after `editing` is cleared; it keeps showing the
+  // last name typed rather than flashing an empty field.
+  const lastEdit = useRef('')
+  if (isEditing) {
+    lastEdit.current = editing
+  }
   return (
     <Box
       data-icon-key={ic.key || ic.ref || `easy-svg/${ic.slug}`}
@@ -2130,7 +2150,7 @@ function IconTile({
                               <TextInput
                                 size="sm"
                                 autoFocus
-                                value={editing || ''}
+                                value={isEditing ? editing : lastEdit.current}
                                 aria-label={
                                   // translators: %s: the icon's current name.
                                   sprintf(__('New name for %s', 'easy-svg'), name)

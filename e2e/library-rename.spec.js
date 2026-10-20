@@ -28,7 +28,7 @@ test.describe('renaming an icon', () => {
 
     const tiles = page.locator(`${PANEL} [data-icon-key]`)
     await expect(page.locator(`${PANEL} [data-icon-key="easy-svg/${slug}"]`)).toBeVisible()
-    const boxes = async () => (await tiles.evaluateAll((els) => els.map((e) => e.getBoundingClientRect())))
+    const boxes = async () => (await tiles.evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.x + window.scrollX, y: r.y + window.scrollY, width: r.width, height: r.height } })))
       .map((r) => [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)].join(','))
     const before = await boxes()
 
