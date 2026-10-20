@@ -627,6 +627,23 @@ function easy_svg_panel_rest(): void {
 	);
 	register_rest_route(
 		'easy-svg/v1',
+		'/library/replace',
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => $perm,
+			'callback'            => 'easy_svg_panel_library_replace',
+			'args'                => array(
+				'id'     => $id_arg,
+				'markup' => array(
+					'type'        => 'string',
+					'required'    => true,
+					'description' => __( 'The new drawing. Cleaned like an upload; the name and the address stay.', 'easy-svg' ),
+				),
+			),
+		)
+	);
+	register_rest_route(
+		'easy-svg/v1',
 		'/library/delete',
 		array(
 			'methods'             => 'POST',
@@ -750,6 +767,7 @@ function easy_svg_panel_library_add( $request ) {
 function easy_svg_panel_added_names( array $result ): array {
 	$slug = (string) ( $result['slug'] ?? '' );
 	return array(
+		'id'     => (int) ( $result['id'] ?? 0 ),
 		'slug'   => $slug,
 		'wanted' => (string) ( $result['wanted'] ?? $slug ),
 	);
@@ -873,6 +891,27 @@ function easy_svg_panel_library_rename( $request ) {
 		return new WP_Error( 'easy_svg_rename_failed', __( 'The icon could not be renamed.', 'easy-svg' ), array( 'status' => 500 ) );
 	}
 
+	return new WP_REST_Response( easy_svg_panel_library_payload() );
+}
+
+/**
+ * POST /library/replace -> give one icon a new drawing, keeping its address.
+ *
+ * #108 K5: a second file with a taken name was stored as `name-2`, and the
+ * panel offers to put that drawing on the icon that has the name instead.
+ * The write is easy_svg_update_icon_markup()'s: the same sanitiser and bounds
+ * as an upload, and post_name, which pages and blocks use, untouched.
+ */
+function easy_svg_panel_library_replace( $request ) {
+	$body  = (array) $request->get_json_params();
+	$id    = isset( $body['id'] ) ? max( 0, (int) $body['id'] ) : 0;
+	$state = easy_svg_update_icon_markup( $id, (string) ( $body['markup'] ?? '' ) );
+	if ( 'not_found' === $state ) {
+		return new WP_Error( 'easy_svg_no_icon', __( 'Icon not found.', 'easy-svg' ), array( 'status' => 404 ) );
+	}
+	if ( 'updated' !== $state ) {
+		return new WP_Error( 'easy_svg_replace_refused', __( 'That file is not an SVG this library can use.', 'easy-svg' ), array( 'status' => 422 ) );
+	}
 	return new WP_REST_Response( easy_svg_panel_library_payload() );
 }
 

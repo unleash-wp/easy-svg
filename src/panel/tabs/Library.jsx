@@ -412,6 +412,39 @@ export default function Library({ ctx }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.iconsEnabled, query])
 
+  /*
+   * #108 K5: a taken name was stored as `name-2`, silently a second icon. The
+   * toast that says so offers to put the drawing on the icon that has the
+   * name instead -- its address, and every page using it, stays -- with Undo.
+   */
+  function offerReplace(fresh, label, markup) {
+    const added = fresh?.added
+    const target = listOf(fresh).find((ic) => ic.slug === added?.wanted)
+    if (!added?.id || !target || added.slug === added.wanted) {
+      return null
+    }
+    return {
+      message: addedMessage(added),
+      // translators: %s: the name that was already taken.
+      actionLabel: sprintf(__('Replace “%s” instead', 'easy-svg'), added.wanted),
+      undo: async () => {
+        const previous = target.content
+        await api.post('/library/replace', { id: target.id, markup })
+        take(await api.post('/library/delete', { id: added.id }))
+        return {
+          // translators: %s: the icon's name.
+          message: sprintf(__('“%s” has the new drawing. Its address stays.', 'easy-svg'), nameOf(target)),
+          undo: async () => {
+            await api.post('/library/replace', { id: target.id, markup: previous })
+            const again = await api.post('/library/add', { label, markup })
+            take(again)
+            return offerReplace(again, label, markup) || { message: __('Undone.', 'easy-svg') }
+          },
+        }
+      },
+    }
+  }
+
   const all = icons || []
 
   // The grid takes a drop too, because adding where you are already looking is
@@ -738,7 +771,11 @@ export default function Library({ ctx }) {
     setBusy(true)
     try {
       const back = await undo()
-      setMoved({ message: back?.message || __('Undone.', 'easy-svg'), undo: null })
+      setMoved({
+        message: back?.message || __('Undone.', 'easy-svg'),
+        undo: 'function' === typeof back?.undo ? back.undo : null,
+        actionLabel: back?.actionLabel,
+      })
       reloadCollections.current()
     } catch (e) {
       setErr(e.message)
@@ -892,8 +929,9 @@ export default function Library({ ctx }) {
     for (const file of files) {
       try {
         const markupOfFile = await readText(file)
-        fresh = await api.post('/library/add', { label: file.name.replace(/\.svg$/i, ''), markup: markupOfFile })
-        rows.push({ file: file.name, ok: true, message: addedMessage(fresh?.added) })
+        const fileLabel = file.name.replace(/\.svg$/i, '')
+        fresh = await api.post('/library/add', { label: fileLabel, markup: markupOfFile })
+        rows.push({ file: file.name, ok: true, message: addedMessage(fresh?.added), offer: () => offerReplace(fresh, fileLabel, markupOfFile) })
       } catch (e) {
         rows.push({ file: file.name, ok: false, message: e.message })
       }
@@ -901,7 +939,14 @@ export default function Library({ ctx }) {
     if (fresh) {
       take(fresh)
     }
-    setReport(rows)
+    // One file whose name was taken: the toast with its offer, not a report.
+    const offer = 1 === rows.length && rows[0].ok ? rows[0].offer() : null
+    if (offer) {
+      setMoved(offer)
+      setReport(null)
+    } else {
+      setReport(rows.map(({ offer: _offer, ...row }) => row))
+    }
     setBusy(false)
     setPickRound((n) => n + 1)
   }
@@ -1009,7 +1054,12 @@ export default function Library({ ctx }) {
       setLabel('')
       setMarkup('')
       setPasting(false)
-      setStatus(addedMessage(fresh?.added))
+      const offer = offerReplace(fresh, label, markup)
+      if (offer) {
+        setMoved(offer)
+      } else {
+        setStatus(addedMessage(fresh?.added))
+      }
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -1677,7 +1727,7 @@ export default function Library({ ctx }) {
               }}
               dismissLabel={__('Dismiss', 'easy-svg')}
               undo={moved?.undo ? undoMove : null}
-              undoLabel={__('Undo', 'easy-svg')}
+              undoLabel={moved?.actionLabel || __('Undo', 'easy-svg')}
               busy={busy}
             >
               {moved ? moved.message : status}

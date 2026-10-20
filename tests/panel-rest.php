@@ -162,6 +162,20 @@ function plugins_url( string $path = '', string $plugin = '' ): string {
 // The rename WRITE lives here now, with the kses handling and the cache bust
 // the checks below drive. The handler in panel.php calls it.
 require dirname( __DIR__ ) . '/includes/icon-writes.php';
+// The replace route writes through easy_svg_update_icon_markup(), which asks
+// the site's sanitiser and accept_icon(); here a <script> stands for refused.
+function easy_svg_sanitizer() {
+	return new class() {
+		public function sanitize( $d ) {
+			return $d;
+		}
+	};
+}
+function easy_svg_accept_icon( $label, $markup, $sanitize, $slugger = null, $max_bytes = 0, $too_complex = null ): array {
+	return str_contains( (string) $markup, '<script' )
+		? array( 'state' => 'refused' )
+		: array( 'state' => 'ok', 'content' => (string) $markup );
+}
 require dirname( __DIR__ ) . '/includes/panel.php';
 
 $passed = 0;
@@ -293,7 +307,8 @@ check( 'SILENCE: and the readable part survives', str_contains( (string) ( $GLOB
 $GLOBALS['add_slug'] = 'heart-2';
 $fresh               = easy_svg_panel_library_add( new WP_REST_Request( array( 'label' => 'Heart', 'markup' => '<svg/>' ) ) )->get_data();
 unset( $GLOBALS['add_slug'] );
-check( 'BELL: the add answer names the slug the icon got and the one it wanted', array( 'slug' => 'heart-2', 'wanted' => 'heart' ) === ( $fresh['added'] ?? null ) );
+// And its id: replacing the taken one instead deletes this copy by it.
+check( 'BELL: the add answer names the slug the icon got and the one it wanted', array( 'id' => 77, 'slug' => 'heart-2', 'wanted' => 'heart' ) === ( $fresh['added'] ?? null ) );
 check( 'SILENCE: and still carries the library page', isset( $fresh['items'] ) );
 
 // ─── library/media: the media library, read on the SERVER ─────────────────────
@@ -498,6 +513,23 @@ check( 'BELL: the new name is sanitised before storage', 'Herz voll' === $GLOBAL
 check( 'SILENCE: kses was off for the write and on again afterwards', array( 'off', 'on' ) === $GLOBALS['kses_calls'] && true === $GLOBALS['kses_on'] );
 check( 'BELL: a rename drops the cached icon list', 1 === $GLOBALS['forgot'] );
 check( 'SILENCE: and it answers with the fresh page', $renamed instanceof WP_REST_Response );
+
+// ─── library/replace: a taken name gets the new drawing, not a -2 twin ───────
+/*
+ * #108 K5. A second file with a taken name is stored as `name-2`, and the
+ * panel now offers to put its drawing on the icon that has the name instead.
+ * The drawing changes; the address, which pages and blocks use, does not.
+ */
+check( 'BELL: the replace route is registered', isset( $GLOBALS['routes']['easy-svg/v1/library/replace'] ) );
+check( 'BELL: /library/replace declares id and markup', array( 'id', 'markup' ) === ( $declared['easy-svg/v1/library/replace'] ?? array() ) );
+check( 'BELL: replace refuses a post that is not an icon', easy_svg_panel_library_replace( new WP_REST_Request( array( 'id' => 5, 'markup' => '<svg/>' ) ) ) instanceof WP_Error );
+$GLOBALS['forgot'] = 0;
+$replaced = easy_svg_panel_library_replace( new WP_REST_Request( array( 'id' => 7, 'markup' => '<svg><path d="M1 1"/></svg>' ) ) );
+check( 'BELL: the icon gets the new drawing', $replaced instanceof WP_REST_Response && str_contains( (string) $GLOBALS['posts'][7]->post_content, 'M1 1' ) );
+check( 'BELL: and keeps its address', 'heart' === $GLOBALS['posts'][7]->post_name );
+check( 'BELL: and drops the cached icon list', 1 === $GLOBALS['forgot'] );
+$unsafe = easy_svg_panel_library_replace( new WP_REST_Request( array( 'id' => 7, 'markup' => '<svg><script>x</script></svg>' ) ) );
+check( 'BELL: markup the sanitiser refuses is refused, and the drawing stays', $unsafe instanceof WP_Error && str_contains( (string) $GLOBALS['posts'][7]->post_content, 'M1 1' ) );
 
 // ─── the library payload says how many there really are ──────────────────────
 //
