@@ -9,6 +9,7 @@ import {
   HStack,
   InputGroup,
   Menu,
+  Popover,
   Portal,
   SimpleGrid,
   Stack,
@@ -157,6 +158,9 @@ const MoveGlyph = () => (
     <path d="M3 7h13l-3-3M21 17H8l3 3" />
   </Glyph>
 )
+// Where a popover portals to: inside the panel, so its type rules reach it.
+const PANEL_ROOT = { current: typeof document !== 'undefined' ? document.getElementById('easy-svg-panel') : null }
+
 const RenameGlyph = () => (
   <Glyph>
     <path d="M12 20h9" />
@@ -1920,7 +1924,6 @@ function IconTile({
       px="2"
       py="2.5"
       minH="96px"
-      gridColumn={isEditing ? 'span 2' : undefined}
       css={{
         // Dimmed, never hidden: fully invisible actions were not found at all
         // until a click landed on one by accident.
@@ -1958,47 +1961,7 @@ function IconTile({
           dangerouslySetInnerHTML={{ __html: sanitizeSvg(ic.content) }}
         />
 
-        {isEditing ? (
-          <Stack gap="2" w="full" pt="1">
-            <TextInput
-              size="sm"
-              autoFocus
-              value={editing}
-              aria-label={
-                // translators: %s: the icon's current name.
-                sprintf(__('New name for %s', 'easy-svg'), name)
-              }
-              onChange={(e) => onEditChange(e.target.value)}
-              onKeyDown={(e) => {
-                if ('Enter' === e.key) {
-                  e.preventDefault()
-                  onEditSave(editing)
-                }
-                if ('Escape' === e.key) {
-                  e.preventDefault()
-                  onEditCancel()
-                }
-              }}
-            />
-            {/* Stacked and full width: side by side the two of them are wider
-                than the tile and get clipped at its edge. */}
-            <Stack gap="2" w="full">
-              <Button
-                size="sm"
-                variant="primary"
-                w="full"
-                onClick={() => onEditSave(editing)}
-                disabled={busy || !editing.trim()}
-              >
-                {__('Save', 'easy-svg')}
-              </Button>
-              <Button size="sm" variant="ghost" w="full" onClick={onEditCancel} disabled={busy}>
-                {__('Cancel', 'easy-svg')}
-              </Button>
-            </Stack>
-          </Stack>
-        ) : (
-          <>
+        <>
             <Text fontSize="xs" color="ui.muted" textAlign="center" lineClamp={2} w="full" title={name}>
               {name}
             </Text>
@@ -2019,8 +1982,8 @@ function IconTile({
                 {ic.slug}
               </Text>
             ) : null}
-            {/* Wraps rather than clips: a set's icon carries more actions than
-                a 110px tile has room for in one row. */}
+            {/* Wraps rather than clips, should a set's icon ever carry more
+                actions than the narrowest tile has room for in one row. */}
             <HStack data-tile-actions gap="0.5" justify="center" pt="0.5" flexWrap="wrap">
               <Menu.Root>
                 {/* The Trigger is the button itself, for the same reason as Move. */}
@@ -2123,17 +2086,71 @@ function IconTile({
               {ic.readonly && !ic.canRename && !ic.canRemove ? null : (
                 <>
                   {ic.readonly && !ic.canRename ? null : (
-                  <IconAction
-                    onClick={onEdit}
-                    disabled={busy}
-                    {...TILE_ACTION_SIZE}
-                    label={
-                      // translators: %s: icon name.
-                      sprintf(__('Rename %s', 'easy-svg'), name)
-                    }
+                  /*
+                   * The name field opens beside the button, not inside the tile:
+                   * in the tile it took two columns and pushed every tile after
+                   * it along, away from the pointer.
+                   */
+                  <Popover.Root
+                    open={isEditing}
+                    onOpenChange={(e) => (e.open ? onEdit() : onEditCancel())}
+                    positioning={{ placement: 'bottom' }}
+                    lazyMount
+                    unmountOnExit
                   >
-                    <RenameGlyph />
-                  </IconAction>
+                    <Popover.Anchor display="inline-flex">
+                      <IconAction
+                        onClick={onEdit}
+                        disabled={busy}
+                        {...TILE_ACTION_SIZE}
+                        label={
+                          // translators: %s: icon name.
+                          sprintf(__('Rename %s', 'easy-svg'), name)
+                        }
+                      >
+                        <RenameGlyph />
+                      </IconAction>
+                    </Popover.Anchor>
+                    {/* Into the panel, not body: outside the grid's scroll box, and
+                        still inside the panel's type rules. */}
+                    <Portal container={PANEL_ROOT}>
+                      <Popover.Positioner>
+                        <Popover.Content w="260px" borderRadius="forge" bg="ui.surface" borderWidth="1px" borderColor="ui.border">
+                          <Popover.Body p="3">
+                            <Stack
+                              as="form"
+                              gap="2"
+                              onSubmit={(e) => {
+                                e.preventDefault()
+                                if ((editing || '').trim()) {
+                                  onEditSave(editing)
+                                }
+                              }}
+                            >
+                              <TextInput
+                                size="sm"
+                                autoFocus
+                                value={editing || ''}
+                                aria-label={
+                                  // translators: %s: the icon's current name.
+                                  sprintf(__('New name for %s', 'easy-svg'), name)
+                                }
+                                onChange={(e) => onEditChange(e.target.value)}
+                              />
+                              <HStack gap="2" justify="flex-end">
+                                <Button size="sm" variant="ghost" type="button" onClick={onEditCancel} disabled={busy}>
+                                  {__('Cancel', 'easy-svg')}
+                                </Button>
+                                <Button size="sm" variant="primary" type="submit" disabled={busy || !(editing || '').trim()}>
+                                  {__('Save', 'easy-svg')}
+                                </Button>
+                              </HStack>
+                            </Stack>
+                          </Popover.Body>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Portal>
+                  </Popover.Root>
                   )}
                   {ic.readonly && !ic.canRemove ? null : (
                   <IconAction
@@ -2152,8 +2169,7 @@ function IconTile({
                 </>
               )}
             </HStack>
-          </>
-        )}
+        </>
       </Stack>
     </Box>
   )
