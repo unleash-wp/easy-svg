@@ -59,7 +59,7 @@ test.describe('icons inside a set, in the grid', () => {
     await provide(page)
     const tile = page.locator(`${PANEL} [data-icon-key="e2e-s/star"]`)
     await tile.getByRole('button', { name: /Rename E2E Star|E2E Star umbenennen/ }).click()
-    const field = tile.getByRole('textbox')
+    const field = page.getByRole('textbox', { name: /New name for|Neuer Name für/ })
     await field.fill('E2E Shiny')
     await field.press('Enter')
     expect(await calls(page)).toEqual([{ relabel: { ref: 'e2e-s/star', label: 'E2E Shiny', setId: 21 } }])

@@ -101,6 +101,9 @@ test.describe('removing picked icons', () => {
     await expect(dialog).toContainText(/Remove 2 icons|2 Icons entfernen/)
     await dialog.getByRole('button', { name: /^(Delete|Löschen)$/ }).click()
     await expect(said(page)).toContainText('1 gone from e2e-s')
+    // Both halves said in one toast: the library half must not replace the
+    // set half and take its Undo with it.
+    await expect(said(page)).toContainText(/1 icon removed\.|1 Icon entfernt\./)
     expect(await calls(page)).toEqual([{ remove: ['e2e-s/i0'], setId: 61 }])
     await expect.poll(async () => (await listIcons(page)).length).toBe(before - 1)
   })

@@ -7,6 +7,7 @@ import {
   VisuallyHidden,
   Box,
   Flex,
+  HStack,
   VStack,
   Text,
   Heading,
@@ -352,6 +353,81 @@ export function useAutosave(save, { delay = 600 } = {}) {
   }, [undo, set])
 
   return { value, state, error, set, flush, prime: prime_, confirmed, undo: undo ? runUndo : null }
+}
+
+/*
+ * What an action said, over the page rather than in it. A line inserted above
+ * a grid pushes every tile down and back up again when it goes. Ten seconds,
+ * held while the pointer or focus is on it, so its Undo is not taken away
+ * from somebody about to press it.
+ */
+export function Toast({ children, onDismiss, dismissLabel, undo, undoLabel, busy, ms = 10000, ...rest }) {
+  const [held, setHeld] = useState(false)
+  const dismiss = useRef(onDismiss)
+  dismiss.current = onDismiss
+  useEffect(() => {
+    if (held) {
+      return undefined
+    }
+    const t = setTimeout(() => dismiss.current?.(), ms)
+    return () => clearTimeout(t)
+  }, [children, held, ms])
+  return (
+    <HStack
+      data-toast
+      role="status"
+      aria-live="polite"
+      position="fixed"
+      bottom={{ base: '3', md: '6' }}
+      right={{ base: '3', md: '6' }}
+      left={{ base: '3', md: 'auto' }}
+      maxW={{ md: '440px' }}
+      zIndex="toast"
+      gap="3"
+      bg="ui.heading"
+      color="ui.surface"
+      borderRadius="forge"
+      boxShadow="0 4px 16px rgba(32,49,89,.24)"
+      ps="4"
+      pe="2"
+      py="2"
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+      {...rest}
+    >
+      <Text as="span" flex="1" fontSize="sm">
+        {children}
+      </Text>
+      {undo ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          color="ui.surface"
+          borderColor="whiteAlpha.500"
+          _hover={{ color: 'ui.surface', borderColor: 'ui.surface', bg: 'whiteAlpha.200' }}
+          onClick={undo}
+          disabled={busy}
+        >
+          {undoLabel}
+        </Button>
+      ) : null}
+      <CIconButton
+        aria-label={dismissLabel}
+        title={dismissLabel}
+        variant="ghost"
+        size="sm"
+        color="ui.surface"
+        _hover={{ bg: 'whiteAlpha.200' }}
+        onClick={() => dismiss.current?.()}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </CIconButton>
+    </HStack>
+  )
 }
 
 /** The way back from a change that took something away, for eight seconds. */
