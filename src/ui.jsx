@@ -20,7 +20,8 @@ import {
 } from '@chakra-ui/react'
 
 // The UnleashWP buttons, same rules as the account app:
-// primary = navy, hover turns it yellow; accent = the one yellow call to action;
+// primary = navy, the one colour for actions; accent (yellow) is kept for
+// callers outside this repo, but yellow here is the Pro badge only;
 // ghost = outline. The "forge" radius is theirs. Ubuntu ships only 400 and
 // 700, so buttons use 700; 500/600 would render as a faux weight the font
 // never shipped.

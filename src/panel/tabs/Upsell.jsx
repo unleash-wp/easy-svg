@@ -24,7 +24,7 @@ export default function Upsell({ proTabs = [], onActivate }) {
         </Stack>
         <Box pt="5">
           <Button
-            variant="accent"
+            variant="primary"
             onClick={() =>
               canActivate
                 ? onActivate()
