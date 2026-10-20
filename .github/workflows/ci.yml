@@ -48,6 +48,8 @@ jobs:
       - run: npm ci
       - name: Lint (panel sources)
         run: npm run lint
+      - name: Every notice names its status
+        run: node tests/notice-status.mjs
 
       # build/panel.js is committed and is what a customer runs; nothing else
       # rebuilds it. An edit to src/ without a rebuild ships the old panel and

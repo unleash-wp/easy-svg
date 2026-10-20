@@ -762,7 +762,7 @@ export default function Library({ ctx }) {
   // Every control on this screen depends on the Icon-library toggle, so nothing
   // is revealed while the feature is off; point back to Settings instead.
   if (!ctx.iconsEnabled) {
-    return <Notice>{__('The icon library is off. Switch it on under the Settings tab.', 'easy-svg')}</Notice>
+    return <Notice status="warning">{__('The icon library is off. Switch it on under the Settings tab.', 'easy-svg')}</Notice>
   }
 
   const clear = () => {
@@ -1390,7 +1390,7 @@ export default function Library({ ctx }) {
         <Text role="status" aria-live="polite" color="ui.goodInk" fontSize="sm">{status}</Text>
       ) : null}
       {truncated ? (
-        <Notice>
+        <Notice status="info">
           {sprintf(
             // translators: 1: how many icons are stored, 2: how many this screen lists.
             __('This site has %1$d icons and this screen lists %2$d of them. The rest are stored and still work in templates and the Icon block.', 'easy-svg'),
