@@ -10,3 +10,5 @@ e2e/.auth/
 # The analyser, installed by CI into its own folder. The pinned lock is
 # committed; what it installs is not.
 /tools/phpstan/vendor/
+# A design tool's local hook cache; never part of the plugin.
+/.impeccable
