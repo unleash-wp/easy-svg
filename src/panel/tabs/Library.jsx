@@ -1787,7 +1787,9 @@ export default function Library({ ctx }) {
               real touch size. auto-FILL, not auto-fit: with three icons in the
               library auto-fit would stretch them across the row.
             */}
-            <SimpleGrid templateColumns="repeat(auto-fill, minmax(110px, 1fr))" gap="3">
+            {/* The minimum is what a tile's four actions need in one row: at
+                110px a wider screen gave a fifth column and wrapped them. */}
+            <SimpleGrid templateColumns="repeat(auto-fill, minmax(136px, 1fr))" gap="3">
               {shown.map((ic) => (
                 <IconTile
                   key={ic.id}
