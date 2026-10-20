@@ -484,10 +484,9 @@ export default function App({ config }) {
         </Text>
         {/*
           Two plugins make one panel, and until now nothing on screen said the
-          paid half was here at all: the version in the corner is the free
-          plugin's, and the add-on's was buried on the licence tab. A badge when
-          it is licensed, and nothing when it is not -- the licence tab is where
-          an inactive licence belongs, not in the brand bar.
+          paid half was here at all. A badge when it is licensed, and nothing
+          when it is not -- the licence tab is where an inactive licence
+          belongs, not in the brand bar. Its version is in the footer.
         */}
         {config.proLicensed ? (
           <Box
@@ -501,12 +500,11 @@ export default function App({ config }) {
             px="1.5"
             py="0.5"
             borderRadius="full"
-            title={config.proVersion ? `Easy SVG Pro ${config.proVersion}` : 'Easy SVG Pro'}
+            title="Easy SVG Pro"
           >
             Pro
           </Box>
         ) : null}
-        {config.version ? <Text ml="auto" textStyle="caption">{`v${config.version}`}</Text> : null}
       </Flex>
 
       {missed ? (
@@ -630,7 +628,7 @@ export default function App({ config }) {
       {/*
         The footer Forge has and this panel did not. It closes the canvas, and
         it answers the first question a support mail has to answer anyway:
-        which version is installed.
+        which version is installed. The one place either version is shown.
       */}
       <Flex
         px={{ base: '4', md: '5' }}
