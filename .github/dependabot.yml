@@ -47,6 +47,10 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: '@vitejs/plugin-react'
         update-types: [version-update:semver-major]
+      # eslint-plugin-react accepts ESLint up to 9 (peer ^9.7); 10 would
+      # leave the React rules unloadable. Lifted once that plugin moves.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
 
   # Workflow actions run with this repository's secrets, including the
   # wordpress.org deploy credentials. Several are two majors behind today;
