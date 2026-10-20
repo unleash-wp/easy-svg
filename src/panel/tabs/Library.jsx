@@ -596,7 +596,7 @@ export default function Library({ ctx }) {
       setConfirming(null)
       return
     }
-    await remove(library)
+    await remove(library, { alongside: sets.length > 0 })
   }
 
   async function exportPicked() {
@@ -1018,7 +1018,9 @@ export default function Library({ ctx }) {
   }
 
   // One id or a selection; the route takes one at a time either way.
-  async function remove(ids) {
+  // `alongside`: part of a bulk removal whose set half already spoke; its
+  // sentence joins that toast instead of replacing it and its Undo.
+  async function remove(ids, { alongside = false } = {}) {
     const list = Array.isArray(ids) ? ids : [ids]
     if (!list.length) {
       return
@@ -1032,13 +1034,16 @@ export default function Library({ ctx }) {
         fresh = await api.post('/library/delete', { id })
         gone++
       }
-      setStatus(
-        sprintf(
-          // translators: %d: number of icons removed.
-          _n('%d icon removed.', '%d icons removed.', gone, 'easy-svg'),
-          gone
-        )
+      const said = sprintf(
+        // translators: %d: number of icons removed.
+        _n('%d icon removed.', '%d icons removed.', gone, 'easy-svg'),
+        gone
       )
+      if (alongside) {
+        setMoved((m) => (m ? { ...m, message: `${m.message} · ${said}` } : { message: said, undo: null }))
+      } else {
+        setStatus(said)
+      }
     } catch (e) {
       setErr(e.message)
     } finally {
