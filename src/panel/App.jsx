@@ -390,27 +390,20 @@ export default function App({ config }) {
 
   return (
     /*
-      One window, not three cards. Header across the top, sidebar flush against
-      the content well, footer across the bottom, all inside a single surface
-      with one border -- the shape the Forge app has. overflow hidden so the
-      corners cut the sidebar and the well instead of them poking out.
+      One frame: header across the top, rail flush against the screen, footer
+      across the bottom, running the width of the content area. No border of
+      its own -- the screen sits directly on the page's grey, and cards are
+      only for real groups. At least as tall as the window, so the white rail
+      and the grey reach the bottom on a short screen.
+
+      NOT overflow:hidden: an overflow other than visible makes this box the
+      scroll container for everything inside, and the sticky header would
+      then stick to a box that does not scroll.
     */
     <Box
-      maxW="1100px"
-      mr={{ base: '3', md: '6' }}
-      mb="10"
-      bg="ui.surface"
-      borderWidth="1px"
-      borderColor="ui.border"
-      borderRadius="forge"
-      /*
-        NOT overflow:hidden, however much the corners want it: an overflow
-        other than visible makes this box the scroll container for everything
-        inside, and a sticky descendant then sticks to a box that does not
-        scroll -- which is to say it does not stick at all. The header and the
-        footer carry the corner radii instead, and they are the only children
-        that reach a corner.
-      */
+      display="flex"
+      flexDirection="column"
+      minH="calc(100vh - var(--esw-admin-bar))"
       /*
         One offset for everything that sticks. wp-admin fixes its bar only
         above 782px -- its own breakpoint, not a Chakra one -- and below that
@@ -436,7 +429,6 @@ export default function App({ config }) {
       <Flex
         borderBottomWidth="1px"
         borderColor="ui.border"
-        borderTopRadius="forge"
         px={{ base: '4', md: '5' }}
         h="65px"
         align="center"
@@ -635,7 +627,6 @@ export default function App({ config }) {
         py="3"
         borderTopWidth="1px"
         borderColor="ui.border"
-        borderBottomRadius="forge"
         bg="ui.surface"
         align="center"
         justify="space-between"

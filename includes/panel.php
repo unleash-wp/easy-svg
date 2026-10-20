@@ -438,7 +438,13 @@ function easy_svg_panel_assets( $hook ): void {
 		// header, rail and cards sit on the same ground they do in the account app
 		// and in Forge. Scoped to this screen's body class, so no other admin page
 		// changes colour.
-		'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
+		// html too: body is only as tall as the viewport, and below it the
+		// page showed html's white.
+		'html:has(body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '),body.toplevel_page_' . EASY_SVG_PANEL_SLUG . '{background:#eef1f6}'
+		// Edge to edge: the panel's header and footer run the full width of
+		// the content area instead of sitting in wp-admin's margins.
+		. 'body.toplevel_page_' . EASY_SVG_PANEL_SLUG . ' #wpcontent{padding-left:0}'
+		. '.wrap:has(> #easy-svg-panel){margin:0}'
 		// Ubuntu, bundled (UFL 1.0, licence text beside the files in
 		// build/fonts) -- the same two faces Pro's set editor loads, so the
 		// whole product renders one brand type. The theme's heading stack
