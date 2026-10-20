@@ -75,7 +75,7 @@ export function LockedTab({ tab, proActive, onActivate }) {
         <Text textStyle="description" maxW="52ch">{tab.teaser}</Text>
         <Box pt="1">
           <Button
-            variant="accent"
+            variant="primary"
             onClick={() =>
               canActivate
                 ? onActivate()
