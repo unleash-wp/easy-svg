@@ -2640,7 +2640,8 @@ check( 'SILENCE: no route asks for a hard-coded page of icons any more', 1 !== p
 // Counted by the CALL, not by one spelling of the line around it: the GET
 // route hands the payload a search term now, and a guard that only recognises
 // the argument-less form would have called that a missing payload.
-check( 'BELL: they all go through the one payload', 5 === preg_match_all( '/(?<!function )easy_svg_panel_library_payload\(/', $panel_php ) );
+// Six since /library/replace (#108 K5).
+check( 'BELL: they all go through the one payload', 6 === preg_match_all( '/(?<!function )easy_svg_panel_library_payload\(/', $panel_php ) );
 $library_jsx = (string) @file_get_contents( $root . '/src/panel/tabs/Library.jsx' );
 check( 'BELL: and the screen says so when it cannot list them all', str_contains( $library_jsx, 'const truncated = total > all.length' ) );
 
