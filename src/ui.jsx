@@ -576,6 +576,8 @@ export function Notice({ bad, role, status, title, children, ...rest }) {
       role={role}
       aria-live={live}
       status={resolved}
+      // Named on the element, so a test reads the status the reader sees.
+      data-status={resolved}
       variant="subtle"
       // Brand navy for a plain notice: Chakra's info palette is its own blue,
       // and this panel has exactly one blue.

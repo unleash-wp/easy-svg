@@ -19,6 +19,7 @@ for f in tests/*.php; do
 done
 
 node tests/build-swap.mjs >/dev/null 2>&1 || { fail=1; echo "RED  build-swap.mjs"; }
+node tests/notice-status.mjs >/dev/null 2>&1 || { fail=1; echo "RED  notice-status.mjs"; }
 scripts/check-i18n.sh >/dev/null 2>&1 || { fail=1; echo "RED  check-i18n.sh (run it for the list)"; }
 
 [ $fail -eq 0 ] && echo "all suites green"

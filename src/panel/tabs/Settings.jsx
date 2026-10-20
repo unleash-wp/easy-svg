@@ -283,7 +283,7 @@ export default function Settings({ ctx }) {
       </Section>
 
       {err ? <Notice bad role="alert">{err}</Notice> : null}
-      {info ? <Notice role="status">{info}</Notice> : null}
+      {info ? <Notice role="status" status="info">{info}</Notice> : null}
 
       <SaveState
         state={auto.state}
