@@ -34,6 +34,19 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # React comes from WordPress at runtime (measured: WP 7.1.3 ships
+      # 18.3.1), so the build has to stay on the major WordPress ships.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      # @vitejs/plugin-react 6 needs Vite 8: a toolchain migration of its own,
+      # done on purpose, not a weekly bump.
+      - dependency-name: vite
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitejs/plugin-react'
+        update-types: [version-update:semver-major]
 
   # Workflow actions run with this repository's secrets, including the
   # wordpress.org deploy credentials. Several are two majors behind today;
