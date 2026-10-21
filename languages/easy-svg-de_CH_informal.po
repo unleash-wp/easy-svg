@@ -112,7 +112,7 @@ msgid ""
 "The largest SVG the sanitizer will parse, in megabytes. Always enforced; "
 "only its value is settable. A number above the ceiling is clamped to it."
 msgstr ""
-"Die größte SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
+"Die grösste SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
 "Grenze gilt immer, einstellbar ist nur ihr Wert. Eine Zahl über der "
 "Obergrenze wird auf sie gesetzt."
 
@@ -192,7 +192,7 @@ msgstr ""
 
 #: includes/panel.php:727
 msgid "That SVG is larger than the size allowed in Settings."
-msgstr "Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe."
+msgstr "Dieses SVG ist grösser als die im Tab „Einstellungen“ erlaubte Grösse."
 
 #: includes/panel.php:729
 msgid "That SVG has too many parts to be read safely."
@@ -253,7 +253,7 @@ msgid ""
 "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library "
 "under %s."
 msgstr ""
-"Easy SVG 5.0: Funktionen sind standardmäßig aus. Aktiviere SVG-Uploads und "
+"Easy SVG 5.0: Funktionen sind standardmässig aus. Aktiviere SVG-Uploads und "
 "die Icon-Bibliothek unter %s."
 
 #. translators: 1: the saved icon reference, 2: the collection it names.
@@ -309,7 +309,7 @@ msgstr "Sicherheit"
 #: build/panel.js
 msgid "Who may upload SVG, how large it may be, and what it may contain."
 msgstr ""
-"Wer SVGs hochladen darf, wie groß sie sein dürfen und was sie enthalten "
+"Wer SVGs hochladen darf, wie gross sie sein dürfen und was sie enthalten "
 "dürfen."
 
 #: build/panel.js
@@ -514,7 +514,7 @@ msgstr "Wiederherstellen"
 
 #: build/panel.js
 msgid "Close"
-msgstr "Schließen"
+msgstr "Schliessen"
 
 #. translators: %d: number of icons selected.
 #: build/panel.js
@@ -592,7 +592,7 @@ msgstr "Der Aufruf zum Kopieren in dein Template"
 
 #: build/panel.js
 msgid "Dismiss"
-msgstr "Schließen"
+msgstr "Schliessen"
 
 #. translators: 1: how many icons are stored, 2: how many this screen lists.
 #: build/panel.js
@@ -605,7 +605,7 @@ msgstr ""
 
 #: build/panel.js
 msgid "Dismiss this report"
-msgstr "Diesen Bericht schließen"
+msgstr "Diesen Bericht schliessen"
 
 #: build/panel.js
 msgid "Your icons"
@@ -828,7 +828,7 @@ msgstr "Hinzufügen"
 msgid ""
 "The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d)."
 msgstr ""
-"Das Größen-Limit wurde als %1$d MB gespeichert, dem nächsten erlaubten Wert "
+"Das Grössen-Limit wurde als %1$d MB gespeichert, dem nächsten erlaubten Wert "
 "(1 bis %2$d)."
 
 #: build/panel.js
@@ -840,8 +840,8 @@ msgid ""
 "Both are off by default. Every SVG is always cleaned and held to the size "
 "cap; that has no switch."
 msgstr ""
-"Beide sind standardmäßig aus. Jedes SVG wird immer bereinigt und an die "
-"Größengrenze gehalten; dafür gibt es keinen Schalter."
+"Beide sind standardmässig aus. Jedes SVG wird immer bereinigt und an die "
+"Grössengrenze gehalten; dafür gibt es keinen Schalter."
 
 #: build/panel.js
 msgid "Allow SVG uploads in the media library"
@@ -862,24 +862,24 @@ msgstr "Fügt den Tab „Icon-Bibliothek“ und den Icon-Block hinzu."
 #: build/panel.js
 msgid "The largest SVG this site accepts, whatever is switched on above."
 msgstr ""
-"Das größte SVG, das diese Website annimmt, egal was oben eingeschaltet ist."
+"Das grösste SVG, das diese Website annimmt, egal was oben eingeschaltet ist."
 
 #: build/panel.js
 msgid "Maximum SVG size (MB)"
-msgstr "Maximale SVG-Größe (MB)"
+msgstr "Maximale SVG-Grösse (MB)"
 
 #. translators: %d: the highest allowed cap in MB.
 #: build/panel.js
 msgid "Larger files are refused. Allowed: 1 to %d MB."
-msgstr "Größere Dateien werden abgelehnt. Erlaubt: 1 bis %d MB."
+msgstr "Grössere Dateien werden abgelehnt. Erlaubt: 1 bis %d MB."
 
 #: build/panel.js
 msgid "Increase the size cap"
-msgstr "Größen-Limit erhöhen"
+msgstr "Grössen-Limit erhöhen"
 
 #: build/panel.js
 msgid "Decrease the size cap"
-msgstr "Größen-Limit verringern"
+msgstr "Grössen-Limit verringern"
 
 #: build/panel.js
 msgid "%d MB"
