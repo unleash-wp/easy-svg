@@ -2736,6 +2736,36 @@ check( 'a failing check is counted', $failed === $before + 1 );
 $failed = $before;
 
 /*
+ * Swiss German: WordPress's de_CH is the FORMAL locale, de_CH_informal the du
+ * one. Measured 2026-10-21: every de_CH catalogue was a copy of de_DE and said
+ * "du" to the readers who chose "Sie". Both Swiss files spell ss, never ß.
+ */
+$ch_dir = dirname( __DIR__ ) . '/languages';
+$ch_active = static function ( string $file ): array {
+	$out = array();
+	foreach ( preg_split( '/\n\n+/', (string) @file_get_contents( $file ) ) as $b ) {
+		if ( 1 === preg_match( '/^#~ msgid/m', $b ) ) {
+			continue;
+		}
+		$at = strpos( $b, 'msgstr' );
+		if ( false !== $at ) {
+			preg_match_all( '/"(.*)"/', substr( $b, $at ), $m );
+			$out[] = implode( '', $m[1] );
+		}
+	}
+	return $out;
+};
+foreach ( array( 'de_DE_formal', 'de_CH' ) as $ch_locale ) {
+	$ch_du = preg_grep( '/\b(du|dich|dir|dein\w*)\b|^(Gib|Kaufe|Wähle|Setze|Lade|Melde|Starte|Prüfe|Füge|Frage) |\bwende dich\b/u', $ch_active( "{$ch_dir}/easy-svg-{$ch_locale}.po" ) );
+	check( "BELL: {$ch_locale} addresses the reader as Sie" . ( $ch_du ? ' -- ' . reset( $ch_du ) : '' ), array() === $ch_du );
+}
+foreach ( array( 'de_CH', 'de_CH_informal' ) as $ch_locale ) {
+	$ch_sz = preg_grep( '/ß/u', $ch_active( "{$ch_dir}/easy-svg-{$ch_locale}.po" ) );
+	check( "BELL: {$ch_locale} spells ss, never ß" . ( $ch_sz ? ' -- ' . reset( $ch_sz ) : '' ), array() === $ch_sz );
+}
+check( 'BELL: and de_CH_informal really is the du catalogue', array() !== preg_grep( '/\b(du|dein\w*|dich)\b/u', $ch_active( "{$ch_dir}/easy-svg-de_CH_informal.po" ) ) );
+
+/*
  * The du->Sie imperative list, held to a named set.
  *
  * Measured 2026-10-14: the same script lives in three repositories, and the
@@ -2763,6 +2793,7 @@ $verbs_want   = [
 	'füge', 'entferne', 'speichere', 'ziehe', 'drücke', 'besuche', 'aktualisiere', 'achte',
 	'beachte', 'starte', 'wende', 'kontaktiere', 'schreibe', 'lies', 'benenne',
 	'führe', 'rufe', 'melde', 'wiederhole', 'exportiere', 'importiere', 'installiere',
+	'fordere', 'warte', 'kaufe', 'bestätige', 'verbinde', 'erneuere', 'frage',
 	'du', 'dir', 'dich', 'dein',
 ];
 $verbs_missing = [];

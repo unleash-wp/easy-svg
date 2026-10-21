@@ -47,11 +47,7 @@ msgid ""
 "sanitizer (%s) before this plugin could load its own, so SVG uploads are "
 "being sanitized with that older version. Please update or deactivate the "
 "plugin it belongs to."
-msgstr ""
-"Easy SVG Support: Ein anderes Plugin hat eine ältere Version des SVG-"
-"Sanitizers (%s) geladen, bevor dieses Plugin seine eigene laden konnte, "
-"daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte "
-"aktualisiere oder deaktiviere das zugehörige Plugin."
+msgstr "Easy SVG Support: Ein anderes Plugin hat eine ältere Version des SVG-Sanitizers (%s) geladen, bevor dieses Plugin seine eigene laden konnte, daher werden SVG-Uploads mit dieser älteren Version bereinigt. Bitte aktualisieren oder deaktivieren Sie das zugehörige Plugin."
 
 #: easy-svg.php:497
 msgid "Sorry, this SVG file is not allowed for security reasons."
@@ -59,15 +55,13 @@ msgstr "Diese SVG-Datei ist aus Sicherheitsgründen leider nicht erlaubt."
 
 #: easy-svg.php:505
 msgid "Sorry, please check your SVG file."
-msgstr "Bitte überprüfe deine SVG-Datei."
+msgstr "Bitte überprüfen Sie Ihre SVG-Datei."
 
 #: easy-svg.php:632
 msgid ""
 "This SVG file contains content this site does not allow. Please upload it "
 "through the media library, which cleans it."
-msgstr ""
-"Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte lade "
-"sie über die Mediathek hoch, die sie bereinigt."
+msgstr "Diese SVG-Datei enthält Inhalte, die diese Website nicht erlaubt. Bitte laden Sie sie über die Mediathek hoch, die sie bereinigt."
 
 #: includes/icon-manager.php:48
 msgid "SVG icons"
@@ -112,7 +106,7 @@ msgid ""
 "The largest SVG the sanitizer will parse, in megabytes. Always enforced; "
 "only its value is settable. A number above the ceiling is clamped to it."
 msgstr ""
-"Die größte SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
+"Die grösste SVG-Datei, die der Sanitizer noch einliest, in Megabyte. Die "
 "Grenze gilt immer, einstellbar ist nur ihr Wert. Eine Zahl über der "
 "Obergrenze wird auf sie gesetzt."
 
@@ -150,9 +144,7 @@ msgstr "Die neue Zeichnung. Bereinigt wie ein Upload; Name und Adresse bleiben."
 msgid ""
 "The sanitizer is unavailable, so nothing was stored. Reinstall the plugin to "
 "restore it."
-msgstr ""
-"Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installiere "
-"das Plugin neu, um ihn wiederherzustellen."
+msgstr "Der Sanitizer ist nicht verfügbar, es wurde nichts gespeichert. Installieren Sie das Plugin neu, um ihn wiederherzustellen."
 
 #: includes/panel.php:713
 msgid "That SVG is empty, so there was nothing to store."
@@ -192,7 +184,7 @@ msgstr ""
 
 #: includes/panel.php:727
 msgid "That SVG is larger than the size allowed in Settings."
-msgstr "Dieses SVG ist größer als die im Tab „Einstellungen“ erlaubte Größe."
+msgstr "Dieses SVG ist grösser als die im Tab „Einstellungen“ erlaubte Grösse."
 
 #: includes/panel.php:729
 msgid "That SVG has too many parts to be read safely."
@@ -202,23 +194,21 @@ msgstr "Dieses SVG hat zu viele Teile, um sicher gelesen zu werden."
 msgid ""
 "The icon could not be added, for a reason this screen has no name for. Try "
 "again, or try a different file."
-msgstr ""
-"Das Icon konnte nicht hinzugefügt werden, aus einem Grund, für den dieser "
-"Bildschirm keinen Namen hat. Versuche es erneut oder mit einer anderen Datei."
+msgstr "Das Icon konnte nicht hinzugefügt werden, aus einem Grund, für den dieser Bildschirm keinen Namen hat. Versuchen Sie es erneut oder mit einer anderen Datei."
 
 #: includes/panel.php:746 includes/panel.php:792 build/panel.js
 msgid "The icon library is off. Switch it on under the Settings tab."
-msgstr "Die Icon-Bibliothek ist aus. Schalte sie im Tab „Einstellungen“ ein."
+msgstr "Die Icon-Bibliothek ist aus. Schalten Sie sie im Tab „Einstellungen“ ein."
 
 #: includes/panel.php:797
 msgid "Choose at least one SVG from the media library."
-msgstr "Wähle mindestens ein SVG aus der Mediathek."
+msgstr "Wählen Sie mindestens ein SVG aus der Mediathek."
 
 #. translators: %d: how many media files one request may carry.
 #: includes/panel.php:804
 #, php-format
 msgid "Choose at most %d files at a time."
-msgstr "Wähle höchstens %d Dateien auf einmal."
+msgstr "Wählen Sie höchstens %d Dateien auf einmal."
 
 #: includes/panel.php:885 includes/panel.php:910 includes/panel.php:924
 msgid "Icon not found."
@@ -242,9 +232,7 @@ msgstr "Diese Datei ist kein SVG, das diese Bibliothek verwenden kann."
 msgid ""
 "Easy SVG 5.0 adds an icon library and a settings panel, under %s. Your SVG "
 "uploads stay on."
-msgstr ""
-"Easy SVG 5.0 bringt eine Icon-Bibliothek und ein Einstellungs-Panel, unter "
-"%s. Deine SVG-Uploads bleiben an."
+msgstr "Easy SVG 5.0 bringt eine Icon-Bibliothek und ein Einstellungs-Panel, unter %s. Ihre SVG-Uploads bleiben an."
 
 #. translators: %s: link to the Icons panel.
 #: includes/settings.php:155
@@ -252,15 +240,12 @@ msgstr ""
 msgid ""
 "Easy SVG 5.0: features are opt-in. Turn on SVG uploads and the icon library "
 "under %s."
-msgstr ""
-"Easy SVG 5.0: Funktionen sind standardmäßig aus. Aktiviere SVG-Uploads und "
-"die Icon-Bibliothek unter %s."
+msgstr "Easy SVG 5.0: Funktionen sind standardmässig aus. Aktivieren Sie SVG-Uploads und die Icon-Bibliothek unter %s."
 
 #. translators: 1: the saved icon reference, 2: the collection it names.
 #: assets/icon-block-notice.js:56
 msgid "This icon was renamed or removed: %1$s. Pick it again from %2$s."
-msgstr ""
-"Dieses Icon wurde umbenannt oder entfernt: %1$s. Wähle es neu aus %2$s aus."
+msgstr "Dieses Icon wurde umbenannt oder entfernt: %1$s. Wählen Sie es neu aus %2$s aus."
 
 #. translators: 1: the saved icon reference, 2: the collection it names.
 #: assets/icon-block-notice.js:62
@@ -284,7 +269,7 @@ msgstr "Speichern fehlgeschlagen (%d)"
 
 #: build/panel.js
 msgid "Upload SVGs safely and keep your icons in one place."
-msgstr "SVGs sicher hochladen und deine Icons an einem Ort halten."
+msgstr "SVGs sicher hochladen und Ihre Icons an einem Ort halten."
 
 #: build/panel.js
 msgid "Design"
@@ -292,7 +277,7 @@ msgstr "Gestalten"
 
 #: build/panel.js
 msgid "Change how icons look, one at a time or many at once."
-msgstr "Ändere, wie Icons aussehen, einzeln oder viele auf einmal."
+msgstr "Ändern Sie, wie Icons aussehen, einzeln oder viele auf einmal."
 
 #: build/panel.js
 msgid "Inspect"
@@ -300,7 +285,7 @@ msgstr "Prüfen"
 
 #: build/panel.js
 msgid "Check the SVG files on this site and clean up what needs it."
-msgstr "Prüfe die SVG-Dateien dieser Website und bereinige, was es braucht."
+msgstr "Prüfen Sie die SVG-Dateien dieser Website und bereinigen Sie, was es braucht."
 
 #: build/panel.js
 msgid "Security"
@@ -309,7 +294,7 @@ msgstr "Sicherheit"
 #: build/panel.js
 msgid "Who may upload SVG, how large it may be, and what it may contain."
 msgstr ""
-"Wer SVGs hochladen darf, wie groß sie sein dürfen und was sie enthalten "
+"Wer SVGs hochladen darf, wie gross sie sein dürfen und was sie enthalten "
 "dürfen."
 
 #: build/panel.js
@@ -318,7 +303,7 @@ msgstr "Einrichtung"
 
 #: build/panel.js
 msgid "Switch features on and manage your license."
-msgstr "Funktionen einschalten und deine Lizenz verwalten."
+msgstr "Funktionen einschalten und Ihre Lizenz verwalten."
 
 #: build/panel.js
 msgid "Icon sets"
@@ -328,9 +313,7 @@ msgstr "Icon-Sets"
 msgid ""
 "Bundle SVGs into collections and render them with the Icon block or "
 "easy_svg_icon()."
-msgstr ""
-"Bündele SVGs zu Sammlungen und rendere sie per Icon-Block oder "
-"easy_svg_icon()."
+msgstr "Bündeln Sie SVGs zu Sammlungen und rendern Sie sie per Icon-Block oder easy_svg_icon()."
 
 #: build/panel.js
 msgid "SVG cleaner"
@@ -348,9 +331,7 @@ msgstr "Konfigurator"
 msgid ""
 "Allow extra SVG elements that some icon libraries need. Dangerous ones stay "
 "blocked."
-msgstr ""
-"Erlaube zusätzliche SVG-Elemente, die manche Icon-Bibliotheken brauchen. "
-"Gefährliche bleiben gesperrt."
+msgstr "Erlauben Sie zusätzliche SVG-Elemente, die manche Icon-Bibliotheken brauchen. Gefährliche bleiben gesperrt."
 
 #: build/panel.js
 msgid "License"
@@ -376,9 +357,7 @@ msgstr "Menü einklappen"
 msgid ""
 "That landed next to the drop area. Drop SVG files on the dashed area in the "
 "Icon library tab."
-msgstr ""
-"Das ist neben der Ablagefläche gelandet. Lege SVG-Dateien auf der "
-"gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
+msgstr "Das ist neben der Ablagefläche gelandet. Legen Sie SVG-Dateien auf der gestrichelten Fläche im Tab „Icon-Bibliothek“ ab."
 
 #: build/panel.js
 msgid "Easy SVG by UnleashWP"
@@ -514,7 +493,7 @@ msgstr "Wiederherstellen"
 
 #: build/panel.js
 msgid "Close"
-msgstr "Schließen"
+msgstr "Schliessen"
 
 #. translators: %d: number of icons selected.
 #: build/panel.js
@@ -556,7 +535,7 @@ msgstr "Löschen"
 
 #: build/panel.js
 msgid "Drop your first SVG here"
-msgstr "Leg dein erstes SVG hier ab"
+msgstr "Legen Sie Ihr erstes SVG hier ab"
 
 #: build/panel.js
 msgid "Drop SVG files here"
@@ -572,7 +551,7 @@ msgstr "Aus der Mediathek wählen"
 
 #: build/panel.js
 msgid "There is no limit on how many icons you keep."
-msgstr "Wie viele Icons du behältst, ist nicht begrenzt."
+msgstr "Wie viele Icons Sie behalten, ist nicht begrenzt."
 
 #: build/panel.js
 msgid "The clipboard is not available here"
@@ -588,11 +567,11 @@ msgstr "Kopieren"
 
 #: build/panel.js
 msgid "The call to copy into your template"
-msgstr "Der Aufruf zum Kopieren in dein Template"
+msgstr "Der Aufruf zum Kopieren in Ihr Template"
 
 #: build/panel.js
 msgid "Dismiss"
-msgstr "Schließen"
+msgstr "Schliessen"
 
 #. translators: 1: how many icons are stored, 2: how many this screen lists.
 #: build/panel.js
@@ -605,11 +584,11 @@ msgstr ""
 
 #: build/panel.js
 msgid "Dismiss this report"
-msgstr "Diesen Bericht schließen"
+msgstr "Diesen Bericht schliessen"
 
 #: build/panel.js
 msgid "Your icons"
-msgstr "Deine Icons"
+msgstr "Ihre Icons"
 
 #. translators: %d: number of icons in the library.
 #: build/panel.js
@@ -809,7 +788,7 @@ msgstr "SVG-Markup"
 
 #: build/panel.js
 msgid "Paste the <svg>…</svg>."
-msgstr "Füge das <svg>…</svg> ein."
+msgstr "Fügen Sie das <svg>…</svg> ein."
 
 #: build/panel.js
 msgid "Preview"
@@ -828,7 +807,7 @@ msgstr "Hinzufügen"
 msgid ""
 "The size cap was saved as %1$d MB, the nearest allowed value (1 to %2$d)."
 msgstr ""
-"Das Größen-Limit wurde als %1$d MB gespeichert, dem nächsten erlaubten Wert "
+"Das Grössen-Limit wurde als %1$d MB gespeichert, dem nächsten erlaubten Wert "
 "(1 bis %2$d)."
 
 #: build/panel.js
@@ -840,8 +819,8 @@ msgid ""
 "Both are off by default. Every SVG is always cleaned and held to the size "
 "cap; that has no switch."
 msgstr ""
-"Beide sind standardmäßig aus. Jedes SVG wird immer bereinigt und an die "
-"Größengrenze gehalten; dafür gibt es keinen Schalter."
+"Beide sind standardmässig aus. Jedes SVG wird immer bereinigt und an die "
+"Grössengrenze gehalten; dafür gibt es keinen Schalter."
 
 #: build/panel.js
 msgid "Allow SVG uploads in the media library"
@@ -862,24 +841,24 @@ msgstr "Fügt den Tab „Icon-Bibliothek“ und den Icon-Block hinzu."
 #: build/panel.js
 msgid "The largest SVG this site accepts, whatever is switched on above."
 msgstr ""
-"Das größte SVG, das diese Website annimmt, egal was oben eingeschaltet ist."
+"Das grösste SVG, das diese Website annimmt, egal was oben eingeschaltet ist."
 
 #: build/panel.js
 msgid "Maximum SVG size (MB)"
-msgstr "Maximale SVG-Größe (MB)"
+msgstr "Maximale SVG-Grösse (MB)"
 
 #. translators: %d: the highest allowed cap in MB.
 #: build/panel.js
 msgid "Larger files are refused. Allowed: 1 to %d MB."
-msgstr "Größere Dateien werden abgelehnt. Erlaubt: 1 bis %d MB."
+msgstr "Grössere Dateien werden abgelehnt. Erlaubt: 1 bis %d MB."
 
 #: build/panel.js
 msgid "Increase the size cap"
-msgstr "Größen-Limit erhöhen"
+msgstr "Grössen-Limit erhöhen"
 
 #: build/panel.js
 msgid "Decrease the size cap"
-msgstr "Größen-Limit verringern"
+msgstr "Grössen-Limit verringern"
 
 #: build/panel.js
 msgid "%d MB"

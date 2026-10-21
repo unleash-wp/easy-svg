@@ -10,7 +10,11 @@
  * translation site fills those in eventually; a plugin sold off it has only
  * what ships.
  *
- * de_AT, de_CH and de_CH_informal are the same translation: regional, and
+ * WordPress's de_CH is the FORMAL Swiss locale and de_CH_informal the du one,
+ * so de_CH is derived from the formal wording and de_CH_informal from de_DE,
+ * both with Swiss spelling (ss for ß). de_AT is a plain copy of de_DE.
+ *
+ * de_AT, de_CH and de_CH_informal were once the same translation: regional, and
  * informal like ours. de_DE_formal is NOT -- somebody chose "Sie". Its file is
  * derived through de_DE_formal.map.json, one entry per string that addresses
  * the reader, and a test fails when a new one appears that the map has no
@@ -31,7 +35,27 @@ if ( array() === $sources ) {
 }
 
 /** Plain copies: same words, different locale name. */
-const COPIES = array( 'de_AT', 'de_CH', 'de_CH_informal' );
+const COPIES = array( 'de_AT' );
+
+/** Swiss orthography in every translation: no ß, ss instead. msgids stay as written. */
+function swiss( string $po ): string {
+	$blocks = explode( "\n\n", $po );
+	foreach ( $blocks as $k => $block ) {
+		$at = strpos( $block, "\nmsgstr" );
+		if ( false === $at ) {
+			$at = 0 === strpos( $block, 'msgstr' ) ? 0 : false;
+		}
+		if ( false !== $at ) {
+			$blocks[ $k ] = substr( $block, 0, $at ) . str_replace( array( 'ß', 'ẞ' ), array( 'ss', 'SS' ), substr( $block, $at ) );
+		}
+	}
+	return implode( "\n\n", $blocks );
+}
+
+/** Rename the Language header of a derived catalogue. */
+function relabel( string $po, string $from, string $to ): string {
+	return (string) preg_replace( '/^("Language: )' . $from . '(\\\\n")$/m', '${1}' . $to . '${2}', $po );
+}
 
 /** Read a .po into blocks, so a multi-line entry survives the round trip. */
 function po_blocks( string $text ): array {
@@ -79,6 +103,9 @@ function apply_map( string $po, array $map ): array {
 		// easy-svg-pro first and backported, which is why tests/run.php now
 		// holds the list to a named set in each repository that has one.
 		. '|führe|rufe|melde|wiederhole|exportiere|importiere|installiere'
+		// The updater's account sign-in, move and renewal verbs, and "frage":
+		// easy-svg-pro's formal catalogue shipped "Frage list-icons …" as du.
+		. '|fordere|warte|kaufe|bestätige|verbinde|erneuere|frage'
 		// Not "stelle": "an Ort und Stelle" is a noun, and a false positive
 		// here asks for a map entry that changes nothing, which reads like an
 		// oversight rather than a decision.
@@ -151,6 +178,11 @@ foreach ( $sources as $source ) {
 	$formal                            = preg_replace( '/^("Language: )de_DE(\\\\n")$/m', '${1}de_DE_formal${2}', $formal );
 	file_put_contents( sprintf( '%s/%s-de_DE_formal.po', $dir, $basename ), $formal );
 	$written[] = 'de_DE_formal';
+
+	file_put_contents( sprintf( '%s/%s-de_CH.po', $dir, $basename ), swiss( relabel( $formal, 'de_DE_formal', 'de_CH' ) ) );
+	file_put_contents( sprintf( '%s/%s-de_CH_informal.po', $dir, $basename ), swiss( relabel( $po, 'de_DE', 'de_CH_informal' ) ) );
+	$written[] = 'de_CH';
+	$written[] = 'de_CH_informal';
 
 	foreach ( $missing as $text ) {
 		$faults[] = 'no formal wording for: ' . $text;
