@@ -1329,6 +1329,7 @@ check( 'BELL: and the panel still fires its enqueue hook for add-ons', str_conta
 
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
+check( 'BELL: the wp.org page carries no dash as punctuation', 0 === preg_match( '/[–—]| -- /u', $readme_text ) );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
 check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
@@ -2807,6 +2808,29 @@ check(
 	'BELL: the du->Sie list still covers every word it is meant to (' . implode( ', ', $verbs_missing ) . ')',
 	[] === $verbs_missing
 );
+
+/*
+ * No dash as punctuation in anything a person reads. The owner's rule: an
+ * en dash, an em dash or a spaced double hyphen in a msgid or a msgstr is a
+ * sentence that wants to be two sentences, or "to" / "bis" for a range.
+ * Checked in every catalogue form WordPress loads: .pot, .po, .mo, the JS JSON.
+ */
+$dash_hits = array();
+foreach ( glob( $root . '/languages/*' ) ?: array() as $lang_path ) {
+	$ext = pathinfo( $lang_path, PATHINFO_EXTENSION );
+	$raw = (string) file_get_contents( $lang_path );
+	if ( 'json' === $ext ) {
+		$raw = (string) json_encode( json_decode( $raw, true ), JSON_UNESCAPED_UNICODE );
+	} elseif ( 'po' === $ext || 'pot' === $ext ) {
+		$raw = implode( "\n", preg_grep( '/^(msgid|msgstr|")/', explode( "\n", $raw ) ) ?: array() );
+	} elseif ( 'mo' !== $ext ) {
+		continue;
+	}
+	if ( 1 === preg_match( '/\xE2\x80[\x93\x94]| -- /', $raw ) ) {
+		$dash_hits[] = basename( $lang_path );
+	}
+}
+check( 'no catalogue msgid or msgstr uses an en dash, an em dash or " -- " (' . implode( ', ', $dash_hits ) . ')', array() === $dash_hits );
 
 echo 0 === $failed
 	? "all {$passed} checks passed\n"
