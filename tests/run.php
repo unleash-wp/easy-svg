@@ -1329,6 +1329,7 @@ check( 'BELL: and the panel still fires its enqueue hook for add-ons', str_conta
 
 // Documented where an add-on author looks, not only in the source.
 $readme_text = (string) file_get_contents( $root . '/readme.txt' );
+check( 'BELL: the wp.org page carries no dash as punctuation', 0 === preg_match( '/[–—]| -- /u', $readme_text ) );
 check( 'the API number is documented for add-on authors', false !== strpos( $readme_text, 'EASY_SVG_API' ) );
 check( 'BELL: with the value it has today', 1 === preg_match( '/EASY_SVG_API`? is (an integer.*?It is )?3\b/s', $readme_text ) );
 check( 'the panel contract is documented too', false !== strpos( $readme_text, 'EASY_SVG_PANEL_API' ) );
