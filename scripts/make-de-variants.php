@@ -79,6 +79,9 @@ function apply_map( string $po, array $map ): array {
 		// easy-svg-pro first and backported, which is why tests/run.php now
 		// holds the list to a named set in each repository that has one.
 		. '|führe|rufe|melde|wiederhole|exportiere|importiere|installiere'
+		// The updater's account sign-in, move and renewal verbs, and "frage":
+		// easy-svg-pro's formal catalogue shipped "Frage list-icons …" as du.
+		. '|fordere|warte|kaufe|bestätige|verbinde|erneuere|frage'
 		// Not "stelle": "an Ort und Stelle" is a noun, and a false positive
 		// here asks for a map entry that changes nothing, which reads like an
 		// oversight rather than a decision.

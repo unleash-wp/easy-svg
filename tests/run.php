@@ -2763,6 +2763,7 @@ $verbs_want   = [
 	'füge', 'entferne', 'speichere', 'ziehe', 'drücke', 'besuche', 'aktualisiere', 'achte',
 	'beachte', 'starte', 'wende', 'kontaktiere', 'schreibe', 'lies', 'benenne',
 	'führe', 'rufe', 'melde', 'wiederhole', 'exportiere', 'importiere', 'installiere',
+	'fordere', 'warte', 'kaufe', 'bestätige', 'verbinde', 'erneuere', 'frage',
 	'du', 'dir', 'dich', 'dein',
 ];
 $verbs_missing = [];
