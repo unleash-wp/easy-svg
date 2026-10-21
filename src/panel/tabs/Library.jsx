@@ -1248,7 +1248,7 @@ export default function Library({ ctx }) {
                       {v.since && v.since !== v.date
                         ? sprintf(
                             // translators: 1: date the drawing was first saved, 2: date it was last saved.
-                            __('%1$s – %2$s', 'easy-svg'),
+                            __('%1$s to %2$s', 'easy-svg'),
                             when(v.since),
                             when(v.date)
                           )

@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Easy SVG Support 5.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg\n"
-"POT-Creation-Date: 2026-10-20T12:42:24+00:00\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/easy-svg-nodash\n"
+"POT-Creation-Date: 2026-10-21T17:14:36+00:00\n"
 "PO-Revision-Date: 2026-10-08 20:00+0000\n"
 "Last-Translator: Benjamin Zekavica <info@benjamin-zekavica.de>\n"
 "Language-Team: Deutsch <de_DE@li.org>\n"
@@ -138,7 +138,8 @@ msgstr "Der neue sichtbare Name. Der Slug bleibt unberührt."
 
 #: includes/panel.php:640
 msgid "The new drawing. Cleaned like an upload; the name and the address stay."
-msgstr "Die neue Zeichnung. Bereinigt wie ein Upload; Name und Adresse bleiben."
+msgstr ""
+"Die neue Zeichnung. Bereinigt wie ein Upload; Name und Adresse bleiben."
 
 #: includes/panel.php:711
 msgid ""
@@ -480,8 +481,8 @@ msgstr "Bisher ist nur die Zeichnung gespeichert, die gerade verwendet wird."
 
 #. translators: 1: date the drawing was first saved, 2: date it was last saved.
 #: build/panel.js
-msgid "%1$s – %2$s"
-msgstr "%1$s – %2$s"
+msgid "%1$s to %2$s"
+msgstr "%1$s bis %2$s"
 
 #: build/panel.js
 msgid "In use"

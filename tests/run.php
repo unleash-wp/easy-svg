@@ -2808,6 +2808,29 @@ check(
 	[] === $verbs_missing
 );
 
+/*
+ * No dash as punctuation in anything a person reads. The owner's rule: an
+ * en dash, an em dash or a spaced double hyphen in a msgid or a msgstr is a
+ * sentence that wants to be two sentences, or "to" / "bis" for a range.
+ * Checked in every catalogue form WordPress loads: .pot, .po, .mo, the JS JSON.
+ */
+$dash_hits = array();
+foreach ( glob( $root . '/languages/*' ) ?: array() as $lang_path ) {
+	$ext = pathinfo( $lang_path, PATHINFO_EXTENSION );
+	$raw = (string) file_get_contents( $lang_path );
+	if ( 'json' === $ext ) {
+		$raw = (string) json_encode( json_decode( $raw, true ), JSON_UNESCAPED_UNICODE );
+	} elseif ( 'po' === $ext || 'pot' === $ext ) {
+		$raw = implode( "\n", preg_grep( '/^(msgid|msgstr|")/', explode( "\n", $raw ) ) ?: array() );
+	} elseif ( 'mo' !== $ext ) {
+		continue;
+	}
+	if ( 1 === preg_match( '/\xE2\x80[\x93\x94]| -- /', $raw ) ) {
+		$dash_hits[] = basename( $lang_path );
+	}
+}
+check( 'no catalogue msgid or msgstr uses an en dash, an em dash or " -- " (' . implode( ', ', $dash_hits ) . ')', array() === $dash_hits );
+
 echo 0 === $failed
 	? "all {$passed} checks passed\n"
 	: "{$failed} of " . ( $passed + $failed ) . " checks FAILED\n";
