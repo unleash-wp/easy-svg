@@ -147,4 +147,43 @@ const config = defineConfig({
   },
 })
 
-export const system = createSystem(defaultConfig, config)
+// Chakra's reset and default global CSS are written for a page Chakra owns.
+// Unscoped they reached all of wp-admin: every admin-menu and admin-bar item took
+// `border-style: solid` and showed a border. Both are confined to the roots the
+// plugins mount; :where keeps the reset at zero specificity, as it is unscoped.
+// The token variables stay on html: Chakra writes its light tokens to :root, and
+// they resolve there or not at all. Free and Pro must keep this block identical.
+const ROOT = ':where(#easy-svg-panel, #easy-svg-pro-editor)'
+
+const scopedGlobalCss = Object.fromEntries(
+  Object.entries(defaultConfig.globalCss ?? {})
+    // html would paint wp-admin's own canvas, line height and colours.
+    .filter(([selector]) => selector !== 'html')
+    .map(([selector, styles]) => [
+      selector
+        .split(',')
+        .map((part) => `${ROOT} ${part.trim()}`)
+        .concat(selector === '*' ? [ROOT] : [])
+        .join(', '),
+      styles,
+    ])
+)
+
+export const system = createSystem(
+  {
+    ...defaultConfig,
+    preflight: { scope: ROOT },
+    globalCss: {
+      ...scopedGlobalCss,
+      // The scoped reset puts html's line height and font smoothing on the
+      // root; the panel always inherited wp-admin's, and keeps doing so.
+      [ROOT]: {
+        lineHeight: 'inherit',
+        WebkitFontSmoothing: 'inherit',
+        MozOsxFontSmoothing: 'inherit',
+        textRendering: 'inherit',
+      },
+    },
+  },
+  config
+)

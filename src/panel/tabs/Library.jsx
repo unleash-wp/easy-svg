@@ -158,7 +158,8 @@ const MoveGlyph = () => (
     <path d="M3 7h13l-3-3M21 17H8l3 3" />
   </Glyph>
 )
-// Where a popover portals to: inside the panel, so its type rules reach it.
+// Where a menu or popover portals to: inside the panel, the only place the
+// scoped Chakra reset and tokens reach (src/theme.js).
 const PANEL_ROOT = { current: typeof document !== 'undefined' ? document.getElementById('easy-svg-panel') : null }
 
 const RenameGlyph = () => (
@@ -1791,7 +1792,7 @@ export default function Library({ ctx }) {
                         >
                           <MoreGlyph />
                         </Menu.Trigger>
-                        <Portal>
+                        <Portal container={PANEL_ROOT}>
                           <Menu.Positioner>
                             <Menu.Content>
                               {canRename ? (
@@ -2081,7 +2082,7 @@ function IconTile({
                 >
                   <CopyGlyph />
                 </Menu.Trigger>
-                <Portal>
+                <Portal container={PANEL_ROOT}>
                   <Menu.Positioner>
                     <Menu.Content>
                       {forms.map((f) => (
@@ -2117,7 +2118,7 @@ function IconTile({
                   >
                     <MoreGlyph />
                   </Menu.Trigger>
-                  <Portal>
+                  <Portal container={PANEL_ROOT}>
                     <Menu.Positioner>
                       <Menu.Content>
                         {onHistory ? (
